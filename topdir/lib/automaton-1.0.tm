@@ -5,12 +5,14 @@ namespace eval ::FSM {
     namespace eval inner {
         variable params {}
         variable transMat {}
+        variable transAct {}
         proc reset {} {
             variable params {}
             variable transMat {}
+            variable transAct {}
         }
         proc State {name body} {
-            namespace eval ::FSM::inner [list interp alias {} transition {} apply {{name input state} {
+            namespace eval ::FSM::inner [list interp alias {} transition {} apply {{name input state {action {}}} {
                 namespace upvar ::FSM::inner transMat transMat
                 if {[dict exists $transMat $name $input]} {
                     dict with transMat $name {
@@ -19,6 +21,7 @@ namespace eval ::FSM {
                 } else {
                     dict set transMat $name $input [list $state]
                 }
+                dict set transAct $name $input $action
             }} $name]
             namespace eval ::FSM::inner $body
             namespace eval ::FSM::inner [list interp alias {} transition {}]
@@ -26,6 +29,7 @@ namespace eval ::FSM {
         interp alias {} start {} dict set params start
         interp alias {} accept {} dict set params accept
         interp alias {} input {} dict set params input
+        interp alias {} output {} dict set params output
     }
 
     oo::class create CMachine {
