@@ -5,8 +5,21 @@ namespace eval ::FSM {
     namespace eval inner {
         variable params {}
         variable transMat {}
+        proc reset {} {
+            variable params {}
+            variable transMat {}
+        }
         proc State {name body} {
-            namespace eval ::FSM::inner [list interp alias {} transition {} dict set transMat $name]
+            namespace eval ::FSM::inner [list interp alias {} transition {} apply {{name input state} {
+                namespace upvar ::FSM::inner transMat transMat
+                if {[dict exists $transMat $name $input]} {
+                    dict with transMat $name {
+                        lappend $input $state
+                    }
+                } else {
+                    dict set transMat $name $input [list $state]
+                }
+            }} $name]
             namespace eval ::FSM::inner $body
             namespace eval ::FSM::inner [list interp alias {} transition {}]
         }
@@ -23,25 +36,48 @@ namespace eval ::FSM {
         method set args {
             dict set params {*}$args
         }
+        method accept states {
+            log::log d [info level 0] 
+            foreach state $states {
+                log::log d [format {"%s" %s} $state [dict get $params accept]]
+                if [format {"%s" %s} $state [dict get $params accept]] {
+                    return 1
+                }
+            }
+            return 0
+        }
         method run {} {
-            set state [dict get $params start]
-            set input {}
+            set states [list [dict get $params start]]
+            lassign $states state
+            log::log d transMat=$transMat
+            log::log d input=[dict get $params input i]
             while {1} {
+                set input {}
                 dict for {k v} [dict get $params input] {
                     dict set params input $k [lassign $v token]
                     lappend input $token
                 }
                 if {{} in $input} {
-                    break
+                    return [my accept $states]
                 }
-                set state [dict get $transMat $state [join $input ,]]
-                set input {}
+                if {[llength $states] eq 0} {
+                    return 0
+                }
+                # ε-moves
+                set nextStates {}
+                set symbol [join $input ,]
+                foreach state $states {
+                    log::log d \$state=$state 
+                    lappend nextStates {*}[dict get $transMat $state $symbol]
+                }
+                log::log d \$nextStates=$nextStates 
+                set states $nextStates
             }
-            return [expr [format {"%s" %s} $state [dict get $params accept]]]
         }
     }
 
     proc Machine {name body} {
+        inner::reset
         namespace eval ::FSM::inner $body
         CMachine create [uplevel 1 {namespace current}]::$name $inner::params $inner::transMat
     }
