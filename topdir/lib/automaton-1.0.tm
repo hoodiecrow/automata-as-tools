@@ -50,7 +50,7 @@ namespace eval ::FSM {
             set states [list [dict get $params start]]
             lassign $states state
             log::log d transMat=$transMat
-            log::log d input=[dict get $params input i]
+            log::log d input=[dict get $params input]
             while {1} {
                 set input {}
                 dict for {k v} [dict get $params input] {
@@ -64,11 +64,20 @@ namespace eval ::FSM {
                     return 0
                 }
                 # ε-moves
+                set symbol ε
+                foreach state $states {
+                    if {[dict exists $transMat $state $symbol]} {
+                        lappend states {*}[dict get $transMat $state $symbol]
+                    }
+                }
+                set states [lsort -unique $states]
                 set nextStates {}
                 set symbol [join $input ,]
                 foreach state $states {
                     log::log d \$state=$state 
-                    lappend nextStates {*}[dict get $transMat $state $symbol]
+                    if {[dict exists $transMat $state $symbol]} {
+                        lappend nextStates {*}[dict get $transMat $state $symbol]
+                    }
                 }
                 log::log d \$nextStates=$nextStates 
                 set states $nextStates

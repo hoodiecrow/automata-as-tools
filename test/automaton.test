@@ -109,33 +109,51 @@ test nfa-1.0 {} -body {
     log::lvSuppressLE i 1
 } -result {1 0 1 0 1 0}
 
-cleanupTests ; return
-
 test nfa-1.1 {find even number of ones/zeros} -body {
-    ::automaton::FSM create M {
-        {s0 ε s1}
-        {s0 ε s3}
-        {s1 0 s2}
-        {s1 1 s1}
-        {s2 0 s1}
-        {s2 1 s2}
-        {s3 0 s3}
-        {s3 1 s4}
-        {s4 0 s4}
-        {s4 1 s3}
+    Machine M {
+        State s0 {
+            transition ε s1
+            transition ε s3
+        }
+        State s1 {
+            transition 0 s2
+            transition 1 s1
+        }
+        State s2 {
+            transition 0 s1
+            transition 1 s2
+        }
+        State s3 {
+            transition 0 s3
+            transition 1 s4
+        }
+        State s4 {
+            transition 0 s4
+            transition 1 s3
+        }
+        start s0
+        accept {in {s1 s3}}
     }
     set res {}
-    lappend res [M accept {s0} {1 1} {s1 s3}]
-    lappend res [M accept {s0} {1 0} {s1 s3}]
-    lappend res [M accept {s0} {0 1} {s1 s3}]
-    lappend res [M accept {s0} {0 0} {s1 s3}]
-    lappend res [M accept {s0} {1 0 0 1 1 1} {s1 s3}]
-    lappend res [M accept {s0} {1 0 0 1 1 0} {s1 s3}]
+    M set input i {1 1}
+    lappend res [M run]
+    M set input i {1 0}
+    lappend res [M run]
+    M set input i {0 1}
+    lappend res [M run]
+    M set input i {0 0}
+    lappend res [M run]
+    M set input i {1 0 0 1 1 1}
+    lappend res [M run]
+    M set input i {1 0 0 1 1 0}
+    lappend res [M run]
     set res
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
 } -result {1 0 0 1 1 0}
+
+cleanupTests ; return
 
 test pda-1.0 {} -body {
     ::automaton::PDA create M {
