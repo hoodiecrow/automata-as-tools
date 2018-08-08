@@ -1,0 +1,5 @@
+set dir [file dirname [file normalize [info script]]]
+set kits [file normalize ~/starkits]
+set KIT [file join $kits [file tail $dir].kit]
+exec tclsh [file join $kits sdx.kit] wrap $KIT -vfs [file join $dir topdir]
+set EXEC [list ::exec tclsh $KIT]
