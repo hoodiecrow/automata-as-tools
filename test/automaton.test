@@ -169,22 +169,38 @@ test pda-1.0 {0^n1^n | n >= 0} -body {
 } -result {0 1 1}
 
 test tm-1.0 {3 state, 2 symbol busy beaver} -body {
-    ::TM create M [lrepeat 22 0] 11
+    ::TM create M [lrepeat 10 0] 5
     M set {A 0/1;R} B
     M set {A 1/1;L} C
     M set {B 0/1;L} A
     M set {B 1/1;R} B
-    M set {C 0/1;N} B
+    M set {C 0/1;L} B
     M set {C 1/1;R} H
     M start A
-    M accepting H
-    log::lvSuppressLE i 0
+    M halting H
     M run
-    M tape
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {}
+} -result {0 0 1 1 1 1 1 1 0 0}
+
+test tm-1.1 {4 state, 2 symbol busy beaver} -body {
+    ::TM create M [lrepeat 20 0] 11
+    M set {A 0/1;R} B
+    M set {A 1/1;L} B
+    M set {B 0/1;L} A
+    M set {B 1/0;L} C
+    M set {C 0/1;R} H
+    M set {C 1/1;L} D
+    M set {D 0/1;R} D
+    M set {D 1/0;R} A
+    M start A
+    M halting H
+    M run
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {0 1 0 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0}
 
 
 

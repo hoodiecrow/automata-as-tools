@@ -72,12 +72,24 @@ oo::class create ::FSM {
 oo::class create ::TM {
     superclass ::FSM
 
-    variable start tape position output
+    variable start tape position output halting
 
     constructor args {
         set args [lassign $args tape position]
         set output {}
+        set halting {}
         next {} {*}$args
+    }
+
+    method halting args {
+        set halting $args
+    }
+
+    method halt states {
+        foreach state $states {
+            if {$state in $halting} {return 1}
+        }
+        return 0
     }
 
     method set {key nstate} {
@@ -101,6 +113,7 @@ oo::class create ::TM {
                 L { incr position -1 }
                 R { incr position 1 }
             }
+            # TODO check boundaries / extend tape
         }
         return $t
     }
@@ -111,12 +124,15 @@ oo::class create ::TM {
         while {$input ne {}} {
             set states [my nstates [my nstates $states {}] $input]
             if {[llength $states] < 1} {
-                return 0
+                return
+            }
+            if {[my halt $states]} {
+                break
             }
             set input [lindex $tape $position]
         }
         set states [my nstates $states {}]
-        return [my accept $states]
+        return [my tape]
     }
 
     method tape {} {
