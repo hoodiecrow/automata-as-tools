@@ -2,7 +2,7 @@ package require tcltest
 
 set ::DIRS(test) [file dirname [file normalize [info script]]]
 set ::DIRS(base) [file dirname $::DIRS(test)]
-set ::project    [string tolower [file tail $::DIRS(base)]]
+set ::project    automaton
 set ::DIRS(lib)  [file join $::DIRS(base) topdir lib]
 
 set outfile [file join $::DIRS(test) testreport.txt]

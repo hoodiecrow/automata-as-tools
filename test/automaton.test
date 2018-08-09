@@ -3,12 +3,196 @@ namespace import ::tcltest::*
 
 ::tcltest::configure {*}$argv
 
-::tcltest::testConstraint skip 0
 ::tcltest::testConstraint noskip 1
 
 ::tcltest::loadTestedCommands
 
 package require automaton
+
+test dfa-1.0 {accept binary numbers that are multiples of 3} -body {
+    FSM create M
+    M start s0
+    M set {s0 0} s0
+    M set {s0 1} s1
+    M set {s1 0} s2
+    M set {s1 1} s0
+    M set {s2 0} s1
+    M set {s2 1} s2
+    M accepting s0
+    M run {}
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result 1
+
+test dfa-1.1 {} -body {
+    FSM create M
+    M set {s0 0} s0
+    M set {s0 1} s1
+    M set {s1 0} s2
+    M set {s1 1} s0
+    M set {s2 0} s1
+    M set {s2 1} s2
+    M start s0
+    M accepting s0
+    set res {}
+    lappend res [M run {1}]
+    lappend res [M run {0 1}]
+    lappend res [M run {1 1}]
+    lappend res [M run {0 0 1}]
+    lappend res [M run {1 0 1}]
+    lappend res [M run {0 1 1}]
+    lappend res [M run {1 1 1}]
+    set res
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {0 0 1 0 0 1 0}
+
+test nfa-1.0 {} -body {
+    FSM create M
+    M set {s0 0} s0
+    M set {s0 1} s0
+    M set {s0 1} s1
+    M set {s1 0} s0
+    M set {s1 1} s1
+    M start s0
+    M accepting s1
+    set res {}
+    lappend res [M run {1}]
+    lappend res [M run {0}]
+    lappend res [M run {1 1}]
+    lappend res [M run {1 0}]
+    lappend res [M run {0 1}]
+    lappend res [M run {0 0}]
+    set res
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {1 0 1 0 1 0}
+
+test nfa-1.1 {find even number of ones/zeros} -body {
+    FSM create M
+    M set {s0 {}} s1
+    M set {s0 {}} s3
+    M set {s1 0} s2
+    M set {s1 1} s1
+    M set {s2 0} s1
+    M set {s2 1} s2
+    M set {s3 0} s3
+    M set {s3 1} s4
+    M set {s4 0} s4
+    M set {s4 1} s3
+    M start s0
+    M accepting s1 s3
+    set res {}
+    lappend res [M run {1 1}]
+    lappend res [M run {1 0}]
+    lappend res [M run {0 1}]
+    lappend res [M run {0 0}]
+    lappend res [M run {1 0 0 1 1 1}]
+    lappend res [M run {1 0 0 1 1 0}]
+    set res
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {1 0 0 1 1 0}
+
+test fst-1.0 {The output becomes 1 and remains 1 thereafter when at least two 0's and two 1's have occurred as inputs} -body {
+    FST create M
+    M set {A/0 0} D
+    M set {A/0 1} B
+    M set {B/0 0} E
+    M set {B/0 1} C
+    M set {C/0 0} F
+    M set {C/0 1} C
+    M set {D/0 0} G
+    M set {D/0 1} E
+    M set {E/0 0} H
+    M set {E/0 1} F
+    M set {F/0 0} I
+    M set {F/0 1} F
+    M set {G/0 0} G
+    M set {G/0 1} H
+    M set {H/0 0} H
+    M set {H/0 1} I
+    M set {I/1 0} I
+    M set {I/1 1} I
+    M start A
+    set res {}
+    lappend res [M run {1 1} ; M output]
+    lappend res [M run {1 1 0 0} ; M output]
+    lappend res [M run {1 1 0 0 1 0 1 1} ; M output]
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {{0 0} {0 0 0 0} {0 0 0 0 1 1 1 1}}
+
+test fst-1.1 {edge detector} -body {
+    FST create M
+    M set {si 0/0} s0
+    M set {si 1/0} s1
+    M set {s0 0/0} s0
+    M set {s0 1/1} s1
+    M set {s1 0/1} s0
+    M set {s1 1/0} s1
+    M start si
+    set res {}
+    lappend res [M run {1 1 0} ; M output]
+    lappend res [M run {0 0 1} ; M output]
+    lappend res [M run {1 1 0 0 1 0 1 1} ; M output]
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {{0 0 1} {0 0 1} {0 0 1 0 1 1 1 0}}
+
+test pda-1.0 {0^n1^n | n >= 0} -body {
+    ::PDA create M
+    M set {p ;Z/Z}   p
+    M set {p ;A/A}   p
+    M set {p ;Z/Z}   q
+    M set {p ;A/A}   q
+    M set {p 0;Z/AZ} p
+    M set {p 0;A/AA} p
+    M set {q 1;A/}   q
+    M set {q ;Z/Z}   r
+    M start p
+    M stack Z
+    M accepting r
+    set res {}
+    lappend res [M run {1 1 0}]
+    lappend res [M run {0 1}]
+    lappend res [M run {0 0 0 1 1 1}]
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {0 1 1}
+
+test tm-1.0 {3 state, 2 symbol busy beaver} -body {
+    ::TM create M [lrepeat 22 0] 11
+    M set {A 0/1;R} B
+    M set {A 1/1;L} C
+    M set {B 0/1;L} A
+    M set {B 1/1;R} B
+    M set {C 0/1;N} B
+    M set {C 1/1;R} H
+    M start A
+    M accepting H
+    log::lvSuppressLE i 0
+    M run
+    M tape
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {}
+
+
+
+
+
+cleanupTests ; return ; # ---------------------------------
+
+
 
 namespace import ::FSM::*
 
@@ -153,7 +337,13 @@ test nfa-1.1 {find even number of ones/zeros} -body {
     log::lvSuppressLE i 1
 } -result {1 0 0 1 1 0}
 
-cleanupTests ; return
+
+
+
+cleanupTests ; return ; # ---------------------------------
+
+
+
 
 test pda-1.0 {} -body {
     ::automaton::PDA create M {
