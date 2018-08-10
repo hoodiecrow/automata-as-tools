@@ -11,19 +11,24 @@ package require automaton
 
 test dfa-1.0 {accept binary numbers that are multiples of 3} -body {
     FSM create M
-    M start s0
+    M tuple set s s0
     M set {s0 0} s0
     M set {s0 1} s1
     M set {s1 0} s2
     M set {s1 1} s0
     M set {s2 0} s1
     M set {s2 1} s2
-    M accepting s0
-    M run {}
+    M tuple set A s0
+    list [M tuple show] [M run {}]
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result 1
+} -result {{I={0, 1}
+S={s0, s1, s2}
+t={{{s0 0}->s0}, {{s0 1}->s1}, {{s1 0}->s2}, {{s1 1}->s0}, {{s2 0}->s1}, {{s2 1}->s2}}
+s=s0
+A=s0
+} 1}
 
 test dfa-1.1 {} -body {
     FSM create M
@@ -33,8 +38,8 @@ test dfa-1.1 {} -body {
     M set {s1 1} s0
     M set {s2 0} s1
     M set {s2 1} s2
-    M start s0
-    M accepting s0
+    M tuple set s s0
+    M tuple set A s0
     set res {}
     lappend res [M run {1}]
     lappend res [M run {0 1}]
@@ -56,8 +61,8 @@ test nfa-1.0 {} -body {
     M set {s0 1} s1
     M set {s1 0} s0
     M set {s1 1} s1
-    M start s0
-    M accepting s1
+    M tuple set s s0
+    M tuple set A s1
     set res {}
     lappend res [M run {1}]
     lappend res [M run {0}]
@@ -83,8 +88,8 @@ test nfa-1.1 {find even number of ones/zeros} -body {
     M set {s3 1} s4
     M set {s4 0} s4
     M set {s4 1} s3
-    M start s0
-    M accepting s1 s3
+    M tuple set s s0
+    M tuple set A {s1 s3}
     set res {}
     lappend res [M run {1 1}]
     lappend res [M run {1 0}]
@@ -118,7 +123,7 @@ test fst-1.0 {The output becomes 1 and remains 1 thereafter when at least two 0'
     M set {H/0 1} I
     M set {I/1 0} I
     M set {I/1 1} I
-    M start A
+    M tuple set s A
     set res {}
     lappend res [M run {1 1} ; M output]
     lappend res [M run {1 1 0 0} ; M output]
@@ -136,7 +141,7 @@ test fst-1.1 {edge detector} -body {
     M set {s0 1/1} s1
     M set {s1 0/1} s0
     M set {s1 1/0} s1
-    M start si
+    M tuple set s si
     set res {}
     lappend res [M run {1 1 0} ; M output]
     lappend res [M run {0 0 1} ; M output]
@@ -145,6 +150,27 @@ test fst-1.1 {edge detector} -body {
     M destroy
     log::lvSuppressLE i 1
 } -result {{0 0 1} {0 0 1} {0 0 1 0 1 1 1 0}}
+
+test fst-1.2 {edge detector} -body {
+    FST create M
+    M set {si 0/0} s0
+    M set {si 1/0} s1
+    M set {s0 0/0} s0
+    M set {s0 1/1} s1
+    M set {s1 0/1} s0
+    M set {s1 1/0} s1
+    M tuple set s si
+    M tuple show
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {I={0, 1}
+S={si, s0, s1}
+t={{{si 0}->s0}, {{si 1}->s1}, {{s0 0}->s0}, {{s0 1}->s1}, {{s1 0}->s0}, {{s1 1}->s1}}
+s=si
+O={0, 1}
+o={{{si 0}->0}, {{si 1}->0}, {{s0 0}->0}, {{s0 1}->1}, {{s1 0}->1}, {{s1 1}->0}}
+}
 
 test pda-1.0 {0^n1^n | n >= 0} -body {
     ::PDA create M
@@ -156,9 +182,9 @@ test pda-1.0 {0^n1^n | n >= 0} -body {
     M set {p 0;A/AA} p
     M set {q 1;A/}   q
     M set {q ;Z/Z}   r
-    M start p
-    M stack Z
-    M accepting r
+    M tuple set s p
+    M tuple set z Z
+    M tuple set A r
     set res {}
     lappend res [M run {1 1 0}]
     lappend res [M run {0 1}]
@@ -168,6 +194,32 @@ test pda-1.0 {0^n1^n | n >= 0} -body {
     log::lvSuppressLE i 1
 } -result {0 1 1}
 
+test pda-1.1 {0^n1^n | n >= 0} -body {
+    ::PDA create M
+    M set {p ;Z/Z}   p
+    M set {p ;A/A}   p
+    M set {p ;Z/Z}   q
+    M set {p ;A/A}   q
+    M set {p 0;Z/AZ} p
+    M set {p 0;A/AA} p
+    M set {q 1;A/}   q
+    M set {q ;Z/Z}   r
+    M tuple set s p
+    M tuple set z Z
+    M tuple set A r
+    M tuple show
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {I={0, 1}
+S={p, q}
+t={{{p {} Z}->{p q}}, {{p {} A}->{p q}}, {{p 0 Z}->p}, {{p 0 A}->p}, {{q 1 A}->q}, {{q {} Z}->r}}
+s=p
+A=r
+Z={Z, A}
+z=Z
+}
+
 test tm-1.0 {3 state, 2 symbol busy beaver} -body {
     ::TM create M [lrepeat 10 0] 5
     M set {A 0/1;R} B
@@ -176,8 +228,9 @@ test tm-1.0 {3 state, 2 symbol busy beaver} -body {
     M set {B 1/1;R} B
     M set {C 0/1;L} B
     M set {C 1/1;R} H
-    M start A
-    M halting H
+    M tuple set s A
+    M tuple set H H
+    M tuple set b 0
     M run
 } -cleanup {
     M destroy
@@ -194,13 +247,42 @@ test tm-1.1 {4 state, 2 symbol busy beaver} -body {
     M set {C 1/1;L} D
     M set {D 0/1;R} D
     M set {D 1/0;R} A
-    M start A
-    M halting H
+    M tuple set s A
+    M tuple set H H
+    M tuple set b 0
     M run
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
 } -result {0 1 0 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0}
+
+test tm-1.2 {4 state, 2 symbol busy beaver} -body {
+    ::TM create M [lrepeat 20 0] 11
+    M set {A 0/1;R} B
+    M set {A 1/1;L} B
+    M set {B 0/1;L} A
+    M set {B 1/0;L} C
+    M set {C 0/1;R} H
+    M set {C 1/1;L} D
+    M set {D 0/1;R} D
+    M set {D 1/0;R} A
+    M tuple set s A
+    M tuple set H H
+    M tuple set b 0
+    M tuple show
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {I={0, 1}
+S={A, B, C, D}
+t={{{A 0}->B}, {{A 1}->B}, {{B 0}->A}, {{B 1}->C}, {{C 0}->H}, {{C 1}->D}, {{D 0}->D}, {{D 1}->A}}
+s=A
+A={}
+o={{{A 0}->{1 R}}, {{A 1}->{1 L}}, {{B 0}->{1 L}}, {{B 1}->{0 L}}, {{C 0}->{1 R}}, {{C 1}->{1 L}}, {{D 0}->{1 R}}, {{D 1}->{0 R}}}
+T={0, 1}
+H=H
+b=0
+}
 
 
 
