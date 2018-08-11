@@ -146,36 +146,17 @@ oo::class create Tuple {
 }
 
 oo::class create ::FSM {
-    variable transitionMatrix
+    variable tuple
 
     constructor args {
-        lassign $args transitionMatrix acceptingItems start
+        lassign $args tuple
         Set create states
-        Tuple create tuple I S \
-            [list t $transitionMatrix] \
-            [list s $start] \
-            [list A $acceptingItems]
-    }
-
-    forward tuple tuple
-
-    method Key key {
-        # Should only be called by the 'set' method.
-        # Override this method to do any preprocessing of the key value
-        # and/or conduct any side processing.
-        tuple add {S I} $key
-        set key
-    }
-
-    method set {key nstate} {
-        dict lappend transitionMatrix [my Key $key] $nstate
-        tuple set t $transitionMatrix
     }
 
     method trans key {
-        if {[dict exists $transitionMatrix $key]} {
-            log::log i [list $key -> [dict get $transitionMatrix $key]]
-            dict get $transitionMatrix $key
+        if {[dict exists $tuple t $key]} {
+            log::log i [list $key -> [dict get $tuple t $key]]
+            dict get $tuple t $key
         }
     }
 
@@ -189,7 +170,7 @@ oo::class create ::FSM {
     }
 
     method run inputs {
-        states set [list [tuple get s]]
+        states set [list [dict get $tuple s]]
         foreach input $inputs {
             states add [my moves {}]
             states set [my moves $input]
@@ -198,7 +179,33 @@ oo::class create ::FSM {
             }
         }
         states add [my moves {}]
-        return [states intersects [tuple get A]]
+        if {[dict exists $tuple A]} {
+            return [states intersects [dict get $tuple A]]
+        }
+    }
+
+    method show {} {
+        set output {}
+        dict for {k v} $tuple {
+            switch $k {
+                A - H - I - O - S - T -
+                Z { append output $k=[list [join $v {, }]]\n }
+                b - s -
+                z { append output $k=$v\n }
+                o -
+                t {
+                    set t {}
+                    join [dict for {key val} $v {
+                        lappend t [list [list $key]->[list $val]]
+                    }] {, }
+                    append output $k=[list [join $t {, }]]\n
+                }
+                default {
+                    return -code error [format {unknown tuple key "%s"} $k]
+                }
+            }
+        }
+        return $output
     }
 
 }
@@ -323,51 +330,26 @@ oo::class create ::PDA {
 oo::class create ::FST {
     superclass ::FSM
 
-    variable output soutput toutput
+    variable tuple output
 
     constructor args {
-        lassign {} output soutput toutput
-        next {} {*}$args
-        foreach key {O o} {
-            tuple set $key
-        }
-        tuple unset A
-    }
-
-    method Key key {
-        # to = transition-based output
-        # so = state-based output
-        lassign $key state input
-        lassign [split $state /] state so
-        lassign [split $input /] input to
-        set key [list $state $input]
-        if {$so ne {}} {
-            tuple add O $so
-            dict set soutput $state $so
-        }
-        if {$to ne {}} {
-            tuple add O $to
-            dict set toutput [list $state $input] $to
-        }
-        tuple add {S I} $key
-        return $key
-    }
-
-    method set args {
         next {*}$args
-        tuple set o [dict merge $soutput $toutput]
     }
 
     method trans key {
+        log::log d [info level 0] 
         lassign $key state input
         set t [next $key]
         if {$input ne {}} {
-            if {[dict exists $soutput $state]} {
-                lappend output [dict get $soutput $state]
+            log::log d \$input=$input 
+            log::log d \$state=$state 
+            if {[dict exists $tuple o $state]} {
+                lappend output [dict get $tuple o $state]
+                log::log d \$output=$output 
             }
             if {$t ne {}} {
-                if {[dict exists $toutput $key]} {
-                    lappend output [dict get $toutput $key]
+                if {[dict exists $tuple o $key]} {
+                    lappend output [dict get $tuple o $key]
                 }
             }
         }
@@ -376,6 +358,7 @@ oo::class create ::FST {
 
     method run args {
         set output {}
+        log::log d "output function=[dict get $tuple o]"
         next {*}$args
     }
 

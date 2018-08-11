@@ -10,36 +10,46 @@ namespace import ::tcltest::*
 package require automaton
 
 test dfa-1.0 {accept binary numbers that are multiples of 3} -body {
-    FSM create M
-    M tuple set s s0
-    M set {s0 0} s0
-    M set {s0 1} s1
-    M set {s1 0} s2
-    M set {s1 1} s0
-    M set {s2 0} s1
-    M set {s2 1} s2
-    M tuple set A s0
-    list [M tuple show] [M run {}]
+    FSM create M {
+        I {0 1}
+        S {s0 s1 s2}
+        s s0
+        t {
+            {s0 0} s0
+            {s0 1} s1
+            {s1 0} s2
+            {s1 1} s0
+            {s2 0} s1
+            {s2 1} s2
+        }
+        A s0
+    }
+    M show
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {{I={0, 1}
+} -result {I={0, 1}
 S={s0, s1, s2}
-t={{{s0 0}->s0}, {{s0 1}->s1}, {{s1 0}->s2}, {{s1 1}->s0}, {{s2 0}->s1}, {{s2 1}->s2}}
 s=s0
+t={{{s0 0}->s0}, {{s0 1}->s1}, {{s1 0}->s2}, {{s1 1}->s0}, {{s2 0}->s1}, {{s2 1}->s2}}
 A=s0
-} 1}
+}
 
 test dfa-1.1 {} -body {
-    FSM create M
-    M set {s0 0} s0
-    M set {s0 1} s1
-    M set {s1 0} s2
-    M set {s1 1} s0
-    M set {s2 0} s1
-    M set {s2 1} s2
-    M tuple set s s0
-    M tuple set A s0
+    FSM create M {
+        I {0 1}
+        S {s0 s1 s2}
+        s s0
+        t {
+            {s0 0} s0
+            {s0 1} s1
+            {s1 0} s2
+            {s1 1} s0
+            {s2 0} s1
+            {s2 1} s2
+        }
+        A s0
+    }
     set res {}
     lappend res [M run {1}]
     lappend res [M run {0 1}]
@@ -55,14 +65,19 @@ test dfa-1.1 {} -body {
 } -result {0 0 1 0 0 1 0}
 
 test nfa-1.0 {} -body {
-    FSM create M
-    M set {s0 0} s0
-    M set {s0 1} s0
-    M set {s0 1} s1
-    M set {s1 0} s0
-    M set {s1 1} s1
-    M tuple set s s0
-    M tuple set A s1
+    FSM create M {
+        I {0 1}
+        S {s0 s1 s2}
+        s s0
+        t {
+            {s0 0} s0
+            {s0 1} s0
+            {s0 1} s1
+            {s1 0} s0
+            {s1 1} s1
+        }
+        A s1
+    }
     set res {}
     lappend res [M run {1}]
     lappend res [M run {0}]
@@ -77,19 +92,24 @@ test nfa-1.0 {} -body {
 } -result {1 0 1 0 1 0}
 
 test nfa-1.1 {find even number of ones/zeros} -body {
-    FSM create M
-    M set {s0 {}} s1
-    M set {s0 {}} s3
-    M set {s1 0} s2
-    M set {s1 1} s1
-    M set {s2 0} s1
-    M set {s2 1} s2
-    M set {s3 0} s3
-    M set {s3 1} s4
-    M set {s4 0} s4
-    M set {s4 1} s3
-    M tuple set s s0
-    M tuple set A {s1 s3}
+    FSM create M {
+        I {0 1}
+        S {s0 s1 s2 s3 s4}
+        s s0
+        t {
+            {s0 {}} s1
+            {s0 {}} s3
+            {s1 0} s2
+            {s1 1} s1
+            {s2 0} s1
+            {s2 1} s2
+            {s3 0} s3
+            {s3 1} s4
+            {s4 0} s4
+            {s4 1} s3
+        }
+        A {s1 s3}
+    }
     set res {}
     lappend res [M run {1 1}]
     lappend res [M run {1 0}]
@@ -104,28 +124,69 @@ test nfa-1.1 {find even number of ones/zeros} -body {
 } -result {1 0 0 1 1 0}
 
 test fst-1.0 {The output becomes 1 and remains 1 thereafter when at least two 0's and two 1's have occurred as inputs} -body {
-    FST create M
-    M set {A/0 0} D
-    M set {A/0 1} B
-    M set {B/0 0} E
-    M set {B/0 1} C
-    M set {C/0 0} F
-    M set {C/0 1} C
-    M set {D/0 0} G
-    M set {D/0 1} E
-    M set {E/0 0} H
-    M set {E/0 1} F
-    M set {F/0 0} I
-    M set {F/0 1} F
-    M set {G/0 0} G
-    M set {G/0 1} H
-    M set {H/0 0} H
-    M set {H/0 1} I
-    M set {I/1 0} I
-    M set {I/1 1} I
-    M tuple set s A
+    FST create M {
+        I {0 1}
+        O {0 1}
+        S {A B C D E F G H I}
+        s A
+        t {
+            {A 0} D
+            {A 1} B
+            {B 0} E
+            {B 1} C
+            {C 0} F
+            {C 1} C
+            {D 0} G
+            {D 1} E
+            {E 0} H
+            {E 1} F
+            {F 0} I
+            {F 1} F
+            {G 0} G
+            {G 1} H
+            {H 0} H
+            {H 1} I
+            {I 0} I
+            {I 1} I
+        }
+        o {
+            A 0
+            B 0
+            C 0
+            D 0
+            E 0
+            F 0
+            G 0
+            H 0
+            I 1
+        }
+    }
+    if no {
+        FST create M
+        M set {A/0 0} D
+        M set {A/0 1} B
+        M set {B/0 0} E
+        M set {B/0 1} C
+        M set {C/0 0} F
+        M set {C/0 1} C
+        M set {D/0 0} G
+        M set {D/0 1} E
+        M set {E/0 0} H
+        M set {E/0 1} F
+        M set {F/0 0} I
+        M set {F/0 1} F
+        M set {G/0 0} G
+        M set {G/0 1} H
+        M set {H/0 0} H
+        M set {H/0 1} I
+        M set {I/1 0} I
+        M set {I/1 1} I
+        M tuple set s A
+    }
     set res {}
+    log::lvSuppressLE i 0
     lappend res [M run {1 1} ; M output]
+    log::lvSuppressLE i 1
     lappend res [M run {1 1 0 0} ; M output]
     lappend res [M run {1 1 0 0 1 0 1 1} ; M output]
 } -cleanup {
