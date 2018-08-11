@@ -1,4 +1,7 @@
 
+package require json
+package require json::write
+
 oo::class create Set {
     variable data
 
@@ -119,37 +122,17 @@ oo::class create Tuple {
         dict exists $data $key
     }
 
-    method show {} {
-        set output {}
-        dict for {k v} $data {
-            switch $k {
-                A - H - I - O - S - T -
-                Z { append output $k=[list [join $v {, }]]\n }
-                b - s -
-                z { append output $k=$v\n }
-                o -
-                t {
-                    set t {}
-                    join [dict for {key val} $v {
-                        lappend t [list [list $key]->[list $val]]
-                    }] {, }
-                    append output $k=[list [join $t {, }]]\n
-                }
-                default {
-                    return -code error [format {unknown tuple key "%s"} $k]
-                }
-            }
-        }
-        return $output
-    }
-
 }
 
 oo::class create ::FSM {
     variable tuple
 
     constructor args {
-        lassign $args tuple
+        if {[string equal -nocase [lindex $args 0 0] json]} {
+            set tuple [::json::json2dict [lindex $args 0 1]]
+        } else {
+            lassign $args tuple
+        }
         Set create states
     }
 
@@ -189,23 +172,23 @@ oo::class create ::FSM {
         dict for {k v} $tuple {
             switch $k {
                 A - H - I - O - S - T -
-                Z { append output $k=[list [join $v {, }]]\n }
+                Z { dict set output $k [::json::write array {*}[lmap i $v {::json::write string $i}]] }
                 b - s -
-                z { append output $k=$v\n }
+                z { dict set output $k [::json::write string $v] }
                 o -
                 t {
                     set t {}
-                    join [dict for {key val} $v {
-                        lappend t [list [list $key]->[list $val]]
-                    }] {, }
-                    append output $k=[list [join $t {, }]]\n
+                    dict for {key val} $v {
+                        lappend t $key [::json::write array {*}[lmap i $val {::json::write string $i}]]
+                    }
+                    dict set output $k [::json::write object {*}$t]
                 }
                 default {
                     return -code error [format {unknown tuple key "%s"} $k]
                 }
             }
         }
-        return $output
+        return [::json::write object {*}$output]
     }
 
 }
@@ -213,42 +196,30 @@ oo::class create ::FSM {
 oo::class create ::TM {
     superclass ::FSM
 
-    variable start tape position output
+    variable tuple tape position
 
     constructor args {
-        set args [lassign $args tape position]
-        set output {}
-        next {} {*}$args
-        foreach key {o T H} {
-            tuple set $key
-        }
-        tuple set b _
-    }
-
-    method Key key {
-        # st = stack top
-        # sp = stack push
-        lassign $key state input
-        lassign [split $input /] input move
-        lassign [split $move \;] symbol direction
-        set key [list $state $input]
-        dict set output $key [list $symbol $direction]
-        tuple add {S I} $key
-        tuple add T $input
-        tuple add T $symbol
-        tuple set o $output
-        return $key
+        next {*}$args
+        set tape [list [dict get $tuple b]]
+        set position 0
     }
 
     method trans key {
         set t [next $key]
         if {$t ne {}} {
-            lassign [dict get $output $key] symbol direction
+            lassign [dict get $tuple o $key] symbol direction
             log::log i \$tape=[lreplace $tape $position $position *],\ \$symbol=$symbol,\ \$direction=$direction
             lset tape $position $symbol
             switch $direction {
-                L { incr position -1 }
-                R { incr position 1 }
+                L {
+                    # move tape left
+                    incr position 1
+                    lappend tape [dict get $tuple b]
+                }
+                R {
+                    # move tape right
+                    set tape [linsert $tape 0 [dict get $tuple b]]
+                }
             }
             # TODO check boundaries / extend tape
         }
@@ -256,7 +227,7 @@ oo::class create ::TM {
     }
 
     method run {} {
-        states set [list [tuple get s]]
+        states set [list [dict get $tuple s]]
         set input [lindex $tape $position]
         while {$input ne {}} {
             states add [my moves {}]
@@ -264,7 +235,7 @@ oo::class create ::TM {
             if {[states empty]} {
                 return
             }
-            if {[states intersects [tuple get H]]} {
+            if {[states intersects [dict get $tuple H]]} {
                 return $tape
             }
             set input [lindex $tape $position]
@@ -294,15 +265,10 @@ oo::class create ::PDA {
 
     method trans key {
         lassign $key state input
-        log::log d \$state=$state 
-        log::log d \$input=$input 
         set s [my Top]
         set key [list $state $input $s]
-        log::log d \$key=$key 
         set t [next $key]
-        log::log d \$t=$t 
         if {$t ne {}} {
-            log::log d "push=[dict get $tuple o $key]"
             my Push {*}[dict get $tuple o $key]
         }
         return $t

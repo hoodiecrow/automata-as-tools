@@ -28,27 +28,39 @@ test dfa-1.0 {accept binary numbers that are multiples of 3} -body {
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {I={0, 1}
-S={s0, s1, s2}
-s=s0
-t={{{s0 0}->s0}, {{s0 1}->s1}, {{s1 0}->s2}, {{s1 1}->s0}, {{s2 0}->s1}, {{s2 1}->s2}}
-A=s0
-}
+} -result {{
+    "I" : ["0","1"],
+    "S" : ["s0","s1","s2"],
+    "s" : "s0",
+    "t" : {
+        "s0 0" : ["s0"],
+        "s0 1" : ["s1"],
+        "s1 0" : ["s2"],
+        "s1 1" : ["s0"],
+        "s2 0" : ["s1"],
+        "s2 1" : ["s2"]
+    },
+    "A" : ["s0"]
+}}
 
 test dfa-1.1 {} -body {
     FSM create M {
-        I {0 1}
-        S {s0 s1 s2}
-        s s0
-        t {
-            {s0 0} s0
-            {s0 1} s1
-            {s1 0} s2
-            {s1 1} s0
-            {s2 0} s1
-            {s2 1} s2
+        json {
+            {
+                "I": [0, 1],
+                "S": ["s0", "s1", "s2"],
+                "s": "s0",
+                "t": {
+                    "s0 0": "s0",
+                    "s0 1": "s1",
+                    "s1 0": "s2",
+                    "s1 1": "s0",
+                    "s2 0": "s1",
+                    "s2 1": "s2"
+                },
+                "A": "s0"
+            }
         }
-        A s0
     }
     set res {}
     lappend res [M run {1}]
@@ -227,13 +239,28 @@ test fst-1.2 {edge detector} -body {
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {I={0, 1}
-O={0, 1}
-S={si, s0, s1}
-s=si
-t={{{si 0}->s0}, {{si 1}->s1}, {{s0 0}->s0}, {{s0 1}->s1}, {{s1 0}->s0}, {{s1 1}->s1}}
-o={{{si 0}->0}, {{si 1}->0}, {{s0 0}->0}, {{s0 1}->1}, {{s1 0}->1}, {{s1 1}->0}}
-}
+} -result {{
+    "I" : ["0","1"],
+    "O" : ["0","1"],
+    "S" : ["si","s0","s1"],
+    "s" : "si",
+    "t" : {
+        "si 0" : ["s0"],
+        "si 1" : ["s1"],
+        "s0 0" : ["s0"],
+        "s0 1" : ["s1"],
+        "s1 0" : ["s0"],
+        "s1 1" : ["s1"]
+    },
+    "o" : {
+        "si 0" : ["0"],
+        "si 1" : ["0"],
+        "s0 0" : ["0"],
+        "s0 1" : ["1"],
+        "s1 0" : ["1"],
+        "s1 1" : ["0"]
+    }
+}}
 
 test pda-1.0 {0^n1^n | n >= 0} -body {
     PDA create M {
@@ -298,79 +325,158 @@ test pda-1.1 {0^n1^n | n >= 0} -body {
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {I={0, 1}
-S={p, q, r}
-s=p
-Z={Z, A}
-z=Z
-A=r
-t={{{p {} Z}->{p q}}, {{p {} A}->{p q}}, {{p 0 Z}->p}, {{p 0 A}->p}, {{q 1 A}->q}, {{q {} Z}->r}}
-o={{{p {} Z}->Z}, {{p {} A}->A}, {{p 0 Z}->{A Z}}, {{p 0 A}->{A A}}, {{q 1 A}->{}}, {{q {} Z}->Z}}
-}
+} -result {{
+    "I" : ["0","1"],
+    "S" : ["p","q","r"],
+    "s" : "p",
+    "Z" : ["Z","A"],
+    "z" : "Z",
+    "A" : ["r"],
+    "t" : {
+        "p {} Z" : ["p","q"],
+        "p {} A" : ["p","q"],
+        "p 0 Z"  : ["p"],
+        "p 0 A"  : ["p"],
+        "q 1 A"  : ["q"],
+        "q {} Z" : ["r"]
+    },
+    "o" : {
+        "p {} Z" : ["Z"],
+        "p {} A" : ["A"],
+        "p 0 Z"  : ["A","Z"],
+        "p 0 A"  : ["A","A"],
+        "q 1 A"  : [],
+        "q {} Z" : ["Z"]
+    }
+}}
 
 test tm-1.0 {3 state, 2 symbol busy beaver} -body {
-    ::TM create M [lrepeat 10 0] 5
-    M set {A 0/1;R} B
-    M set {A 1/1;L} C
-    M set {B 0/1;L} A
-    M set {B 1/1;R} B
-    M set {C 0/1;L} B
-    M set {C 1/1;R} H
-    M tuple set s A
-    M tuple set H H
-    M tuple set b 0
+    TM create M {
+        I {0 1}
+        S {A B C HALT}
+        T {0 1}
+        s A
+        H {HALT}
+        b 0
+        t {
+            {A 0} B
+            {A 1} C
+            {B 0} A
+            {B 1} B
+            {C 0} B
+            {C 1} HALT
+        }
+        o {
+            {A 0} {1 R}
+            {A 1} {1 L}
+            {B 0} {1 L}
+            {B 1} {1 R}
+            {C 0} {1 L}
+            {C 1} {1 R}
+        }
+    }
     M run
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {0 0 1 1 1 1 1 1 0 0}
+} -result {0 0 0 0 0 1 1 1 1 1 1 0 0 0}
 
 test tm-1.1 {4 state, 2 symbol busy beaver} -body {
-    ::TM create M [lrepeat 20 0] 11
-    M set {A 0/1;R} B
-    M set {A 1/1;L} B
-    M set {B 0/1;L} A
-    M set {B 1/0;L} C
-    M set {C 0/1;R} H
-    M set {C 1/1;L} D
-    M set {D 0/1;R} D
-    M set {D 1/0;R} A
-    M tuple set s A
-    M tuple set H H
-    M tuple set b 0
+    TM create M {
+        I {0 1}
+        S {A B C D HALT}
+        T {0 1}
+        s A
+        H {HALT}
+        b 0
+        t {
+            {A 0} B
+            {A 1} B
+            {B 0} A
+            {B 1} C
+            {C 0} HALT
+            {C 1} D
+            {D 0} D
+            {D 1} A
+        }
+        o {
+            {A 0} {1 R}
+            {A 1} {1 L}
+            {B 0} {1 L}
+            {B 1} {0 L}
+            {C 0} {1 R}
+            {C 1} {1 L}
+            {D 0} {1 R}
+            {D 1} {0 R}
+        }
+    }
     M run
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {0 1 0 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0}
+} -result {0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0}
 
 test tm-1.2 {4 state, 2 symbol busy beaver} -body {
-    ::TM create M [lrepeat 20 0] 11
-    M set {A 0/1;R} B
-    M set {A 1/1;L} B
-    M set {B 0/1;L} A
-    M set {B 1/0;L} C
-    M set {C 0/1;R} H
-    M set {C 1/1;L} D
-    M set {D 0/1;R} D
-    M set {D 1/0;R} A
-    M tuple set s A
-    M tuple set H H
-    M tuple set b 0
-    M tuple show
+    TM create M {
+        I {0 1}
+        S {A B C D HALT}
+        T {0 1}
+        s A
+        H {HALT}
+        b 0
+        t {
+            {A 0} B
+            {A 1} B
+            {B 0} A
+            {B 1} C
+            {C 0} HALT
+            {C 1} D
+            {D 0} D
+            {D 1} A
+        }
+        o {
+            {A 0} {1 R}
+            {A 1} {1 L}
+            {B 0} {1 L}
+            {B 1} {0 L}
+            {C 0} {1 R}
+            {C 1} {1 L}
+            {D 0} {1 R}
+            {D 1} {0 R}
+        }
+    }
+    M show
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {I={0, 1}
-S={A, B, C, D}
-t={{{A 0}->B}, {{A 1}->B}, {{B 0}->A}, {{B 1}->C}, {{C 0}->H}, {{C 1}->D}, {{D 0}->D}, {{D 1}->A}}
-s=A
-A={}
-o={{{A 0}->{1 R}}, {{A 1}->{1 L}}, {{B 0}->{1 L}}, {{B 1}->{0 L}}, {{C 0}->{1 R}}, {{C 1}->{1 L}}, {{D 0}->{1 R}}, {{D 1}->{0 R}}}
-T={0, 1}
-H=H
-b=0
-}
+} -result {{
+    "I" : ["0","1"],
+    "S" : ["A","B","C","D","HALT"],
+    "T" : ["0","1"],
+    "s" : "A",
+    "H" : ["HALT"],
+    "b" : "0",
+    "t" : {
+        "A 0" : ["B"],
+        "A 1" : ["B"],
+        "B 0" : ["A"],
+        "B 1" : ["C"],
+        "C 0" : ["HALT"],
+        "C 1" : ["D"],
+        "D 0" : ["D"],
+        "D 1" : ["A"]
+    },
+    "o" : {
+        "A 0" : ["1","R"],
+        "A 1" : ["1","L"],
+        "B 0" : ["1","L"],
+        "B 1" : ["0","L"],
+        "C 0" : ["1","R"],
+        "C 1" : ["1","L"],
+        "D 0" : ["1","R"],
+        "D 1" : ["0","R"]
+    }
+}}
 
 
 
