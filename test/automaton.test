@@ -71,8 +71,7 @@ test nfa-1.0 {} -body {
         s s0
         t {
             {s0 0} s0
-            {s0 1} s0
-            {s0 1} s1
+            {s0 1} {s0 s1}
             {s1 0} s0
             {s1 1} s1
         }
@@ -97,8 +96,7 @@ test nfa-1.1 {find even number of ones/zeros} -body {
         S {s0 s1 s2 s3 s4}
         s s0
         t {
-            {s0 {}} s1
-            {s0 {}} s3
+            {s0 {}} {s1 s3}
             {s1 0} s2
             {s1 1} s1
             {s2 0} s1
@@ -161,32 +159,8 @@ test fst-1.0 {The output becomes 1 and remains 1 thereafter when at least two 0'
             I 1
         }
     }
-    if no {
-        FST create M
-        M set {A/0 0} D
-        M set {A/0 1} B
-        M set {B/0 0} E
-        M set {B/0 1} C
-        M set {C/0 0} F
-        M set {C/0 1} C
-        M set {D/0 0} G
-        M set {D/0 1} E
-        M set {E/0 0} H
-        M set {E/0 1} F
-        M set {F/0 0} I
-        M set {F/0 1} F
-        M set {G/0 0} G
-        M set {G/0 1} H
-        M set {H/0 0} H
-        M set {H/0 1} I
-        M set {I/1 0} I
-        M set {I/1 1} I
-        M tuple set s A
-    }
     set res {}
-    log::lvSuppressLE i 0
     lappend res [M run {1 1} ; M output]
-    log::lvSuppressLE i 1
     lappend res [M run {1 1 0 0} ; M output]
     lappend res [M run {1 1 0 0 1 0 1 1} ; M output]
 } -cleanup {
@@ -195,14 +169,28 @@ test fst-1.0 {The output becomes 1 and remains 1 thereafter when at least two 0'
 } -result {{0 0} {0 0 0 0} {0 0 0 0 1 1 1 1}}
 
 test fst-1.1 {edge detector} -body {
-    FST create M
-    M set {si 0/0} s0
-    M set {si 1/0} s1
-    M set {s0 0/0} s0
-    M set {s0 1/1} s1
-    M set {s1 0/1} s0
-    M set {s1 1/0} s1
-    M tuple set s si
+    FST create M {
+        I {0 1}
+        O {0 1}
+        S {si s0 s1}
+        s si
+        t {
+            {si 0} s0
+            {si 1} s1
+            {s0 0} s0
+            {s0 1} s1
+            {s1 0} s0
+            {s1 1} s1
+        }
+        o {
+            {si 0} 0
+            {si 1} 0
+            {s0 0} 0
+            {s0 1} 1
+            {s1 0} 1
+            {s1 1} 0
+        }
+    }
     set res {}
     lappend res [M run {1 1 0} ; M output]
     lappend res [M run {0 0 1} ; M output]
@@ -213,39 +201,65 @@ test fst-1.1 {edge detector} -body {
 } -result {{0 0 1} {0 0 1} {0 0 1 0 1 1 1 0}}
 
 test fst-1.2 {edge detector} -body {
-    FST create M
-    M set {si 0/0} s0
-    M set {si 1/0} s1
-    M set {s0 0/0} s0
-    M set {s0 1/1} s1
-    M set {s1 0/1} s0
-    M set {s1 1/0} s1
-    M tuple set s si
-    M tuple show
+    FST create M {
+        I {0 1}
+        O {0 1}
+        S {si s0 s1}
+        s si
+        t {
+            {si 0} s0
+            {si 1} s1
+            {s0 0} s0
+            {s0 1} s1
+            {s1 0} s0
+            {s1 1} s1
+        }
+        o {
+            {si 0} 0
+            {si 1} 0
+            {s0 0} 0
+            {s0 1} 1
+            {s1 0} 1
+            {s1 1} 0
+        }
+    }
+    M show
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
 } -result {I={0, 1}
-S={si, s0, s1}
-t={{{si 0}->s0}, {{si 1}->s1}, {{s0 0}->s0}, {{s0 1}->s1}, {{s1 0}->s0}, {{s1 1}->s1}}
-s=si
 O={0, 1}
+S={si, s0, s1}
+s=si
+t={{{si 0}->s0}, {{si 1}->s1}, {{s0 0}->s0}, {{s0 1}->s1}, {{s1 0}->s0}, {{s1 1}->s1}}
 o={{{si 0}->0}, {{si 1}->0}, {{s0 0}->0}, {{s0 1}->1}, {{s1 0}->1}, {{s1 1}->0}}
 }
 
 test pda-1.0 {0^n1^n | n >= 0} -body {
-    ::PDA create M
-    M set {p ;Z/Z}   p
-    M set {p ;A/A}   p
-    M set {p ;Z/Z}   q
-    M set {p ;A/A}   q
-    M set {p 0;Z/AZ} p
-    M set {p 0;A/AA} p
-    M set {q 1;A/}   q
-    M set {q ;Z/Z}   r
-    M tuple set s p
-    M tuple set z Z
-    M tuple set A r
+    PDA create M {
+        I {0 1}
+        S {p q r}
+        s p
+        Z {Z A}
+        z Z
+        A {r}
+        t {
+            {p {} Z} {p q}
+            {p {} A} {p q}
+            {p 0 Z} p
+            {p 0 A} p
+            {q 1 A} q
+            {q {} Z} r
+        }
+        o {
+            {p {} Z} Z
+            {p {} A} A
+            {p 0 Z} {A Z}
+            {p 0 A} {A A}
+            {q 1 A} {}
+            {q {} Z} Z
+        }
+    }
     set res {}
     lappend res [M run {1 1 0}]
     lappend res [M run {0 1}]
@@ -256,29 +270,42 @@ test pda-1.0 {0^n1^n | n >= 0} -body {
 } -result {0 1 1}
 
 test pda-1.1 {0^n1^n | n >= 0} -body {
-    ::PDA create M
-    M set {p ;Z/Z}   p
-    M set {p ;A/A}   p
-    M set {p ;Z/Z}   q
-    M set {p ;A/A}   q
-    M set {p 0;Z/AZ} p
-    M set {p 0;A/AA} p
-    M set {q 1;A/}   q
-    M set {q ;Z/Z}   r
-    M tuple set s p
-    M tuple set z Z
-    M tuple set A r
-    M tuple show
+    PDA create M {
+        I {0 1}
+        S {p q r}
+        s p
+        Z {Z A}
+        z Z
+        A {r}
+        t {
+            {p {} Z} {p q}
+            {p {} A} {p q}
+            {p 0 Z} p
+            {p 0 A} p
+            {q 1 A} q
+            {q {} Z} r
+        }
+        o {
+            {p {} Z} Z
+            {p {} A} A
+            {p 0 Z} {A Z}
+            {p 0 A} {A A}
+            {q 1 A} {}
+            {q {} Z} Z
+        }
+    }
+    M show
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
 } -result {I={0, 1}
-S={p, q}
-t={{{p {} Z}->{p q}}, {{p {} A}->{p q}}, {{p 0 Z}->p}, {{p 0 A}->p}, {{q 1 A}->q}, {{q {} Z}->r}}
+S={p, q, r}
 s=p
-A=r
 Z={Z, A}
 z=Z
+A=r
+t={{{p {} Z}->{p q}}, {{p {} A}->{p q}}, {{p 0 Z}->p}, {{p 0 A}->p}, {{q 1 A}->q}, {{q {} Z}->r}}
+o={{{p {} Z}->Z}, {{p {} A}->A}, {{p 0 Z}->{A Z}}, {{p 0 A}->{A A}}, {{q 1 A}->{}}, {{q {} Z}->Z}}
 }
 
 test tm-1.0 {3 state, 2 symbol busy beaver} -body {

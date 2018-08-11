@@ -278,50 +278,38 @@ oo::class create ::TM {
 oo::class create ::PDA {
     superclass ::FSM
 
-    variable theStack stackPush
+    variable tuple stack
 
     constructor args {
-        set theStack {}
-        set stackPush {}
-        next {} {*}$args
-        foreach key {Z z} {
-            tuple set $key
-        }
+        next {*}$args
     }
 
     method Push args {
-        set theStack [lreplace $theStack 0 0 {*}$args]
+        set stack [lreplace $stack 0 0 {*}$args]
     }
 
     method Top {} {
-        lindex $theStack 0
-    }
-
-    method Key key {
-        # st = stack top
-        # sp = stack push
-        lassign $key state input
-        lassign [split $input \;] input st
-        lassign [split $st /] st sp
-        set key [list $state $input $st]
-        dict set stackPush $key [split $sp {}]
-        tuple add {S I Z} $key
-        return $key
+        lindex $stack 0
     }
 
     method trans key {
         lassign $key state input
+        log::log d \$state=$state 
+        log::log d \$input=$input 
         set s [my Top]
         set key [list $state $input $s]
+        log::log d \$key=$key 
         set t [next $key]
+        log::log d \$t=$t 
         if {$t ne {}} {
-            my Push {*}[dict get $stackPush $key]
+            log::log d "push=[dict get $tuple o $key]"
+            my Push {*}[dict get $tuple o $key]
         }
         return $t
     }
 
     method run args {
-        my Push [tuple get z]
+        set stack [list [dict get $tuple z]]
         next {*}$args
     }
 
@@ -337,15 +325,11 @@ oo::class create ::FST {
     }
 
     method trans key {
-        log::log d [info level 0] 
         lassign $key state input
         set t [next $key]
         if {$input ne {}} {
-            log::log d \$input=$input 
-            log::log d \$state=$state 
             if {[dict exists $tuple o $state]} {
                 lappend output [dict get $tuple o $state]
-                log::log d \$output=$output 
             }
             if {$t ne {}} {
                 if {[dict exists $tuple o $key]} {
@@ -358,7 +342,6 @@ oo::class create ::FST {
 
     method run args {
         set output {}
-        log::log d "output function=[dict get $tuple o]"
         next {*}$args
     }
 
