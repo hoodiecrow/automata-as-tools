@@ -88,7 +88,7 @@ oo::class create Set {
     # t transition function
 
 oo::class create ::FSM {
-    variable tuple
+    variable tuple result
 
     constructor args {
         if {[string equal -nocase [lindex $args 0 0] json]} {
@@ -99,10 +99,18 @@ oo::class create ::FSM {
         Set create states
     }
 
+    forward output set result
+
+    method action {transitions key} {
+        return $transitions
+    }
+
     method trans key {
         if {[dict exists $tuple t $key]} {
             log::log i [list $key -> [dict get $tuple t $key]]
-            dict get $tuple t $key
+            return [my action [dict get $tuple t $key] $key]
+        } else {
+            return {}
         }
     }
 
@@ -116,6 +124,7 @@ oo::class create ::FSM {
     }
 
     method run inputs {
+        set result {}
         states set [list [dict get $tuple s]]
         foreach input $inputs {
             states add [my moves {}]
@@ -126,8 +135,9 @@ oo::class create ::FSM {
         }
         states add [my moves {}]
         if {[dict exists $tuple A]} {
-            return [states intersects [dict get $tuple A]]
+            my output [states intersects [dict get $tuple A]]
         }
+        return $result
     }
 
     method show {} {
@@ -167,9 +177,8 @@ oo::class create ::DTM {
         set position 0
     }
 
-    method trans key {
-        set t [next $key]
-        if {$t ne {}} {
+    method action {transitions key} {
+        if {$transitions ne {}} {
             lassign [dict get $tuple o $key] symbol direction
             log::log i \$tape=[lreplace $tape $position $position *],\ \$symbol=$symbol,\ \$direction=$direction
             lset tape $position $symbol
@@ -185,7 +194,7 @@ oo::class create ::DTM {
                 }
             }
         }
-        return $t
+        return $transitions
     }
 
     method run {} {
@@ -206,27 +215,16 @@ oo::class create ::PDA {
 
     variable tuple stack
 
-    constructor args {
-        next {*}$args
-    }
-
-    method Push args {
-        set stack [lreplace $stack 0 0 {*}$args]
-    }
-
-    method Top {} {
-        lindex $stack 0
+    method action {transitions key} {
+        if {$transitions ne {}} {
+            set stack [lreplace $stack 0 0 {*}[dict get $tuple o $key]]
+        }
+        return $transitions
     }
 
     method trans key {
-        lassign $key state input
-        set z [my Top]
-        set key [list $state $input $z]
-        set t [next $key]
-        if {$t ne {}} {
-            my Push {*}[dict get $tuple o $key]
-        }
-        return $t
+        lappend key [lindex $stack 0]
+        return [my action [next $key] $key]
     }
 
     method run args {
@@ -239,36 +237,24 @@ oo::class create ::PDA {
 oo::class create ::FST {
     superclass ::FSM
 
-    variable tuple output
+    variable tuple result
 
-    constructor args {
-        next {*}$args
-    }
+    forward output lappend result
 
-    method trans key {
+    method action {transitions key} {
         lassign $key state input
-        set t [next $key]
         if {$input ne {}} {
             # TODO regulate output action (state entry, state exit, transition)
             if {[dict exists $tuple o $state]} {
-                lappend output [dict get $tuple o $state]
+                my output [dict get $tuple o $state]
             }
-            if {$t ne {}} {
+            if {$transitions ne {}} {
                 if {[dict exists $tuple o $key]} {
-                    lappend output [dict get $tuple o $key]
+                    my output [dict get $tuple o $key]
                 }
             }
         }
-        return $t
-    }
-
-    method run args {
-        set output {}
-        next {*}$args
-    }
-
-    method output {} {
-        return $output
+        return $transitions
     }
 
 }

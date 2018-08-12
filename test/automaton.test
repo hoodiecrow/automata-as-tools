@@ -172,9 +172,9 @@ test fst-1.0 {The output becomes 1 and remains 1 thereafter when at least two 0'
         }
     }
     set res {}
-    lappend res [M run {1 1} ; M output]
-    lappend res [M run {1 1 0 0} ; M output]
-    lappend res [M run {1 1 0 0 1 0 1 1} ; M output]
+    lappend res [M run {1 1}]
+    lappend res [M run {1 1 0 0}]
+    lappend res [M run {1 1 0 0 1 0 1 1}]
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
@@ -204,9 +204,9 @@ test fst-1.1 {edge detector} -body {
         }
     }
     set res {}
-    lappend res [M run {1 1 0} ; M output]
-    lappend res [M run {0 0 1} ; M output]
-    lappend res [M run {1 1 0 0 1 0 1 1} ; M output]
+    lappend res [M run {1 1 0}]
+    lappend res [M run {0 0 1}]
+    lappend res [M run {1 1 0 0 1 0 1 1}]
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
