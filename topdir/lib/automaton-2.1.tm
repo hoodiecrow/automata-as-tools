@@ -70,6 +70,7 @@ oo::class create Set {
 
 }
 
+proc tuple2json tuple {
     # tuple keys:
     # A H I O S T Z: list values
     # b s z:         single values
@@ -86,6 +87,29 @@ oo::class create Set {
     # z starting stack symbol
     # o output function
     # t transition function
+    set result {}
+    dict for {k v} $tuple {
+        switch $k {
+            A - H - I - O - S - T -
+            Z { dict set result $k [::json::write array {*}[lmap i $v {::json::write string $i}]] }
+            b - s -
+            z { dict set result $k [::json::write string $v] }
+            o -
+            t {
+                set t {}
+                dict for {key val} $v {
+                    lappend t $key [::json::write array {*}[lmap i $val {::json::write string $i}]]
+                }
+                dict set result $k [::json::write object {*}$t]
+            }
+            default {
+                return -code error [format {unknown tuple key "%s"} $k]
+            }
+        }
+    }
+    return [::json::write object {*}$result]
+}
+
 
 oo::class create ::FSM {
     variable tuple result
@@ -99,24 +123,25 @@ oo::class create ::FSM {
         Set create states
     }
 
-    forward output set result
+    forward Output set result
 
-    method action {transitions key} {
+    method Action {transitions key} {
         return $transitions
     }
 
-    method trans key {
+    method Trans key {
         if {[dict exists $tuple t $key]} {
-            log::log i [list $key -> [dict get $tuple t $key]]
-            return [my action [dict get $tuple t $key] $key]
+            set t [dict get $tuple t $key]
+            log::log i [list $key -> $t]
+            return [my Action $t $key]
         } else {
             return {}
         }
     }
 
-    method moves input {
+    method Moves input {
         set ns [states map state {
-            my trans [list $state $input]
+            my Trans [list $state $input]
         }]
         set res [$ns all]
         $ns destroy
@@ -127,41 +152,70 @@ oo::class create ::FSM {
         set result {}
         states set [list [dict get $tuple s]]
         foreach input $inputs {
-            states add [my moves {}]
-            states set [my moves $input]
+            states add [my Moves {}]
+            states set [my Moves $input]
             if {[states empty]} {
                 return 0
             }
         }
-        states add [my moves {}]
+        states add [my Moves {}]
         if {[dict exists $tuple A]} {
-            my output [states intersects [dict get $tuple A]]
+            my Output [states intersects [dict get $tuple A]]
         }
         return $result
     }
 
-    method show {} {
-        set output {}
-        dict for {k v} $tuple {
-            switch $k {
-                A - H - I - O - S - T -
-                Z { dict set output $k [::json::write array {*}[lmap i $v {::json::write string $i}]] }
-                b - s -
-                z { dict set output $k [::json::write string $v] }
-                o -
-                t {
-                    set t {}
-                    dict for {key val} $v {
-                        lappend t $key [::json::write array {*}[lmap i $val {::json::write string $i}]]
-                    }
-                    dict set output $k [::json::write object {*}$t]
-                }
-                default {
-                    return -code error [format {unknown tuple key "%s"} $k]
+    method tuple {} {
+        return $tuple
+    }
+
+}
+
+oo::class create ::FST {
+    superclass ::FSM
+
+    variable tuple result
+
+    forward Output lappend result
+
+    method Action {transitions key} {
+        lassign $key state input
+        if {$input ne {}} {
+            # TODO regulate output action (state entry, state exit, transition)
+            if {[dict exists $tuple o $state]} {
+                my Output [dict get $tuple o $state]
+            }
+            if {$transitions ne {}} {
+                if {[dict exists $tuple o $key]} {
+                    my Output [dict get $tuple o $key]
                 }
             }
         }
-        return [::json::write object {*}$output]
+        return $transitions
+    }
+
+}
+
+oo::class create ::PDA {
+    superclass ::FSM
+
+    variable tuple stack
+
+    method Action {transitions key} {
+        if {$transitions ne {}} {
+            set stack [lreplace $stack 0 0 {*}[dict get $tuple o $key]]
+        }
+        return $transitions
+    }
+
+    method Trans key {
+        lappend key [lindex $stack 0]
+        return [my Action [next $key] $key]
+    }
+
+    method run args {
+        set stack [list [dict get $tuple z]]
+        next {*}$args
     }
 
 }
@@ -177,7 +231,7 @@ oo::class create ::DTM {
         set position 0
     }
 
-    method action {transitions key} {
+    method Action {transitions key} {
         if {$transitions ne {}} {
             lassign [dict get $tuple o $key] symbol direction
             log::log i \$tape=[lreplace $tape $position $position *],\ \$symbol=$symbol,\ \$direction=$direction
@@ -200,61 +254,12 @@ oo::class create ::DTM {
     method run {} {
         states set [list [dict get $tuple s]]
         while {![states empty]} {
-            states set [my moves [lindex $tape $position]]
+            states set [my Moves [lindex $tape $position]]
             if {[states intersects [dict get $tuple H]]} {
                 break
             }
         }
         return $tape
-    }
-
-}
-
-oo::class create ::PDA {
-    superclass ::FSM
-
-    variable tuple stack
-
-    method action {transitions key} {
-        if {$transitions ne {}} {
-            set stack [lreplace $stack 0 0 {*}[dict get $tuple o $key]]
-        }
-        return $transitions
-    }
-
-    method trans key {
-        lappend key [lindex $stack 0]
-        return [my action [next $key] $key]
-    }
-
-    method run args {
-        set stack [list [dict get $tuple z]]
-        next {*}$args
-    }
-
-}
-
-oo::class create ::FST {
-    superclass ::FSM
-
-    variable tuple result
-
-    forward output lappend result
-
-    method action {transitions key} {
-        lassign $key state input
-        if {$input ne {}} {
-            # TODO regulate output action (state entry, state exit, transition)
-            if {[dict exists $tuple o $state]} {
-                my output [dict get $tuple o $state]
-            }
-            if {$transitions ne {}} {
-                if {[dict exists $tuple o $key]} {
-                    my output [dict get $tuple o $key]
-                }
-            }
-        }
-        return $transitions
     }
 
 }

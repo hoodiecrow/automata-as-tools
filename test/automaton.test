@@ -24,7 +24,7 @@ test dfa-1.0 {accept binary numbers that are multiples of 3} -body {
         }
         A s0
     }
-    M show
+    tuple2json [M tuple]
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
@@ -235,7 +235,7 @@ test fst-1.2 {edge detector} -body {
             {s1 1} 0
         }
     }
-    M show
+    tuple2json [M tuple]
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
@@ -321,7 +321,7 @@ test pda-1.1 {0^n1^n | n >= 0} -body {
             {q {} Z} Z
         }
     }
-    M show
+    tuple2json [M tuple]
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
@@ -445,7 +445,7 @@ test tm-1.2 {4 state, 2 symbol busy beaver} -body {
             {D 1} {0 R}
         }
     }
-    M show
+    tuple2json [M tuple]
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
