@@ -72,10 +72,11 @@ oo::class create Set {
 
 proc tuple2json tuple {
     # tuple keys:
-    # A H I O S T Z: list values
-    # b s z:         single values
+    # A C H I O S T Z: list values
+    # b s z:           single values
     # o t:           list of associations
     # A accepting states
+    # C control codes ("program")
     # H halting states
     # I input alphabet
     # O output alphabet
@@ -83,6 +84,7 @@ proc tuple2json tuple {
     # T tape alphabet
     # Z stack symbols
     # b blank tape symbol
+    # m 'mark' symbol
     # s starting state
     # z starting stack symbol
     # o output function
@@ -90,9 +92,9 @@ proc tuple2json tuple {
     set result {}
     dict for {k v} $tuple {
         switch $k {
-            A - H - I - O - S - T -
+            A - C - H - I - O - S - T -
             Z { dict set result $k [::json::write array {*}[lmap i $v {::json::write string $i}]] }
-            b - s -
+            b - m - s -
             z { dict set result $k [::json::write string $v] }
             o -
             t {
@@ -110,6 +112,22 @@ proc tuple2json tuple {
     return [::json::write object {*}$result]
 }
 
+proc assemble items {
+    set map {}
+    set code {}
+    set n 0
+    foreach item $items {
+        if {[string match *: $item]} {
+            lappend map [string trimright $item :] $n
+        } elseif {[regexp {^(J[01]?):\*([+-]\d+)$} $item -> op offset]} {
+            lappend code $op [expr $n$offset]
+        } else {
+            lappend code {*}[split $item :]
+            set n [llength $code]
+        }
+    }
+    string map $map $code
+}
 
 oo::class create ::FSM {
     variable tuple result
@@ -260,6 +278,88 @@ oo::class create ::DTM {
             }
         }
         return $tape
+    }
+
+
+}
+
+oo::class create ::PTM {
+
+    variable tuple tape position control
+
+    constructor args {
+        lassign $args tuple tape position
+        if {[string equal -nocase [lindex $tuple 0] json]} {
+            set tuple [::json::json2dict [lindex $tuple 1]]
+        } else {
+            lassign $args tuple
+        }
+        if {$tape eq {}} {
+            set tape [list [dict get $tuple b]]
+            set position 0
+        }
+        dict set tuple C [assemble [dict get $tuple C]]
+        set control 0
+    }
+
+    method Action key {
+        switch [lindex $key 0] {
+            E {
+                lset tape $position [dict get $tuple b]
+                incr control
+            }
+            P {
+                lset tape $position [dict get $tuple m]
+                incr control
+            }
+            L {
+                # move head left
+                if {$position > 0} {
+                    incr position -1
+                } else {
+                    set tape [linsert $tape 0 [dict get $tuple b]]
+                }
+                incr control
+            }
+            R {
+                # move head right
+                incr position
+                if {$position >= [llength $tape]} {
+                    lappend tape [dict get $tuple b]
+                }
+                incr control
+            }
+            default {
+                switch -glob $key {
+                    {J [01]} - {J0 0} - {J1 1} {
+                        set control [lindex [dict get $tuple C] [incr control]]
+                    }
+                    {J0 1} - {J1 0} {
+                        incr control 2
+                    }
+                    default {
+                        ;
+                    }
+                }
+            }
+        }
+    }
+
+    method run {} {
+        set op [lindex [dict get $tuple C] $control]
+        while {$op ni [dict get $tuple H]} {
+            if no {
+                my WriteAction $op
+                my ControlAction [list $op [lindex $tape $position]]
+            }
+            my Action [list $op [lindex $tape $position]]
+            set op [lindex [dict get $tuple C] $control]
+        }
+        return $tape
+    }
+
+    method tuple {} {
+        return $tuple
     }
 
 }
