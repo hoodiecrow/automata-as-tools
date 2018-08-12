@@ -351,7 +351,7 @@ test pda-1.1 {0^n1^n | n >= 0} -body {
 }}
 
 test tm-1.0 {3 state, 2 symbol busy beaver} -body {
-    TM create M {
+    DTM create M {
         I {0 1}
         S {A B C HALT}
         T {0 1}
@@ -382,7 +382,7 @@ test tm-1.0 {3 state, 2 symbol busy beaver} -body {
 } -result {0 0 0 0 0 1 1 1 1 1 1 0 0 0}
 
 test tm-1.1 {4 state, 2 symbol busy beaver} -body {
-    TM create M {
+    DTM create M {
         I {0 1}
         S {A B C D HALT}
         T {0 1}
@@ -417,7 +417,7 @@ test tm-1.1 {4 state, 2 symbol busy beaver} -body {
 } -result {0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0}
 
 test tm-1.2 {4 state, 2 symbol busy beaver} -body {
-    TM create M {
+    DTM create M {
         I {0 1}
         S {A B C D HALT}
         T {0 1}

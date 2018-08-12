@@ -70,7 +70,6 @@ oo::class create Set {
 
 }
 
-oo::class create Tuple {
     # tuple keys:
     # A H I O S T Z: list values
     # b s z:         single values
@@ -87,42 +86,6 @@ oo::class create Tuple {
     # z starting stack symbol
     # o output function
     # t transition function
-    variable data
-
-    constructor args {
-        foreach arg $args {
-            lassign $arg key value
-            my set $key $value
-        }
-    }
-
-    method unset key {
-        dict unset data $key
-    }
-
-    method set {key {value {}}} {
-        dict set data $key $value
-    }
-
-    method get key {
-        if {[dict exists $data $key]} {
-            dict get $data $key
-        }
-    }
-
-    method add {keys values} {
-        foreach key $keys value $values {
-            if {$value ni [dict get $data $key] && $value ne {}} {
-                dict lappend data $key $value
-            }
-        }
-    }
-
-    method exists key {
-        dict exists $data $key
-    }
-
-}
 
 oo::class create ::FSM {
     variable tuple
@@ -193,7 +156,7 @@ oo::class create ::FSM {
 
 }
 
-oo::class create ::TM {
+oo::class create ::DTM {
     superclass ::FSM
 
     variable tuple tape position
@@ -213,7 +176,7 @@ oo::class create ::TM {
             switch $direction {
                 L {
                     # move tape left
-                    incr position 1
+                    incr position
                     lappend tape [dict get $tuple b]
                 }
                 R {
@@ -221,26 +184,18 @@ oo::class create ::TM {
                     set tape [linsert $tape 0 [dict get $tuple b]]
                 }
             }
-            # TODO check boundaries / extend tape
         }
         return $t
     }
 
     method run {} {
         states set [list [dict get $tuple s]]
-        set input [lindex $tape $position]
-        while {$input ne {}} {
-            states add [my moves {}]
-            states set [my moves $input]
-            if {[states empty]} {
-                return
-            }
+        while {![states empty]} {
+            states set [my moves [lindex $tape $position]]
             if {[states intersects [dict get $tuple H]]} {
-                return $tape
+                break
             }
-            set input [lindex $tape $position]
         }
-        states add [my moves {}]
         return $tape
     }
 
@@ -265,8 +220,8 @@ oo::class create ::PDA {
 
     method trans key {
         lassign $key state input
-        set s [my Top]
-        set key [list $state $input $s]
+        set z [my Top]
+        set key [list $state $input $z]
         set t [next $key]
         if {$t ne {}} {
             my Push {*}[dict get $tuple o $key]
@@ -294,6 +249,7 @@ oo::class create ::FST {
         lassign $key state input
         set t [next $key]
         if {$input ne {}} {
+            # TODO regulate output action (state entry, state exit, transition)
             if {[dict exists $tuple o $state]} {
                 lappend output [dict get $tuple o $state]
             }
