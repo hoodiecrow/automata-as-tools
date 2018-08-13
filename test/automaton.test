@@ -490,15 +490,15 @@ test ptbb-1.0 {} -body {
                     P L J:begin
             c:      P H
         }
-        b 0
-        m 1
+        b " "
+        m |
         H {H}
     }
-    M run
+    join [M run] {}
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {1 1 1 1}
+} -result {||||}
 
 # 2-state, 2-symbol busy beaver as a Post-Turing machine, with cleanup
 #
@@ -515,15 +515,15 @@ test ptbb-1.1 {} -body {
                     E R J1:d
             done:   H
         }
-        b 0
-        m 1
+        b { }
+        m |
         H {H}
     }
-    M run
+    join [M run] {}
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {0 0 0 0 0}
+} -result {     }
 
 # Post-Turing machine to multiply two values
 #
@@ -548,15 +548,15 @@ test ptbb-1.2 {} -body {
             E
    done:    H
         }
-        b 0
-        m 1
+        b { }
+        m |
         H {H}
-    } {0 1 1 1 1 0 1 1 1 1 1 0 0} 0
-    M run
+    } [split { |||| |||||  } {}] 0
+    join [M run] {}
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {0 0 0 0 0 0 1 1 1 1 1 0 1 1 1 1 1 1 1 1 1 1 1 1 1}
+} -result {      ||||| |||||||||||||}
 
 # 2-state, 2-symbol busy beaver as a Post-Turing machine
 #
@@ -570,8 +570,8 @@ test ptbb-1.3 {} -body {
                     P L J:begin
             c:      P H
         }
-        b 0
-        m 1
+        b { }
+        m |
         H {H}
     }
     tuple2json [M tuple]
@@ -580,8 +580,8 @@ test ptbb-1.3 {} -body {
     log::lvSuppressLE i 1
 } -result {{
     "C" : ["J1","6","P","R","J","10","P","L","J","10","J1","16","P","L","J","0","P","H"],
-    "b" : "0",
-    "m" : "1",
+    "b" : " ",
+    "m" : "|",
     "H" : ["H"]
 }}
 

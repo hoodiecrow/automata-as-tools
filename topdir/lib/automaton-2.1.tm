@@ -302,14 +302,18 @@ oo::class create ::PTM {
         set control 0
     }
 
-    method Action key {
-        switch [lindex $key 0] {
+    method Action op {
+        set b [dict get $tuple b]
+        set m [dict get $tuple m]
+        set input [lindex $tape $position]
+        set operations [dict get $tuple C]
+        switch $op {
             E {
-                lset tape $position [dict get $tuple b]
+                lset tape $position $b
                 incr control
             }
             P {
-                lset tape $position [dict get $tuple m]
+                lset tape $position $m
                 incr control
             }
             L {
@@ -317,7 +321,7 @@ oo::class create ::PTM {
                 if {$position > 0} {
                     incr position -1
                 } else {
-                    set tape [linsert $tape 0 [dict get $tuple b]]
+                    set tape [linsert $tape 0 $b]
                 }
                 incr control
             }
@@ -325,35 +329,38 @@ oo::class create ::PTM {
                 # move head right
                 incr position
                 if {$position >= [llength $tape]} {
-                    lappend tape [dict get $tuple b]
+                    lappend tape $b
                 }
                 incr control
             }
-            default {
-                switch -glob $key {
-                    {J [01]} - {J0 0} - {J1 1} {
-                        set control [lindex [dict get $tuple C] [incr control]]
-                    }
-                    {J0 1} - {J1 0} {
-                        incr control 2
-                    }
-                    default {
-                        ;
-                    }
+            H {}
+            J {
+                set control [lindex $operations [incr control]]
+            }
+            J0 {
+                if {$input eq $b} {
+                    set control [lindex $operations [incr control]]
+                } else {
+                    incr control 2
                 }
             }
+            J1 {
+                if {$input eq $m} {
+                    set control [lindex $operations [incr control]]
+                } else {
+                    incr control 2
+                }
+            }
+            default {
+                return -code error [format {unknown operation "%s"} $op]
+            }
         }
+        return $op
     }
 
     method run {} {
-        set op [lindex [dict get $tuple C] $control]
-        while {$op ni [dict get $tuple H]} {
-            if no {
-                my WriteAction $op
-                my ControlAction [list $op [lindex $tape $position]]
-            }
-            my Action [list $op [lindex $tape $position]]
-            set op [lindex [dict get $tuple C] $control]
+        while {![info exists op] || $op ni [dict get $tuple H]} {
+            set op [my Action [lindex [dict get $tuple C] $control]]
         }
         return $tape
     }
