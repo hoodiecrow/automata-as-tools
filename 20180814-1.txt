@@ -1,0 +1,38 @@
+
+    FSM
+    PDA: set initial stack
+    set result {}
+    set initial state
+    for every input
+        collect epsilon moves
+        collect moves
+        fail if state space empty
+    final epsilon moves
+    check for acceptance
+    return result
+
+    DTM
+    set initial state
+    while state space not empty
+        collect moves
+        break if halting
+    return tape
+
+    PTM
+    while operation is not halting
+        perform action
+        get next operation
+    return tape
+
+    set initial machine state (result, state, stack, tape, control)
+    while state space not empty
+        collect epsilon moves
+        collect moves
+        perform action
+        get next operation
+        break if input exhausted
+        break if halting
+    fail if input not exhausted
+    final epsilon moves
+    check for acceptance
+    return result

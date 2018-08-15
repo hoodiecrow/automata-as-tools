@@ -19,6 +19,7 @@ lappend ::argv -load [subst -noc {
     package require $::project
     package require log
 }]
+lappend ::argv -encoding utf-8
 
 ::tcltest::configure {*}$::argv
 ::tcltest::runAllTests
