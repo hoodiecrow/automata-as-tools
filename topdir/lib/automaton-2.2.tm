@@ -96,7 +96,6 @@ proc assemble items {
 oo::class create DFST {
     variable tuple od td kind inputs outputs
     constructor args {
-        log::log d [info level 0] 
         lassign {} od td
         lassign $args tuple transitions kind
         if {[dict exists $tuple td]} {
@@ -134,33 +133,6 @@ oo::class create DFST {
                 lappend $e $next
             }
         }
-        log::log d \$od=$od 
-        log::log d \$td=$td 
-    }
-    method __GenerateAction {varName input} {
-        upvar 1 $varName state
-        if {[dict exists $td $state $input]} {
-            if {$input ne {}} {
-                lappend inputs $input
-            }
-            if {$kind eq "moore"} {
-                lappend outputs {*}[dict get $od $state]
-            } else {
-                lappend outputs {*}[dict get $od $state $input]
-            }
-            set state [dict get $td $state $input]
-        }
-    }
-    method __TranslateAction {varName input} {
-        upvar 1 $varName state
-        if {[dict exists $td $state $input]} {
-            if {$kind eq "moore"} {
-                lappend outputs {*}[dict get $od $state]
-            } else {
-                lappend outputs {*}[dict get $od $state $input]
-            }
-            set state [dict get $td $state $input]
-        }
     }
     method ProduceOutput {varName input {ia {}}} {
         upvar 1 $varName state
@@ -170,51 +142,6 @@ oo::class create DFST {
                 lappend outputs {*}[dict get $od $state]
             } else {
                 lappend outputs {*}[dict get $od $state $input]
-            }
-            set state [dict get $td $state $input]
-        }
-    }
-    method __RecognizeAction {varName input} {
-        upvar 1 $varName state
-        if {[dict exists $td $state $input]} {
-            if {$kind eq "moore"} {
-                foreach o [dict get $od $state] {
-                    set outputs [lassign $outputs output]
-                    if {$o ne $output} {
-                        return fail
-                    }
-                }
-            } else {
-                foreach o [dict get $od $state $input] {
-                    set outputs [lassign $outputs output]
-                    if {$o ne $output} {
-                        return fail
-                    }
-                }
-            }
-            set state [dict get $td $state $input]
-        }
-    }
-    method __ReconstructAction {varName input} {
-        upvar 1 $varName state
-        if {[dict exists $td $state $input]} {
-            if {$kind eq "moore"} {
-                foreach o [dict get $od $state] {
-                    set outputs [lassign $outputs output]
-                    if {$o ne $output} {
-                        return fail
-                    }
-                }
-            } else {
-                foreach o [dict get $od $state $input] {
-                    set outputs [lassign $outputs output]
-                    if {$o ne $output} {
-                        return fail
-                    }
-                }
-            }
-            if {$input ne {}} {
-                lappend inputs $input
             }
             set state [dict get $td $state $input]
         }
