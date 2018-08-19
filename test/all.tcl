@@ -1,25 +1,25 @@
 package require tcltest
 
-set ::DIRS(test) [file dirname [file normalize [info script]]]
-set ::DIRS(base) [file dirname $::DIRS(test)]
-set ::project    automaton
-set ::DIRS(lib)  [file join $::DIRS(base) topdir lib]
+set testdir [file dirname [file normalize [info script]]]
+set project [lindex [split [file tail [file dirname $testdir]] -] 0]
+set libdir  [file join $testdir .. topdir lib]
 
-set outfile [file join $::DIRS(test) testreport.txt]
-set errfile [file join $::DIRS(test) testerrors.txt]
+set outfile [file join $testdir testreport.txt]
+set errfile [file join $testdir testerrors.txt]
 file delete -force $outfile $errfile
 
-lappend ::argv -testdir $::DIRS(test)
-lappend ::argv -outfile $outfile
-lappend ::argv -errfile $errfile
-lappend ::argv -tmpdir [file join $::DIRS(test) temp]
-lappend ::argv -load [subst -noc {
-    ::tcl::tm::path add $::DIRS(lib)
-    set ::auto_path [linsert \$::auto_path 0 $DIRS(lib)]
-    package require $::project
+lappend argv -testdir $testdir
+lappend argv -outfile $outfile
+lappend argv -errfile $errfile
+lappend argv -tmpdir [file join $testdir temp]
+lappend argv -load [subst -nocommands {
+    ::tcl::tm::path add $libdir
+    set auto_path [linsert \$auto_path 0 $libdir]
+    package require $project
     package require log
 }]
+# requires mod to tcltest
 lappend ::argv -encoding utf-8
 
-::tcltest::configure {*}$::argv
+::tcltest::configure {*}$argv
 ::tcltest::runAllTests

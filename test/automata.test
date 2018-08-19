@@ -7,8 +7,6 @@ namespace import ::tcltest::*
 
 ::tcltest::loadTestedCommands
 
-package require automaton
-
 proc foo d {
     dict for {state edges} $d {
         dict for {edge data} $edges {
