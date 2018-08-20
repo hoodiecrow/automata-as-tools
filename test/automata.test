@@ -120,35 +120,33 @@ test dfst-2.2 {moore machine} -body {
         I {0 1}
         O {0 1}
         S {A B C D E F G H I}
-        td {
-            A {0 D 1 B}
-            B {0 E 1 C}
-            C {0 F 1 C}
-            D {0 G 1 E}
-            E {0 H 1 F}
-            F {0 I 1 F}
-            G {0 G 1 H}
-            H {0 H 1 I}
-            I {0 I 1 I}
-        }
-        od {
-            A 0
-            B 0
-            C 0
-            D 0
-            E 0
-            F 0
-            G 0
-            H 0
-            I 1
-        }
         s A
         A {A B C D E F G H I}
-    } {} moore
+    } {
+        "A 0" 0 D
+        "A 0" 1 B
+        "B 0" 0 E
+        "B 0" 1 C
+        "C 0" 0 F
+        "C 0" 1 C
+        "D 0" 0 G
+        "D 0" 1 E
+        "E 0" 0 H
+        "E 0" 1 F
+        "F 0" 0 I
+        "F 0" 1 F
+        "G 0" 0 G
+        "G 0" 1 H
+        "H 0" 0 H
+        "H 0" 1 I
+        "I 1" 0 I
+        "I 1" 1 I
+    }
     set res {}
     lappend res [M translate {1 1}]
     lappend res [M translate {1 1 0 0}]
     lappend res [M translate {1 1 0 0 1 0 1 1}]
+    set res
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
