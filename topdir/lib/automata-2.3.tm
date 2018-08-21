@@ -95,11 +95,13 @@ proc assemble items {
 
 # TODO move to better place
 package require struct::graph
+package require struct::tree
 
 oo::class create DFST {
     variable tuple inputs outputs
     constructor args {
         ::struct::graph G
+        ::struct::tree T
         lassign $args tuple transitions
         foreach {from edge next} $transitions {
             if {[llength $from] > 1 && [llength $edge] == 1} {
@@ -134,14 +136,40 @@ oo::class create DFST {
             }
         }
     }
+    method ResetT {} {
+        if {[llength [T children root]] > 0} {
+            T delete {*}[T children -all root]
+        }
+        return [T insert root end]
+    }
+    method TreeGet {node key} {
+        if {[T keyexists $node $key]} {
+            T get $node $key
+        }
+    }
     method SetIO pair {
         lassign $pair inputs outputs
         set inputs [list {*}$inputs]
         set outputs [list {*}$outputs]
     }
+    method GetOutputFromNode vertex {
+        if {[G node keyexists $vertex -output]} {
+            G node get $vertex -output
+        }
+    }
+    method GetOutputFromEdge edge {
+        if {[G arc keyexists $edge -output]} {
+            G arc get $edge -output
+        }
+    }
     method OutputNode vertex {
         if {[G node keyexists $vertex -output]} {
             lappend outputs {*}[G node get $vertex -output]
+        }
+    }
+    method OutputEdge edge {
+        if {[G arc keyexists $edge -output]} {
+            lappend outputs {*}[G arc get $edge -output]
         }
     }
     method MatchNodeOutput vertex {
@@ -167,46 +195,54 @@ oo::class create DFST {
         }
     }
     method MatchInput edge {
-        set i [G arc get $edge -input]
-        if {$i ne {}} {
-            set n [llength $i]
-            set prefix [lrange $inputs 0 $n-1]
-            set inputs [lrange $inputs $n end]
-            if {$i ne $prefix} {
-                return -code return fail
+        foreach i0 [my GetInputFromEdge $edge] {
+            set i1 [my GetInputFromTape]
+            if {$i0 ne $i1} {
+                return 0
             }
         }
+        return 1
     }
-    method OutputEdge edge {
-        if {[G arc keyexists $edge -output]} {
-            lappend outputs {*}[G arc get $edge -output]
-        }
+    method GetInputFromEdge arc {
+        return [G arc get $arc -input]
     }
-    method PullInputOrBreak {varName arc} {
-        upvar 1 $varName n
-        set input [G arc get $arc -input]
-        if {$input ne {}} {
-            incr n -1
-            if {$n < 0} {
-                return -code break
+    method GetInputFromTape {} {
+        set inputs [lassign $inputs input]
+        return $input
+    }
+    method Generate input {
+        lappend inputs $input
+    }
+    method Rgenerate {current tn n} {
+        foreach arc [G arcs -out $current] {
+            set t [T insert $tn end]
+            set input [my GetInputFromEdge $arc]
+            if {$input ne {}} {
+                if {[incr n -1] < 0} {
+                    return
+                }
             }
-            lappend inputs $input
+            T set $t -input $input
+            set node [G arc target $arc]
+            T set $t -output [concat [my GetOutputFromEdge $arc] [my GetOutputFromNode $node]]
+            my Rgenerate $node $t $n
         }
     }
     method generate n {
         my SetIO {}
-        set current [dict get $tuple s]
-        while 1 {
-            set arcs [G arcs -out $current]
-            # TODO handle #arcs == 0, > 1
-            lassign $arcs arc
-            set node [G arc target $arc]
-            my PullInputOrBreak n $arc
-            my OutputNode $node
-            my OutputEdge $arc
-            set current $node
+        set result {}
+        my Rgenerate [dict get $tuple s] [my ResetT] $n
+        # TODO only works if splitting under root
+        # possibly start with a list of leaves and work towards root
+        T walk root node {
+            lappend inputs {*}[my TreeGet $node -input]
+            lappend outputs {*}[my TreeGet $node -output]
+            if {[T isleaf $node]} {
+                lappend result [list $inputs $outputs]
+                my SetIO {}
+            }
         }
-        list $inputs $outputs
+        return $result
     }
     method recognize args {
         my SetIO $args
@@ -217,12 +253,14 @@ oo::class create DFST {
             lassign $arcs arc
             set node [G arc target $arc]
             my MatchNodeOutput $node
-            my MatchInput $arc
+            if {![my MatchInput $arc]} {
+                return fail
+            }
             my MatchEdgeOutput $arc
             set current $node
         }
         if {[llength $outputs] > 0} {
-            return 0
+            return fail
         }
         expr {$current in [dict get $tuple A]}
     }

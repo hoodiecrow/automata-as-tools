@@ -26,7 +26,7 @@ test dfst-1.0 {} -body {
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {{a a} {a a a a}}
+} -result {{{a a} {a a a a}}}
 
 
 test dfst-1.1 {} -body {
