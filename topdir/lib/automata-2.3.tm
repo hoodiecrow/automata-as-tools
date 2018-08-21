@@ -95,13 +95,11 @@ proc assemble items {
 
 # TODO move to better place
 package require struct::graph
-package require struct::tree
 
 oo::class create DFST {
-    variable tuple inputs outputs
+    variable tuple inputs outputs result
     constructor args {
         ::struct::graph G
-        ::struct::tree T
         lassign $args tuple transitions
         foreach {from edge next} $transitions {
             if {[llength $from] > 1 && [llength $edge] == 1} {
@@ -136,17 +134,6 @@ oo::class create DFST {
             }
         }
     }
-    method ResetT {} {
-        if {[llength [T children root]] > 0} {
-            T delete {*}[T children -all root]
-        }
-        return [T insert root end]
-    }
-    method TreeGet {node key} {
-        if {[T keyexists $node $key]} {
-            T get $node $key
-        }
-    }
     method SetIO pair {
         lassign $pair inputs outputs
         set inputs [list {*}$inputs]
@@ -172,6 +159,18 @@ oo::class create DFST {
             lappend outputs {*}[G arc get $edge -output]
         }
     }
+    method MatchNodeOutput2 vertex {
+        if {[G node keyexists $vertex -output]} {
+            set o [G node get $vertex -output]
+            set n [llength $o]
+            set prefix [lrange $outputs 0 $n-1]
+            set outputs [lrange $outputs $n end]
+            if {$o ne $prefix} {
+                return 0
+            }
+        }
+        return 1
+    }
     method MatchNodeOutput vertex {
         if {[G node keyexists $vertex -output]} {
             set o [G node get $vertex -output]
@@ -183,6 +182,18 @@ oo::class create DFST {
             }
         }
     }
+    method MatchEdgeOutput2 edge {
+        if {[G arc keyexists $edge -output]} {
+            set o [G arc get $edge -output]
+            set n [llength $o]
+            set prefix [lrange $outputs 0 $n-1]
+            set outputs [lrange $outputs $n end]
+            if {$o ne $prefix} {
+                return 0
+            }
+        }
+        return 1
+    }
     method MatchEdgeOutput edge {
         if {[G arc keyexists $edge -output]} {
             set o [G arc get $edge -output]
@@ -193,6 +204,16 @@ oo::class create DFST {
                 return -code return fail
             }
         }
+    }
+    method MatchInput2 {varName input edge} {
+        upvar 1 $varName is
+        foreach i0 $input {
+            set is [lassign $is i1]
+            if {$i0 ne $i1} {
+                return 0
+            }
+        }
+        return 1
     }
     method MatchInput edge {
         foreach i0 [my GetInputFromEdge $edge] {
@@ -210,88 +231,82 @@ oo::class create DFST {
         set inputs [lassign $inputs input]
         return $input
     }
-    method Generate input {
-        lappend inputs $input
-    }
-    method Rgenerate {current tn n} {
+    method Rgenerate {current n {is {}} {os {}}} {
         foreach arc [G arcs -out $current] {
-            set t [T insert $tn end]
             set input [my GetInputFromEdge $arc]
             if {$input ne {}} {
                 if {[incr n -1] < 0} {
-                    return
+                    lappend result [list $is $os]
+                    continue
                 }
             }
-            T set $t -input $input
             set node [G arc target $arc]
-            T set $t -output [concat [my GetOutputFromEdge $arc] [my GetOutputFromNode $node]]
-            my Rgenerate $node $t $n
+            set output [concat [my GetOutputFromEdge $arc] [my GetOutputFromNode $node]]
+            my Rgenerate $node $n [linsert $is end {*}$input] [linsert $os end {*}$output]
         }
     }
     method generate n {
-        my SetIO {}
         set result {}
-        my Rgenerate [dict get $tuple s] [my ResetT] $n
-        # TODO only works if splitting under root
-        # possibly start with a list of leaves and work towards root
-        T walk root node {
-            lappend inputs {*}[my TreeGet $node -input]
-            lappend outputs {*}[my TreeGet $node -output]
-            if {[T isleaf $node]} {
-                lappend result [list $inputs $outputs]
-                my SetIO {}
+        my Rgenerate [dict get $tuple s] $n
+        return $result
+    }
+    method Rrecognize current {
+        foreach arc [G arcs -out $current] {
+            set node [G arc target $arc]
+            if {[my GetInputFromEdge $arc] ne {} && [llength $inputs] == 0} {
+                lappend result $current
+            } else {
+                if {
+                    [my MatchInput $arc] &&
+                    [my MatchEdgeOutput2 $arc] &&
+                    [my MatchNodeOutput2 $node]
+                } {
+                    my Rrecognize $node
+                }
             }
         }
-        return $result
     }
     method recognize args {
         my SetIO $args
-        set current [dict get $tuple s]
-        while {[llength $inputs] >= 0 && [llength $outputs] > 0} {
-            set arcs [G arcs -out $current]
-            # TODO handle #arcs == 0, > 1
-            lassign $arcs arc
-            set node [G arc target $arc]
-            my MatchNodeOutput $node
-            if {![my MatchInput $arc]} {
-                return fail
-            }
-            my MatchEdgeOutput $arc
-            set current $node
-        }
+        set result {}
+        my Rrecognize [dict get $tuple s]
         if {[llength $outputs] > 0} {
             return fail
         }
-        expr {$current in [dict get $tuple A]}
+        foreach state $result {
+            if {$state in [dict get $tuple A]} {
+                return 1
+            }
+        }
+        return 0
+    }
+    method Rtranslate {current is {os {}}} {
+        foreach arc [G arcs -out $current] {
+            set node [G arc target $arc]
+            set input [my GetInputFromEdge $arc]
+            if {$input ne {} && [llength $is] == 0} {
+                lappend result $current $os
+                break
+            } else {
+                set nis $is
+                # note different output order
+                set output [concat [my GetOutputFromNode $current] [my GetOutputFromEdge $arc]]
+                if {[my MatchInput2 nis $input $arc]} {
+                    my Rtranslate $node $nis [linsert $os end $output]
+                }
+            }
+        }
     }
     method translate args {
         my SetIO $args
-        set current [dict get $tuple s]
-        while 1 {
-            set arcs [G arcs -out $current]
-            # TODO handle #arcs == 0, > 1
-            foreach arc $arcs {
-                set input [G arc get $arc -input]
-                if {$input in [list {} [lindex $inputs 0]]} {
-                    break
-                }
+        set result {}
+        my Rtranslate [dict get $tuple s] $inputs
+        lmap {state output} $result {
+            if {$state in [dict get $tuple A]} {
+                set output
+            } else {
+                continue
             }
-            if {$input ne {}} {
-                if {[llength $inputs] > 0 && $input eq [lindex $inputs 0]} {
-                    set inputs [lrange $inputs 1 end]
-                } else {
-                    break
-                }
-            }
-            set node [G arc target $arc]
-            my OutputNode $current
-            my OutputEdge $arc
-            set current $node
-        }
-        if {$current in [dict get $tuple A]} {
-            return $outputs
-        } else {
-            return fail
         }
     }
     method reconstruct args {

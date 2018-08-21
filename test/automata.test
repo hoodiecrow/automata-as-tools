@@ -44,7 +44,7 @@ test dfst-1.2 {} -body {
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {a a a a}
+} -result {{a a a a}}
 
 
 test dfst-1.3 {} -body {
@@ -89,7 +89,7 @@ test dfst-2.0 {The output becomes 1 and remains 1 thereafter when at least two 0
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {{0 0} {0 0 0 0} {0 0 0 0 1 1 1 1}}
+} -result {{{0 0}} {{0 0 0 0}} {{0 0 0 0 1 1 1 1}}}
 
 test dfst-2.1 {edge detector} -body {
     DFST create M {
@@ -113,7 +113,7 @@ test dfst-2.1 {edge detector} -body {
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {{0 0 1} {0 0 1} {0 0 1 0 1 1 1 0}}
+} -result {{{0 0 1}} {{0 0 1}} {{0 0 1 0 1 1 1 0}}}
 
 test dfst-2.2 {moore machine} -body {
     DFST create M {
@@ -150,7 +150,7 @@ test dfst-2.2 {moore machine} -body {
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {{0 0} {0 0 0 0} {0 0 0 0 1 1 1 1}}
+} -result {{{0 0}} {{0 0 0 0}} {{0 0 0 0 1 1 1 1}}}
 
 
 
