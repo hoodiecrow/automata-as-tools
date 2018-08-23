@@ -97,11 +97,12 @@ proc assemble items {
 package require struct::graph
 
 oo::class create DFST {
-    variable tuple inputs outputs result
+    variable tuple tape1 tape2 result
     constructor args {
         ::struct::graph G
         lassign $args tuple transitions
         foreach {from edge next} $transitions {
+            log::log i \$from=[list $from],\ \$edge=[list $edge],\ \$next=[list $next]
             if {[llength $from] > 1 && [llength $edge] == 1} {
                 set x [lassign $from s]
                 if {![G node exists $s]} {
@@ -127,6 +128,9 @@ oo::class create DFST {
                 if {$e eq "ε"} {
                     set e {}
                 }
+                if {$y eq "ε"} {
+                    set y {}
+                }
                 G arc set $a -input $e
                 G arc set $a -output $y
             } else {
@@ -134,16 +138,16 @@ oo::class create DFST {
             }
         }
     }
-    method SetIO pair {
-        lassign $pair inputs outputs
-        set inputs [list {*}$inputs]
-        set outputs [list {*}$outputs]
+    method SetTapes pair {
+        lassign $pair tape1 tape2
+        set tape1 [list {*}$tape1]
+        set tape2 [list {*}$tape2]
     }
     method GetInputFromEdge arc {
         G arc get $arc -input
     }
     method GetInputFromTape {} {
-        set inputs [lassign $inputs input]
+        set tape1 [lassign $tape1 input]
         return $input
     }
     method GetOutputFromNode vertex {
@@ -158,20 +162,20 @@ oo::class create DFST {
     }
     method OutputNode vertex {
         if {[G node keyexists $vertex -output]} {
-            lappend outputs {*}[G node get $vertex -output]
+            lappend tape2 {*}[G node get $vertex -output]
         }
     }
     method OutputEdge edge {
         if {[G arc keyexists $edge -output]} {
-            lappend outputs {*}[G arc get $edge -output]
+            lappend tape2 {*}[G arc get $edge -output]
         }
     }
     method MatchNodeOutput2 vertex {
         if {[G node keyexists $vertex -output]} {
             set o [G node get $vertex -output]
             set n [llength $o]
-            set prefix [lrange $outputs 0 $n-1]
-            set outputs [lrange $outputs $n end]
+            set prefix [lrange $tape2 0 $n-1]
+            set tape2 [lrange $tape2 $n end]
             if {$o ne $prefix} {
                 return 0
             }
@@ -182,8 +186,8 @@ oo::class create DFST {
         if {[G node keyexists $vertex -output]} {
             set o [G node get $vertex -output]
             set n [llength $o]
-            set prefix [lrange $outputs 0 $n-1]
-            set outputs [lrange $outputs $n end]
+            set prefix [lrange $tape2 0 $n-1]
+            set tape2 [lrange $tape2 $n end]
             if {$o ne $prefix} {
                 return -code return fail
             }
@@ -193,8 +197,8 @@ oo::class create DFST {
         if {[G arc keyexists $edge -output]} {
             set o [G arc get $edge -output]
             set n [llength $o]
-            set prefix [lrange $outputs 0 $n-1]
-            set outputs [lrange $outputs $n end]
+            set prefix [lrange $tape2 0 $n-1]
+            set tape2 [lrange $tape2 $n end]
             if {$o ne $prefix} {
                 return 0
             }
@@ -205,8 +209,8 @@ oo::class create DFST {
         if {[G arc keyexists $edge -output]} {
             set o [G arc get $edge -output]
             set n [llength $o]
-            set prefix [lrange $outputs 0 $n-1]
-            set outputs [lrange $outputs $n end]
+            set prefix [lrange $tape2 0 $n-1]
+            set tape2 [lrange $tape2 $n end]
             if {$o ne $prefix} {
                 return -code return fail
             }
@@ -277,27 +281,80 @@ oo::class create DFST {
         my Rgenerate [dict get $tuple s] $n
         return $result
     }
-    method Rrecognize current {
-        foreach arc [G arcs -out $current] {
-            set node [G arc target $arc]
-            set input [my GetInputFromEdge $arc]
-            if {$input ne {} && [llength $inputs] == 0} {
-                if {[llength $outputs] == 0} {
+    method GetEpsilons {_ arc} {
+        my GetMatchInput {} G $arc
+    }
+    method GetMatchInput {token _ arc} {
+        string equal [G arc get $arc -input] $token
+    }
+    method MatchOutput3 {output oti} {
+        if {$output eq {}} {
+            return 1
+        }
+        set n [expr {$oti + [llength $output] - 1}]
+        foreach o0 $output o1 [lrange $tape2 $oti $n] {
+            if {$o0 ne $o1} {
+                return 0
+            }
+        }
+        return 1
+    }
+    method MatchOutput4 {arc oti} {
+        set node [G arc target $arc]
+        set output [concat [my GetOutputFromEdge $arc] [my GetOutputFromNode $node]]
+        if {$output eq {}} {
+            return $oti
+        }
+        set n [expr {$oti + [llength $output] - 1}]
+        foreach o0 $output o1 [lrange $tape2 $oti $n] {
+            if {$o0 ne $o1} {
+                return -1
+            }
+        }
+        return [incr n]
+    }
+    method Rrecognize {current {t0i 0} {t1i 0}} {
+        set input {}
+        set arcs [G arcs -out $current -filter [namespace code [list my GetMatchInput $input]]]
+        foreach arc $arcs {
+            set _t1i [my MatchOutput4 $arc $t1i]
+            if {$_t1i >= 0} {
+                my Rrecognize [G arc target $arc] $t0i $_t1i
+            }
+        }
+        if {$t0i < [llength $tape1]} {
+            set input [lindex $tape1 $t0i]
+            set _t0i [expr {$t0i + 1}]
+            set arcs [G arcs -out $current -filter [namespace code [list my GetMatchInput $input]]] 
+            if {[llength $arcs] > 0} {
+                if {$_t0i >= [llength $tape1]} {
+                    # do final series of ε moves
+                    set input {}
+                    set arcs [G arcs -out $current -filter [namespace code [list my GetMatchInput $input]]]
+                    while {[llength $arcs] > 0} {
+                        foreach arc $arcs {
+                            set _t1i [my MatchOutput4 $arc $t1i]
+                            if {$_t1i >= 0} {
+                                # TODO assumes only one epsilon move
+                                set current [G arc target $arc]
+                            }
+                        }
+                        set arcs [G arcs -out $current -filter [namespace code [list my GetMatchInput $input]]]
+                    }
                     lappend result $current
-                }
-            } else {
-                if {
-                    [my MatchInput $arc] &&
-                    [my MatchEdgeOutput2 $arc] &&
-                    [my MatchNodeOutput2 $node]
-                } {
-                    my Rrecognize $node
+                } else {
+                    foreach arc $arcs {
+                        set _t1i [my MatchOutput4 $arc $t1i]
+                        if {$_t1i >= 0} {
+                            my Rrecognize [G arc target $arc] $_t0i $_t1i
+                        }
+                    }
                 }
             }
         }
     }
     method recognize args {
-        my SetIO $args
+        my SetTapes $args
         set result {}
         my Rrecognize [dict get $tuple s]
         my Accepting
@@ -320,9 +377,9 @@ oo::class create DFST {
         }
     }
     method translate args {
-        my SetIO $args
+        my SetTapes $args
         set result {}
-        my Rtranslate [dict get $tuple s] $inputs
+        my Rtranslate [dict get $tuple s] $tape1
         my FilterResult
     }
     method Rreconstruct {current is os} {
@@ -337,15 +394,14 @@ oo::class create DFST {
                 lappend result $node $is
                 break
             } else {
-                # note different output order
                 my Rreconstruct $node [linsert $is end {*}$input] $nos
             }
         }
     }
     method reconstruct args {
-        my SetIO [linsert $args 0 {}]
+        my SetTapes [linsert $args 0 {}]
         set result {}
-        my Rreconstruct [dict get $tuple s] $inputs $outputs
+        my Rreconstruct [dict get $tuple s] $tape1 $tape2
         my FilterResult
     }
 }

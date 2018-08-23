@@ -55,6 +55,49 @@ test dfst-1.3 {} -body {
     log::lvSuppressLE i 1
 } -result {{a a}}
 
+test recognize-1.0 {recognize relation {a b} -> {x y}} -body {
+    DFST create M {s 1 A 1} {
+        1 "a x" 1
+        1 "b y" 2
+        2 "ε ε" 1
+    }
+    M recognize {a a} {x x}
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result 1
+
+test recognize-1.1 {recognize relation {a b} -> {x y}} -body {
+    DFST create M {s 1 A 1} {
+        1 "a x" 1
+        1 "b y" 2
+        2 "ε ε" 1
+    }
+    M recognize {a b a} {x y x}
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result 1
+
+test recognize-1.2 {recognize relation {a b c} -> {x y z} where b must precede c} -body {
+    DFST create M {s 1 A 1} {
+        1 "a x" 1
+        1 "b y" 2
+        2 "b y" 2
+        2 "c z" 2
+        2 "ε ε" 1
+    }
+    set res {}
+    lappend res [M recognize {a b c} {x y z}]
+    lappend res [M recognize {a c b} {x z x}]
+    lappend res [M recognize {a b b c c a b} {x y y z z x y}]
+    lappend res [M recognize {a b c} {x x x}]
+    set res
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {1 0 1 0}
+
 test dfst-2.0 {The output becomes 1 and remains 1 thereafter when at least two 0's and two 1's have occurred as inputs} -body {
     DFST create M {
         I {0 1}
