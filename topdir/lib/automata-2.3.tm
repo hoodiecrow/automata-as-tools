@@ -8,6 +8,36 @@ apply {args {
     }
 }} set.tcl
 
+oo::class create Acceptor {
+    variable m current tape
+    constructor args {
+        lassign $args m current tape
+    }
+    method step {} {
+        set arcs [$m getArcs $current [namespace code [list my Filter]]]
+        if {[llength $arcs] > 0 || [llength $tape] > 0} {
+            foreach arc $arcs {
+                [[self class] new {*}[my GetArgList $arc]] step
+            }
+        } else {
+            $m addResult $current
+        }
+        [self] destroy
+    }
+    method Filter {g arc} {
+        expr {[$g arc get $arc -input] in [list {} [lindex $tape 0]]}
+    }
+    method GetArgList edge {
+        lappend arglist $m
+        lappend arglist [$m arc target $edge]
+        if {[llength [$m arc get $edge -input]] > 0} {
+            lappend arglist [lrange $tape 1 end]
+        } else {
+            lappend arglist $tape
+        }
+    }
+}
+
 oo::class create Generator {
     variable m current n tape1 tape2
     constructor args {
@@ -221,7 +251,7 @@ proc assemble items {
 # TODO move to better place
 package require struct::graph
 
-oo::class create DFST {
+oo::class create FSM {
     variable tuple result
     constructor args {
         ::struct::graph G
@@ -258,6 +288,20 @@ oo::class create DFST {
                 }
                 G arc set $a -input $e
                 G arc set $a -output $y
+            } elseif {[llength $from] == 1 && [llength $edge] == 1} {
+                set s $from
+                if {![G node exists $s]} {
+                    G node insert $s
+                }
+                if {![G node exists $next]} {
+                    G node insert $next
+                }
+                set e $edge
+                if {$e eq "ε"} {
+                    set e {}
+                }
+                set a [G arc insert $s $next]
+                G arc set $a -input $e
             } else {
                 return -code error [format {can't build output dictionary from both state and edge}]
             }
@@ -311,6 +355,11 @@ oo::class create DFST {
                 continue
             }
         }
+    }
+    method accept tape {
+        set result {}
+        [Acceptor new [self] [dict get $tuple s] [list {*}$tape]] step
+        my Accepting [dict get $tuple A]
     }
     method generate n {
         set result {}
