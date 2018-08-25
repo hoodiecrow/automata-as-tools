@@ -163,6 +163,50 @@ oo::class create Reconstructor {
     }
 }
 
+oo::class create PDASim {
+    variable m current tape1 tape2
+    constructor args {
+        log::log d [info level 0] 
+        lassign $args m current tape1 tape2
+    }
+    method step {} {
+        set arcs [$m getArcs $current [namespace code [list my Filter]]]
+        log::log d \$arcs=$arcs 
+        if {[llength $arcs] > 0 || ([llength $tape1] > 0 && [llength $tape2] > 0)} {
+            foreach arc $arcs {
+                [[self class] new {*}[my GetArgList $arc]] step
+            }
+        } else {
+            $m addResult $current $current
+        }
+        [self] destroy
+    }
+    method Filter {g arc} {
+        log::log d FilterInput=[$g arc get $arc -input]
+        log::log d FilterOutput=[lindex [$g arc get $arc -output] 0]
+        set res [expr {
+            ([$g arc get $arc -input] in [list {} [lindex $tape1 0]]) &&
+            ([lindex [$g arc get $arc -output] 0] in [list {} [lindex $tape2 0]])
+        }]
+        log::log d \$res=$res 
+        set res
+    }
+    method GetArgList edge {
+        lappend arglist $m
+        lappend arglist [$m arc target $edge]
+        if {[llength [$m arc get $edge -input]] > 0} {
+            lappend arglist [lrange $tape1 1 end]
+        } else {
+            lappend arglist $tape1
+        }
+        set output [lrange [$m edgeGetOutput $edge] 1 end]
+        log::log d \$output=$output 
+        lappend arglist [lreplace $tape2 0 0 {*}$output]
+        log::log d \$arglist=$arglist 
+        set arglist
+    }
+}
+
 proc tuple2json tuple {
     # tuple keys:
     # A C H I O S T Z: list values
@@ -280,9 +324,13 @@ oo::class create FSM {
                 if {$e eq "ε"} {
                     set e {}
                 }
-                if {$y eq "ε"} {
-                    set y {}
-                }
+                set y [lmap i $y {
+                    if {$i ne "ε"} {
+                        set i
+                    } else {
+                        continue
+                    }
+                }]
                 foreach n $next {
                     if {![G node exists $n]} {
                         G node insert $n
@@ -384,5 +432,14 @@ oo::class create FSM {
         set result {}
         [Reconstructor new [self] [dict get $tuple s] {} [list {*}$tape]] step
         my FilterResult [dict get $tuple A]
+    }
+    method romance tape {
+        # bad pun
+        set result {}
+        log::log d [G serialize]
+        log::log d [G arcs -out [dict get $tuple s]]
+        log::log d [G arcs -out q]
+        [PDASim new [self] [dict get $tuple s] [list {*}$tape] [list [dict get $tuple z]]] step
+        my Accepting [dict get $tuple A]
     }
 }

@@ -343,6 +343,28 @@ test nfst-1.1 {} -body {
     log::lvSuppressLE i 1
 } -result {{{NOUN sg}} {{NOUN pl}} {{NOUN sg}} {{NOUN pl}}}
 
+test pda-1.0 {0^n1^n | n >= 0} -body {
+    FSM create M {
+        s p
+        z Z
+        A {r}
+    } {
+        p "ε Z Z" q
+        p "ε A A" q
+        p "0 Z A Z" p
+        p "0 A A A" p
+        q "1 A ε" q
+        q "ε Z Z" r
+    }
+    set res {}
+    lappend res [M romance {1 1 0}]
+    lappend res [M romance {0 1}]
+    lappend res [M romance {0 0 0 1 1 1}]
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {0 1 1}
+
 
 
 # http://web.cs.ucdavis.edu/~rogaway/classes/120/spring13/eric-transducers.pdf
