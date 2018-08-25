@@ -53,8 +53,7 @@ test nfa-1.0 {} -body {
         A s1
     } {
         s0 0 s0
-        s0 1 s0
-        s0 1 s1
+        s0 1 {s0 s1}
         s1 0 s0
         s1 1 s1
     }
@@ -76,8 +75,7 @@ test nfa-1.1 {find even number of ones/zeros} -body {
         s s0
         A {s1 s3}
     } {
-        s0 ε s1
-        s0 ε s3
+        s0 ε {s1 s3}
         s1 0 s2
         s1 1 s1
         s2 0 s1
@@ -299,6 +297,7 @@ test dfst-2.2 {moore machine} -body {
     log::lvSuppressLE i 1
 } -result {{{0 0}} {{0 0 0 0}} {{0 0 0 0 1 1 1 1}}}
 
+    # this isn't non-det
     set Tlex {
         0 "d NOUN" 1
         0 "f NOUN" 2

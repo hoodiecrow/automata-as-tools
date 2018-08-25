@@ -264,21 +264,18 @@ oo::class create FSM {
                     G node insert $s
                 }
                 G node set $s -output $x
-                if {![G node exists $next]} {
-                    G node insert $next
-                }
                 set e $edge
-                set a [G arc insert $s $next]
-                G arc set $a -input $e
+                foreach n $next {
+                    if {![G node exists $n]} {
+                        G node insert $n
+                    }
+                    G arc set [G arc insert $s $n] -input $e
+                }
             } elseif {[llength $from] == 1 && [llength $edge] > 1} {
                 set s $from
                 if {![G node exists $s]} {
                     G node insert $s
                 }
-                if {![G node exists $next]} {
-                    G node insert $next
-                }
-                set a [G arc insert $s $next]
                 set y [lassign $edge e]
                 if {$e eq "ε"} {
                     set e {}
@@ -286,22 +283,29 @@ oo::class create FSM {
                 if {$y eq "ε"} {
                     set y {}
                 }
-                G arc set $a -input $e
-                G arc set $a -output $y
+                foreach n $next {
+                    if {![G node exists $n]} {
+                        G node insert $n
+                    }
+                    set a [G arc insert $s $n]
+                    G arc set $a -input $e
+                    G arc set $a -output $y
+                }
             } elseif {[llength $from] == 1 && [llength $edge] == 1} {
                 set s $from
                 if {![G node exists $s]} {
                     G node insert $s
                 }
-                if {![G node exists $next]} {
-                    G node insert $next
-                }
                 set e $edge
                 if {$e eq "ε"} {
                     set e {}
                 }
-                set a [G arc insert $s $next]
-                G arc set $a -input $e
+                foreach n $next {
+                    if {![G node exists $n]} {
+                        G node insert $n
+                    }
+                    G arc set [G arc insert $s $n] -input $e
+                }
             } else {
                 return -code error [format {can't build output dictionary from both state and edge}]
             }
