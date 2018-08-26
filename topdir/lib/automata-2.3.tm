@@ -172,12 +172,13 @@ oo::class create PDASim {
     method step {} {
         set arcs [$m getArcs $current [namespace code [list my Filter]]]
         log::log d \$arcs=$arcs 
-        if {[llength $arcs] > 0 || ([llength $tape1] > 0 && [llength $tape2] > 0)} {
+        log::log d \$tape1=$tape1,\ \$tape2=$tape2
+        if {[llength $arcs] == 1 || [llength $tape1] == 0 && [llength $tape2] == 1} {
+            $m addResult [$m arc target [lindex $arcs 0]]
+        } elseif {[llength $arcs] > 0 && ([llength $tape1] > 0 && [llength $tape2] > 0)} {
             foreach arc $arcs {
                 [[self class] new {*}[my GetArgList $arc]] step
             }
-        } else {
-            $m addResult $current $current
         }
         [self] destroy
     }
@@ -300,6 +301,9 @@ oo::class create FSM {
     constructor args {
         ::struct::graph G
         lassign $args tuple transitions
+        my BuildGraph $transitions
+    }
+    method BuildGraph transitions {
         foreach {from edge next} $transitions {
             log::log i \$from=[list $from],\ \$edge=[list $edge],\ \$next=[list $next]
             if {[llength $from] > 1 && [llength $edge] == 1} {
@@ -436,9 +440,6 @@ oo::class create FSM {
     method romance tape {
         # bad pun
         set result {}
-        log::log d [G serialize]
-        log::log d [G arcs -out [dict get $tuple s]]
-        log::log d [G arcs -out q]
         [PDASim new [self] [dict get $tuple s] [list {*}$tape] [list [dict get $tuple z]]] step
         my Accepting [dict get $tuple A]
     }
