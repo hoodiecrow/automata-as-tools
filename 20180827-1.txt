@@ -1,0 +1,47 @@
+
+FST:
+
+A: alphabet for tape 1
+
+B: alphabet for tape 2
+
+Q: set of states
+
+T: set of transition rules Q x (A + ε) -> P(Q x B*)
+
+above is a family of transducers indexed by s in S
+
+S: set of start states
+
+F: set of final states
+
+
+relations:
+
+reflective: xRx
+
+symmetric: xRy -> yRx
+
+transitive: xRy and yRz -> xRz
+
+equivalence: all three
+
+
+operations:
+
+kleene: accepts concatenation of S0 .. SN
+
+optional: accepts S or the empty string
+
+union: accepts a string that is accepted by either M1 or M2
+
+intersect: accepts a string that is accepted by both M1 and M2
+
+difference: accepts a string that is accepted by M1 but not by M2
+
+concatenate: accepts a string that consists of two parts, one accepted by M1 and one by M2
+
+
+
+
+
