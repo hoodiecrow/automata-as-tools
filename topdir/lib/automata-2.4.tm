@@ -141,8 +141,16 @@ oo::class create ::automata::FSM {
                 }
                 foreach epsilonMove [my TGet $q0 {}] {
                     log::log d \$epsilonMove=$epsilonMove 
-                    lappend _stateTuples [my NextStateTuple $stateTuple {} {*}$epsilonMove]
-                    if {[my MatchTapeB _tapeB [lrange $epsilonMove 1 end] $tapeB]} {
+                    if no {
+                        lappend _stateTuples [my NextStateTuple $stateTuple {} {*}$epsilonMove]
+                    }
+                    set bs [lrange $epsilonMove 1 end] 
+                    log::log d \$bs=$bs 
+                    if {$bs eq {{}}} {
+                        log::log d foo
+                        lappend _stateTuples [list $tapeA [lindex $epsilonMove 0] $tapeB]
+                    } elseif {[my MatchTapeB _tapeB $bs $tapeB]} {
+                        log::log d bar
                         lappend _stateTuples [list $tapeA [lindex $epsilonMove 0] $_tapeB]
                     }
                 }
@@ -150,6 +158,7 @@ oo::class create ::automata::FSM {
             set result $stateTuples
             set stateTuples $_stateTuples
         }
+        log::log d \$result=$result 
         foreach t $result {
             lassign $t tapeA q tapeB
             if {$q in [dict get $tuple F] && [llength $tapeB] == 0} {
@@ -157,6 +166,36 @@ oo::class create ::automata::FSM {
             }
         }
         return 0
+    }
+
+    method translate {tapeA {tapeB {}}} {
+        # stateTuples: list of <tapeA, q0, tapeB>
+        set result [list]
+        set stateTuples [list]
+        foreach s [dict get $tuple S] {
+            lappend stateTuples [list [list {*}$tapeA] $s [list {*}$tapeB]]
+        }
+        while {[llength $stateTuples] > 0} {
+            log::log d \$stateTuples=$stateTuples
+            set _stateTuples [list]
+            foreach stateTuple $stateTuples {
+                log::log d \$stateTuple=$stateTuple 
+                lassign $stateTuple tapeA q0 tapeB
+                if {[llength $tapeA] > 0} {
+                    foreach m [my TGet $q0 [lindex $tapeA 0]] {
+                        lappend _stateTuples [list [lrange $tapeA 1 end] [lindex $m 0] [concat $tapeB {*}[lrange $m 1 end]]]
+                    }
+                }
+                foreach epsilonMove [my TGet $q0 {}] {
+                    log::log d \$epsilonMove=$epsilonMove 
+                    set epsilonMove [lassign $epsilonMove q1]
+                    lappend _stateTuples [list [lrange $tapeA 1 end] $q1 [concat $tapeB {*}$epsilonMove]]
+                }
+            }
+            set result $stateTuples
+            set stateTuples $_stateTuples
+        }
+        return $result
     }
 
 }

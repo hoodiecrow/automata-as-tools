@@ -150,6 +150,130 @@ test generate-1.1 {} -body {
     log::lvSuppressLE i 1
 } -result {{a 2 {b a}} {{a a} 1 {a a a a}} {{a a} 3 {a a b}} {{a a} 3 {b a a}}}
 
+test recognize-1.0 {recognize relation {a b} -> {x y}} -body {
+    ::automata::FSM create M {
+        S 1
+        F 1
+        T {
+            1 {a {1 x} b {2 y}}
+            2 {{} {1 {}}}
+        }
+    }
+    M recognize {a a} {x x}
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result 1
+
+test recognize-1.1 {recognize relation {a b} -> {x y}} -body {
+    ::automata::FSM create M {
+        S 1
+        F 1
+        T {
+            1 {a {1 x} b {2 y}}
+            2 {{} {1 {}}}
+        }
+    }
+    M recognize {a b a} {x y x}
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result 1
+
+test recognize-1.2 {recognize {a*(b+c+)?} relation {a b c} -> {x y z}} -body {
+    ::automata::FSM create M {
+        S 1
+        F 1
+        T {
+            1 {a {1 x} b {2 y}}
+            2 {b {2 y} c {3 z}}
+            3 {c {3 z} {} {1 {}}}
+        }
+    }
+    set res {}
+    lappend res [M recognize {a b c} {x y z}]
+    lappend res [M recognize {a c b} {x z x}]
+    lappend res [M recognize {a b b c c a b c} {x y y z z x y z}]
+    lappend res [M recognize {a b c} {x x x}]
+    set res
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {1 0 1 0}
+
+test dfst-2.0 {The output becomes 1 and remains 1 thereafter when at least two 0's and two 1's have occurred as inputs} -body {
+    ::automata::FSM create M {
+        S A
+        F {A B C D E F G H I}
+        T {
+            A {0 {D 0} 1 {B 0}}
+            B {0 {E 0} 1 {C 0}}
+            C {0 {F 0} 1 {C 0}}
+            D {0 {G 0} 1 {E 0}}
+            E {0 {H 0} 1 {F 0}}
+            F {0 {I 0} 1 {F 0}}
+            G {0 {G 0} 1 {H 0}}
+            H {0 {H 0} 1 {I 0}}
+            I {0 {I 1} 1 {I 1}}
+        }
+    }
+    set res {}
+    lappend res [M translate {1 1}]
+    lappend res [M translate {1 1 0 0}]
+    lappend res [M translate {1 1 0 0 1 0 1 1}]
+    set res
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {{{{} C {0 0}}} {{{} I {0 0 0 0}}} {{{} I {0 0 0 0 1 1 1 1}}}}
+
+test dfst-2.1 {edge detector} -body {
+    ::automata::FSM create M {
+        S si
+        F {s0 s1}
+        T {
+            si {0 {s0 0} 1 {s1 0}}
+            s0 {0 {s0 0} 1 {s1 1}}
+            s1 {0 {s0 1} 1 {s1 0}}
+        }
+    }
+    set res {}
+    lappend res [M translate {1 1 0}]
+    lappend res [M translate {0 0 1}]
+    lappend res [M translate {1 1 0 0 1 0 1 1}]
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {{{{} s0 {0 0 1}}} {{{} s1 {0 0 1}}} {{{} s1 {0 0 1 0 1 1 1 0}}}}
+
+test dfst-2.2 {moore machine} -constraints SKIP -body {
+    ::automata::FSM create M {
+        S A
+        F {A B C D E F G H I}
+        T {
+            {{A 0} {0 D 1 B}}
+            {{B 0} {0 E 1 C}}
+            {{C 0} {0 F 1 C}}
+            {{D 0} {0 G 1 E}}
+            {{E 0} {0 H 1 F}}
+            {{F 0} {0 I 1 F}}
+            {{G 0} {0 G 1 H}}
+            {{H 0} {0 H 1 I}}
+            {{I 1} {0 I 1 I}}
+        }
+    }
+    set res {}
+    log::lvSuppressLE i 0
+    lappend res [M translate {1 1}]
+    log::lvSuppressLE i 1
+    lappend res [M translate {1 1 0 0}]
+    lappend res [M translate {1 1 0 0 1 0 1 1}]
+    set res
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {{{0 0}} {{0 0 0 0}} {{0 0 0 0 1 1 1 1}}}
+
 
 if {[package vcompare [package present automata] 2.3] > 0} { 
     cleanupTests ; return 
