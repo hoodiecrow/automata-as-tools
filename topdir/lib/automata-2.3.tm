@@ -1,5 +1,6 @@
 package require json
 package require json::write
+package require struct::graph
 
 apply {args {
     set dir [file dirname [info script]]
@@ -292,9 +293,6 @@ proc assemble items {
 # generate 2 -> {a a} {a a a a}
 # translate {a a} -> {a a a a}
 # reconstruct {a a a a} -> {a a}
-
-# TODO move to better place
-package require struct::graph
 
 oo::class create FSM {
     variable tuple result

@@ -6,6 +6,12 @@ namespace import ::tcltest::*
 ::tcltest::testConstraint noskip 1
 
 ::tcltest::loadTestedCommands
+
+if {[package vcompare [package present automata] 2.3] > 0} { 
+    cleanupTests ; return 
+} 
+ 
+
 if no {
         q0 "ε S S" qe
         q0 "0 S Z" q0

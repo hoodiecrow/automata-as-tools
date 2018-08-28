@@ -7,16 +7,179 @@ namespace import ::tcltest::*
 
 ::tcltest::loadTestedCommands
 
-proc foo d {
-    dict for {state edges} $d {
-        dict for {edge data} $edges {
-            lassign [split $data :] a b
-            dict lappend t $state $edge $a
-            dict lappend o $state $edge $b
+test fsm-1.0 {} -body {
+    ::automata::FSM create M {
+        T {
+            0 {a {1 a}}
+            1 {b {0 b}}
+        }
+        S {0}
+    }
+    M generate 4
+} -cleanup {
+    log::lvSuppressLE i 1
+    M destroy
+} -result {{{a b a b} 0 {a b a b}}}
+
+test fsm-1.1 {} -body {
+    ::automata::FSM create M {
+        T {
+            0 {a {1 a}}
+            1 {b {2 b}}
+            2 {{} {0 c}}
+        }
+        S {0}
+    }
+    M generate 6
+} -cleanup {
+    log::lvSuppressLE i 1
+    M destroy
+} -result {{{a b a b} 0 {a b c a b c}}}
+
+test fsm-1.2 {} -body {
+    ::automata::FSM create M {
+        T {
+            0 {a {1 a} b {2 d}}
+            1 {b {2 b}}
+            2 {{} {0 c}}
+        }
+        S {0}
+    }
+    M generate 6
+} -cleanup {
+    log::lvSuppressLE i 1
+    M destroy
+} -result {{{a b a b} 0 {a b c a b c}} {{a b b a} 1 {a b c d c a}} {{a b b b} 2 {a b c d c d}} {{b a b a} 1 {d c a b c a}} {{b a b b} 2 {d c a b c d}} {{b b a b} 2 {d c d c a b}} {{b b b} 0 {d c d c d c}}}
+
+test fsm-2.0 {} -body {
+    ::automata::FSM create M {
+        T {
+            0 {a {1 a}}
+            1 {b {0 b}}
+        }
+        S {0}
+        F {0}
+    }
+    set res {}
+    lappend res [M recognize {a b a b} {a b a b}]
+    lappend res [M recognize {a b a b} {a b a c}]
+    set res
+} -cleanup {
+    log::lvSuppressLE i 1
+    M destroy
+} -result {1 0}
+
+test fsm-2.1 {} -body {
+    ::automata::FSM create M {
+        T {
+            0 {a {1 a}}
+            1 {b {2 b}}
+            2 {{} {0 c}}
+        }
+        S {0}
+        F {0}
+    }
+    set res {}
+    lappend res [M recognize {a b a b} {a b c a b c}]
+    lappend res [M recognize {a b a b} {a b a b c}]
+    set res
+} -cleanup {
+    log::lvSuppressLE i 1
+    M destroy
+} -result {1 0}
+
+test dfa-1.0 {accept binary numbers that are multiples of 3} -body {
+    ::automata::FSM create M {
+        S {s0}
+        F {s0}
+        T {
+            s0 {0 s0 1 s1}
+            s1 {0 s2 1 s0}
+            s2 {0 s1 1 s2}
         }
     }
-    list $t $o
-}
+    set res {}
+    lappend res [M accept {1}]
+    lappend res [M accept {0 1}]
+    lappend res [M accept {1 1}]
+    lappend res [M accept {0 0 1}]
+    lappend res [M accept {1 0 1}]
+    lappend res [M accept {0 1 1}]
+    lappend res [M accept {1 1 1}]
+    set res
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {0 0 1 0 0 1 0}
+
+test nfa-1.0 {} -body {
+    ::automata::FSM create M {
+        S {s0}
+        F {s1}
+        T {
+            s0 {0 s0 1 {s0 s1}}
+            s1 {0 s0 1 s1}
+        }
+    }
+    set res {}
+    lappend res [M accept {1}]
+    lappend res [M accept {0}]
+    lappend res [M accept {1 1}]
+    lappend res [M accept {1 0}]
+    lappend res [M accept {0 1}]
+    lappend res [M accept {0 0}]
+    set res
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {1 0 1 0 1 0}
+
+test generate-1.1 {} -body {
+    ::automata::FSM create M {
+        S 1
+        F 1
+        T {
+            1 {{} {2 {}} a {3 a}}
+            2 {a {3 b}}
+            3 {{} {1 a}}
+        }
+    }
+    lsort [M generate 4]
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {{a 2 {b a}} {{a a} 1 {a a a a}} {{a a} 3 {a a b}} {{a a} 3 {b a a}}}
+
+
+if {[package vcompare [package present automata] 2.3] > 0} { 
+    cleanupTests ; return 
+} 
+ 
+test nfa-1.1 {find even number of ones/zeros} -body {
+    FSM create M {
+        S {s0}
+        F {s1 s3}
+        T {
+            s0 {{} {s1 s3}}
+            s1 {0 s2 1 s1}
+            s2 {0 s1 1 s2}
+            s3 {0 s3 1 s4}
+            s4 {0 s4 1 s3}
+        }
+    }
+    set res {}
+    lappend res [M accept {1 1}]
+    lappend res [M accept {1 0}]
+    lappend res [M accept {0 1}]
+    lappend res [M accept {0 0}]
+    lappend res [M accept {1 0 0 1 1 1}]
+    lappend res [M accept {1 0 0 1 1 0}]
+    set res
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {1 0 0 1 1 0}
+
 
 # http://cs.union.edu/~striegnk/courses/nlp-with-prolog/html/node13.html
 
