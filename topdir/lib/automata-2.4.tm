@@ -171,6 +171,7 @@ oo::class create ::automata::FSM {
     }
 
     method translate tapeA {
+        # TODO does not check final state
         # stateTuples: list of <tapeA, q0, tapeB>
         set results [list]
         set stateTuples [list]
@@ -203,6 +204,7 @@ oo::class create ::automata::FSM {
     }
 
     method reconstruct tapeB {
+        # TODO does not check final state
         # stateTuples: list of <tapeA, q0, tapeB>
         set results [list]
         set stateTuples [list]
