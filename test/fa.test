@@ -1,0 +1,168 @@
+package require tcltest
+namespace import ::tcltest::*
+
+::tcltest::configure {*}$argv
+
+::tcltest::testConstraint noskip 1
+
+::tcltest::loadTestedCommands
+
+proc dump machine {
+    upvar 1 $machine M
+    set res {}
+    lappend res "A = [list [M alphabet A]]"
+    lappend res "B = [list [M alphabet B]]"
+    lappend res "Q = [list [M alphabet Q]]"
+    lappend res "S = [list [M alphabet S]]"
+    lappend res "F = [list [M alphabet F]]"
+    lappend res "transitions:"
+    lappend res {*}[apply [list T {
+        dict for {q moves} $T {
+            dict for {a targets} $moves {
+                foreach target $targets {
+                    lappend res [list $q $a $target]
+                }
+            }
+        }
+        set res
+    }] [M alphabet T]]
+    join $res \n
+}
+
+test fsm-1.0 {} -body {
+    ::automata::FSM create M
+    M next 0 a --> {1 a}
+    M next 1 b --> {0 b}
+    M start add 0
+    set res {}
+    lappend res [M serialize automata::fa]
+    lappend res [dump [M deserialize [lindex $res 0]]]
+    set res
+} -cleanup {
+    log::lvSuppressLE i 1
+    M destroy
+} -result {{automata::fa {a b} {0 {1 1 {a 1}} 1 {0 1 {b 0}}} {0 {a a} 1 {b b}}} {A = {a b}
+B = {a b}
+Q = {0 1}
+S = 0
+F = {}
+transitions:
+0 a {1 a}
+1 b {0 b}}}
+
+test fsm-1.1 {} -body {
+    ::automata::FSM create M
+    M next 0 a  --> {1 a}
+    M next 1 b  --> {2 b}
+    M next 2 {} --> {0 c}
+    M start add 0
+    dump M
+} -cleanup {
+    log::lvSuppressLE i 1
+    M destroy
+} -result {A = {a b}
+B = {a b c}
+Q = {0 1 2}
+S = 0
+F = {}
+transitions:
+0 a {1 a}
+1 b {2 b}
+2 {} {0 c}}
+
+test fsm-1.2 {} -body {
+    ::automata::FSM create M
+    M next 0 a  --> {1 a}
+    M next 0 b  --> {2 d}
+    M next 1 b  --> {2 b}
+    M next 2 {} --> {0 c}
+    M start add 0
+    M serialize
+} -cleanup {
+    log::lvSuppressLE i 1
+    M destroy
+} -result {grammar::fa {a b c d} {0 {1 1 {a 1 b 2}} 1 {0 1 {b 2}} 2 {0 1 {{} 0}}}}
+
+test fsm-2.0 {} -body {
+    ::automata::FSM create M
+    M next 0 a  --> {1 a}
+    M next 1 b  --> {0 b}
+    M start add 0
+    M final add 0
+    dump M
+} -cleanup {
+    log::lvSuppressLE i 1
+    M destroy
+} -result {A = {a b}
+B = {a b}
+Q = {0 1}
+S = 0
+F = 0
+transitions:
+0 a {1 a}
+1 b {0 b}}
+
+test fsm-2.1 {} -body {
+    ::automata::FSM create M
+    M next 0 a  --> {1 a}
+    M next 1 b  --> {2 b}
+    M next 2 {} --> {0 c}
+    M start add 0
+    M final add 0
+    dump M
+} -cleanup {
+    log::lvSuppressLE i 1
+    M destroy
+} -result {A = {a b}
+B = {a b c}
+Q = {0 1 2}
+S = 0
+F = 0
+transitions:
+0 a {1 a}
+1 b {2 b}
+2 {} {0 c}}
+
+test dfa-1.0 {} -body {
+    ::automata::FSM create M
+    M next s0 0 --> s0
+    M next s0 1 --> s1
+    M next s1 0 --> s2
+    M next s1 1 --> s0
+    M next s2 0 --> s1
+    M next s2 1 --> s2
+    M start add s0
+    M final add s0
+    dump M
+} -cleanup {
+    log::lvSuppressLE i 1
+    M destroy
+} -result {A = {0 1}
+B = {}
+Q = {s0 s1 s2}
+S = s0
+F = s0
+transitions:
+s0 0 s0
+s0 1 s1
+s1 0 s2
+s1 1 s0
+s2 0 s1
+s2 1 s2}
+
+test nfa-1.0 {} -body {
+    ::automata::FSM create M
+    M next s0 0 --> s0
+    M next s0 1 --> s0
+    M next s0 1 --> s1
+    M next s1 0 --> s0
+    M next s1 1 --> s1
+    M start add s0
+    M final add s1
+    M alphabet T
+} -cleanup {
+    log::lvSuppressLE i 1
+    M destroy
+} -result {s0 {0 s0 1 {s0 s1}} s1 {0 s0 1 s1}}
+
+cleanupTests

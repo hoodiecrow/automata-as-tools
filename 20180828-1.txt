@@ -1,0 +1,13 @@
+Transitions:
+
+transition rules: dictionary of Q->(A+ε)->{Q B*}
+
+initial status-tuple: (s,input,{})
+
+collect lists of (q,a,b) action-tuples
+
+select action-tuples that can be paid from current input
+
+map action-tuples to (q,input±a,output±b) status-tuples
+
+
