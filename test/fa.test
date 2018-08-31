@@ -10,11 +10,11 @@ namespace import ::tcltest::*
 proc dump machine {
     upvar 1 $machine M
     set res {}
-    lappend res "A = [list [M alphabet A]]"
-    lappend res "B = [list [M alphabet B]]"
-    lappend res "Q = [list [M alphabet Q]]"
-    lappend res "S = [list [M alphabet S]]"
-    lappend res "F = [list [M alphabet F]]"
+    lappend res "A = [list [M get A]]"
+    lappend res "B = [list [M get B]]"
+    lappend res "Q = [list [M get Q]]"
+    lappend res "S = [list [M get S]]"
+    lappend res "F = [list [M get F]]"
     lappend res "transitions:"
     lappend res {*}[apply [list T {
         dict for {q moves} $T {
@@ -25,7 +25,7 @@ proc dump machine {
             }
         }
         set res
-    }] [M alphabet T]]
+    }] [M get T]]
     join $res \n
 }
 
@@ -159,7 +159,7 @@ test nfa-1.0 {} -body {
     M next s1 1 --> s1
     M start add s0
     M final add s1
-    M alphabet T
+    M get T
 } -cleanup {
     log::lvSuppressLE i 1
     M destroy

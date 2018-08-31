@@ -1,0 +1,138 @@
+
+2.4
+
+class ::automata::FSM
+
+    method accept tape
+    method generate steps
+    method recognize
+    method reconstruct tapeB
+    method translate tapeA
+
+    method get name
+    method reset
+
+2.3 transition function based on struct::graph
+
+class ::Acceptor (& ::Generator, ::Recognizer, ::Translator, ::Reconstructor, ::PDASim)
+
+    method step {}
+
+class ::FSM
+
+    method accept tape
+    method addResult args
+    forward arc
+    forward arcs
+    method edgeGetInput edge
+    method edgeGetOutput edge
+    method generate n
+    method getArcs
+    method nodeGetInput vertex
+    method nodeGetOutput vertex
+    method recognize args
+    method reconstruct tape
+    method romance tape
+    method translate tape
+
+2.2 transition function based on dict
+
+class ::DFST
+
+    method generate n
+    method recognize args
+    method reconstruct args
+    method translate args
+
+2.1
+
+class ::FSM (subclasses FST, PDA, DTM)
+
+    method run inputs
+    method tuple
+
+class ::FST
+
+    method run inputs
+    method tuple
+
+class ::PDA
+
+    method run args
+    method tuple
+
+class ::DTM
+
+    method run
+    method tuple
+
+class ::PTM
+
+    method run
+    method tuple
+
+2.0 
+
+class ::Set
+
+    method add values
+    method all
+    method empty
+    method exists key
+    method for
+    method intersects stateset
+    method map
+    method set values
+    method size
+
+class ::Tuple
+
+    method add
+    method exists key
+    method get key
+    method set
+    method show
+    method unset key
+
+class ::FSM (subclasses TM, PDA, FST)
+
+    method moves input
+    method run inputs
+    method set
+    method trans key
+    forward tuple tuple
+
+class ::TM
+
+    method moves input
+    method run
+    method set
+    method trans key
+    forward tuple tuple
+
+class ::PDA
+
+    method moves input
+    method run args
+    method set
+    method trans key
+    forward tuple tuple
+
+class ::FST
+
+    method moves input
+    method output
+    method run args
+    method set args
+    method trans key
+    forward tuple tuple
+
+1.0
+
+class ::FSM::CMachine
+
+    method accept states
+    method run
+    method set args
+
+
