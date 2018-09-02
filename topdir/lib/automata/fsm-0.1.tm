@@ -67,39 +67,12 @@ oo::class create ::automata::FSM {
         }
     }
 
-    method MatchA {varName token tapeA} {
-        upvar 1 $varName _tapeA
+    method ConsumeInA {tapeA token} {
         if {$token eq {}} {
             set _tapeA $tapeA
-            return 1
         } elseif {$token eq [lindex $tapeA 0]} {
             set _tapeA [lrange $tapeA 1 end]
-            return 1
         } else {
-            return 0
-        }
-    }
-
-    method MatchB {varName tokens tapeB} {
-        upvar 1 $varName _tapeB
-        set _tapeB [list]
-        if {[llength $tokens] == 1 && [lindex $tokens 0] eq {}} {
-            set _tapeB $tapeB
-            return 1
-        } else {
-            foreach token $tokens {
-                if {$token ne [lindex $tapeB 0]} {
-                    return 0
-                }
-                set tapeB [lrange $tapeB 1 end]
-            }
-            set _tapeB $tapeB
-            return 1
-        }
-    }
-
-    method ConsumeInA {tapeA token} {
-        if {![my MatchA _tapeA $token $tapeA]} {
             return -code continue
         }
         return $_tapeA
@@ -113,9 +86,18 @@ oo::class create ::automata::FSM {
         }
     }
 
-    method ConsumeInB {tapeB target} {
-        if {![my MatchB _tapeB $target $tapeB]} {
-            return -code continue
+    method ConsumeInB {tapeB tokens} {
+        set _tapeB [list]
+        if {[llength $tokens] == 1 && [lindex $tokens 0] eq {}} {
+            set _tapeB $tapeB
+        } else {
+            foreach token $tokens {
+                if {$token ne [lindex $tapeB 0]} {
+                    return -code continue
+                }
+                set tapeB [lrange $tapeB 1 end]
+            }
+            set _tapeB $tapeB
         }
         return $_tapeB
     }
@@ -208,38 +190,34 @@ oo::class create ::automata::FSM {
         }
     }
 
-    method AddSymbol state {
-        if {$state ne {}} {
+    method AddSymbol symbol {
+        if {$symbol ne {}} {
             dict with tuple {
-                set A [lsort -unique [list {*}$A $state]]
+                set A [lsort -unique [list {*}$A $symbol]]
             }
         }
     }
 
-    method AddOutput output {
-        if {$output ne {}} {
+    method AddOutput symbol {
+        if {$symbol ne {}} {
             dict with tuple {
-                set B [lsort -unique [list {*}$B $output]]
+                set B [lsort -unique [list {*}$B $symbol]]
             }
         }
     }
 
-    method SymbolsS s {
-        set result [list]
-        if {[dict exists $tuple T $s]} {
-            dict for {token -} [dict get $tuple T $s] {
-                lappend result $token
-            }
+    method SymbolsS state {
+        if {[dict exists $tuple T $state]} {
+            lmap {token -} [dict get $tuple T $state] {set token}
         }
-        return $result
     }
 
-    method SymbolsT {s t} {
+    method SymbolsT {state destination} {
         set result [list]
-        if {[dict exists $tuple T $s]} {
-            dict for {token targets} [dict get $tuple T $s] {
+        if {[dict exists $tuple T $state]} {
+            dict for {token targets} [dict get $tuple T $state] {
                 foreach target $targets {
-                    if {[lindex $target 0] eq $t} {
+                    if {[lindex $target 0] eq $destination} {
                         lappend result $token
                     }
                 }
@@ -275,7 +253,9 @@ oo::class create ::automata::FSM {
     }
 
     method edges state {
-        dict get $tuple T $state
+        if {[dict exists $tuple T $state]} {
+            dict get $tuple T $state
+        }
     }
 
     method states {} {
