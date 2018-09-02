@@ -3,27 +3,23 @@ namespace eval automata {}
 
 oo::class create ::automata::fa {
     # implements a similar interface to Tcllib ::grammar::fa
-    variable tuple has
+    variable has
 
     method serialize {{type grammar::fa}} {
         # TODO loses output information
         # change type to automata::fa and add an output item
         set res [list $type]
-        lappend res [lsort -unique [concat [dict get $tuple A] [dict get $tuple B]]]
-        dict with tuple {
-            foreach s $Q {
-                set ss [expr {$S eq {} || $s in $S}]
-                set fs [expr {$F eq {} || $s in $F}]
-                set outputs {}
-                dict set d $s [list $ss $fs [concat {*}[lmap {sym targets} [dict get $T $s] {
-                    concat {*}[lmap target $targets {
-                        set tokens [lassign $target q]
-                        dict set outputs $sym $tokens
-                        list $sym $q
-                    }]
-                }]]]
-                dict set o $s $outputs
-            }
+        lappend res [my symbols]
+        foreach state [my states] {
+            set outputs {}
+            dict set d $state [list [my start? $state] [my final? $state] [concat {*}[lmap {sym targets} [my edges $state] {
+                concat {*}[lmap target $targets {
+                    set tokens [lassign $target q]
+                    dict set outputs $sym $tokens
+                    list $sym $q
+                }]
+            }]]]
+            dict set o $state $outputs
         }
         switch $type {
             grammar::fa { lappend res $d }
@@ -72,112 +68,69 @@ oo::class create ::automata::fa {
         }
     }
 
-    method states {} {
-        dict get $tuple Q
-    }
+    # states method delegated to ::automata::FSM
+    # state? (added) method delegated to ::automata::FSM
 
     method state {verb args} {
+        set args [lassign $args s]
         switch $verb {
-            add { error {not implemented yet} }
+            add { my AddState $s }
             delete { error {not implemented yet} }
-            exists { expr {[lindex $args 0] in [dict get $tuple Q]} }
-            rename {
-                lassign $args s snew
-                if {$s ni [dict get $tuple Q]} {
-                    return -code error [format {state "%s" not in state set} $s]
-                    if {$s in [dict get $tuple Q]} {
-                        return -code error [format {state "%s" already in state set} $snew]
-                    }
-                }
-                error {not implemented yet}
-            }
+            exists { my state? $s }
+            rename { error {not implemented yet} }
             default {
                 error {unexpected alternative}
             }
         }
     }
 
-    method startstates {} {
-        dict get $tuple S
-    }
-
-    method start? s {
-        expr {$s in [dict get $tuple S]}
-    }
+    # startstates method delegated to ::automata::FSM
+    # start? method delegated to ::automata::FSM
 
     method start?set stateset {
-        dict with tuple {
-            foreach s $stateset {
-                if {$s in $S} {
-                    return 1
-                }
+        foreach s $stateset {
+            if {[my start? $s]} {
+                return 1
             }
         }
         return 0
     }
 
     method start {verb args} {
-        dict with tuple {
-            switch $verb {
-                add {
-                    lassign $args s
-                    if {$s ni [dict get $tuple Q]} {
-                        return -code error [format {state "%s" not in state set} $s]
-                    }
-                    if {$s ni [dict get $tuple S]} {
-                        lappend S $s
-                    }
-                }
-                remove { error {not implemented yet} }
-                default {
-                    error {unexpected alternative}
-                }
+        set args [lassign $args s]
+        switch $verb {
+            add { my AddStart $s }
+            remove { error {not implemented yet} }
+            default {
+                error {unexpected alternative}
             }
         }
     }
 
-    method finalstates {} {
-        dict get $tuple F
-    }
-
-    method final? s {
-        expr {$s in [dict get $tuple F]}
-    }
+    # finalstates method delegated to ::automata::FSM
+    # final? method delegated to ::automata::FSM
 
     method final?set stateset {
-        dict with tuple {
-            foreach s $stateset {
-                if {$s in $F} {
-                    return 1
-                }
+        foreach s $stateset {
+            if {[my final? $s]} {
+                return 1
             }
         }
         return 0
     }
 
     method final {verb args} {
-        dict with tuple {
-            switch $verb {
-                add {
-                    lassign $args s
-                    if {$s ni [dict get $tuple Q]} {
-                        return -code error [format {state "%s" not in state set} $s]
-                    }
-                    if {$s ni [dict get $tuple F]} {
-                        lappend F $s
-                    }
-                }
-                remove { error {not implemented yet} }
-                default {
-                    error {unexpected alternative}
-                }
+        set args [lassign $args s]
+        switch $verb {
+            add { my AddFinal $s }
+            remove { error {not implemented yet} }
+            default {
+                error {unexpected alternative}
             }
         }
     }
 
-    method symbols {} {
-        concat [dict get $tuple A] [dict get $tuple B]
-    }
+    # symbols method delegated to ::automata::FSM
 
     method symbols@ args {
         switch [llength $args] {
@@ -189,30 +142,6 @@ oo::class create ::automata::fa {
         }
     }
 
-    method SymbolsS s {
-        set result [list]
-        if {[dict exists $tuple T $s]} {
-            dict for {token -} [dict get $tuple T $s] {
-                lappend result $token
-            }
-        }
-        return $result
-    }
-
-    method SymbolsT {s t} {
-        set result [list]
-        if {[dict exists $tuple T $s]} {
-            dict for {token targets} [dict get $tuple T $s] {
-                foreach target $targets {
-                    if {[lindex $target 0] eq $t} {
-                        lappend result $token
-                    }
-                }
-            }
-        }
-        return $result
-    }
-
     method symbols@set stateset {
         set result [list]
         foreach s $stateset {
@@ -222,19 +151,12 @@ oo::class create ::automata::fa {
     }
 
     method symbol {verb args} {
+        set args [lassign $args s]
         switch $verb {
-            add {
-                dict with tuple {
-                    set A [lsort -unique [list {*}$A [lindex $args 0]]]
-                }
-            }
+            add { my AddSymbol $s }
             delete { error {not implemented yet} }
             rename { error {not implemented yet} }
-            exists {
-                dict with tuple {
-                    expr {[lindex $args 0] in $A}
-                }
-            }
+            exists { expr {$s in [my symbols]} }
             default {
                 error {unexpected alternative}
             }
@@ -243,19 +165,9 @@ oo::class create ::automata::fa {
 
     method next {s sym args} {
         if {[llength $args] != 2} {
-            dict get $tuple T $s $sym
+            my GetTarget $s $sym
         } else {
-            lassign $args - target
-            if {![dict exists $tuple T $s]} {
-                dict set tuple T $s {}
-            }
-            if {![dict exists $tuple T $s $sym]} {
-                dict set tuple T $s $sym {}
-            }
-            dict with tuple T $s {
-                lappend $sym [lindex $args 1]
-            }
-            my CompleteTuple
+            my SetTarget $s $sym {*}$args
         }
     }
 

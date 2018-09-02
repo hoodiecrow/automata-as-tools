@@ -8,17 +8,15 @@ namespace eval automata {}
 oo::class create ::automata::FSM {
     mixin ::automata::fa
 
-    variable tuple T states steps has
+    variable tuple steps has
 
     constructor args {
-        lassign $args tuple
-        set tuple [dict merge {A {} B {} Q {} T {} S {} F {}} $tuple]
-        set states {}
         set has(epsilon) 0
-        my CompleteTuple
+        my NormalizeTuple [lindex $args 0]
     }
 
-    method CompleteTuple {} {
+    method NormalizeTuple t {
+        set tuple [dict merge {A {} B {} Q {} T {} S {} F {}} $t]
         dict with tuple {
             dict for {q items} $T {
                 lappend Q $q
@@ -56,10 +54,9 @@ oo::class create ::automata::FSM {
     }
 
     method StartingTuples {tapeA tapeB} {
-        my reset
         set tapeA [list {*}$tapeA]
         set tapeB [list {*}$tapeB]
-        lmap state $states {
+        lmap state [dict get $tuple S] {
             list $tapeA $state $tapeB
         }
     }
@@ -184,12 +181,133 @@ oo::class create ::automata::FSM {
         }
     }
 
-    method reset {} {
-        set states [dict get $tuple S]
+    method AddState s {
+        dict with tuple {
+            if {![dict exists $T $s]} {
+                dict set T $s {}
+            }
+            set Q [lsort -unique [list {*}$Q $s]]
+        }
+    }
+
+    method AddStart state {
+        dict with tuple {
+            if {$state ni $Q} {
+                return -code error [format {state "%s" not in state set} $state]
+            }
+            set S [lsort -unique [list {*}$S $state]]
+        }
+    }
+
+    method AddFinal state {
+        dict with tuple {
+            if {$state ni $Q} {
+                return -code error [format {state "%s" not in state set} $state]
+            }
+            set F [lsort -unique [list {*}$F $state]]
+        }
+    }
+
+    method AddSymbol state {
+        if {$state ne {}} {
+            dict with tuple {
+                set A [lsort -unique [list {*}$A $state]]
+            }
+        }
+    }
+
+    method AddOutput output {
+        if {$output ne {}} {
+            dict with tuple {
+                set B [lsort -unique [list {*}$B $output]]
+            }
+        }
+    }
+
+    method SymbolsS s {
+        set result [list]
+        if {[dict exists $tuple T $s]} {
+            dict for {token -} [dict get $tuple T $s] {
+                lappend result $token
+            }
+        }
+        return $result
+    }
+
+    method SymbolsT {s t} {
+        set result [list]
+        if {[dict exists $tuple T $s]} {
+            dict for {token targets} [dict get $tuple T $s] {
+                foreach target $targets {
+                    if {[lindex $target 0] eq $t} {
+                        lappend result $token
+                    }
+                }
+            }
+        }
+        return $result
+    }
+
+    method GetTarget {state symbol} {
+        dict get $tuple T $state $symbol
+    }
+
+    method SetTarget {state symbol "-->" target} {
+        my AddState $state
+        my AddSymbol $symbol
+        if {![dict exists $tuple T $state $symbol]} {
+            dict set tuple T $state $symbol {}
+        }
+        dict with tuple T $state {
+            lappend $symbol $target
+        }
+        foreach output [lrange $target 1 end] {
+            my AddOutput $output
+        }
+        # TODO overkill
+        if no {
+            my NormalizeTuple $tuple
+        }
     }
 
     method get name {
         dict get $tuple $name
+    }
+
+    method edges state {
+        dict get $tuple T $state
+    }
+
+    method states {} {
+        dict get $tuple Q
+    }
+
+    method state? state {
+        expr {$state in [dict get $tuple Q]}
+    }
+
+    method startstates {} {
+        dict get $tuple S
+    }
+
+    method start? state {
+        dict with tuple {
+            expr {$S eq {} || $state in $S}
+        }
+    }
+
+    method finalstates {} {
+        dict get $tuple F
+    }
+
+    method final? state {
+        dict with tuple {
+            expr {$F eq {} || $state in $F}
+        }
+    }
+
+    method symbols {} {
+        lsort -unique [concat [dict get $tuple A] [dict get $tuple B]]
     }
 
     method accept tape {
