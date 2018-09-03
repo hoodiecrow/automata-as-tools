@@ -29,19 +29,102 @@ proc dump machine {
     join $res \n
 }
 
+test fa-1.0 {} -body {
+    ::automata::FSM create M
+    M state add a
+    M state add z
+    list [M state? a] [M state? b] [M states]
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {1 0 {a z}}
+
+test startstates-1.0 {} -body {
+    ::automata::FSM create M
+    M start add a
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {state "a" not in state set} -returnCodes error
+
+test startstates-1.1 {} -body {
+    ::automata::FSM create M {Q a}
+    M start add a
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {}
+
+test startstates-1.2 {} -body {
+    ::automata::FSM create M {Q a}
+    M start add a
+    list [M start? a] [M start? b] [M start?set {a b}]
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {1 0 1}
+
+test startstates-1.3 {} -body {
+    ::automata::FSM create M {Q {a b z}}
+    M start add a
+    M start add b
+    M start add z
+    M startstates
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {a b z}
+
+test finalstates-1.0 {} -body {
+    ::automata::FSM create M
+    M final add a
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {state "a" not in state set} -returnCodes error
+
+test finalstates-1.1 {} -body {
+    ::automata::FSM create M {Q a}
+    M final add a
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {}
+
+test finalstates-1.2 {} -body {
+    ::automata::FSM create M {Q a}
+    M final add a
+    list [M final? a] [M final? b] [M final?set {a b}]
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {1 0 1}
+
+test finalstates-1.3 {} -body {
+    ::automata::FSM create M {Q {a b z}}
+    M final add a
+    M final add b
+    M final add z
+    M finalstates
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {a b z}
+
 test fsm-1.0 {} -body {
     ::automata::FSM create M
-    M next 0 a --> {1 a}
-    M next 1 b --> {0 b}
+    M next 0 a --> 1 a
+    M next 1 b --> 0 b
     M start add 0
     set res {}
+    lappend res [M is deterministic]
     lappend res [M serialize automata::fa]
-    lappend res [dump [M deserialize [lindex $res 0]]]
+    lappend res [dump [M deserialize [lindex $res 1]]]
     set res
 } -cleanup {
     log::lvSuppressLE i 1
     M destroy
-} -result {{automata::fa {a b} {0 {1 1 {a 1}} 1 {0 1 {b 0}}} {0 {a a} 1 {b b}}} {A = {a b}
+} -result {1 {automata::fa {a b} {0 {1 1 {a 1}} 1 {0 1 {b 0}}} {0 {a a} 1 {b b}}} {A = {a b}
 B = {a b}
 Q = {0 1}
 S = 0
@@ -52,9 +135,9 @@ transitions:
 
 test fsm-1.1 {} -body {
     ::automata::FSM create M
-    M next 0 a  --> {1 a}
-    M next 1 b  --> {2 b}
-    M next 2 {} --> {0 c}
+    M next 0 a  --> 1 a
+    M next 1 b  --> 2 b
+    M next 2 {} --> 0 c
     M start add 0
     dump M
 } -cleanup {
@@ -72,10 +155,10 @@ transitions:
 
 test fsm-1.2 {} -body {
     ::automata::FSM create M
-    M next 0 a  --> {1 a}
-    M next 0 b  --> {2 d}
-    M next 1 b  --> {2 b}
-    M next 2 {} --> {0 c}
+    M next 0 a  --> 1 a
+    M next 0 b  --> 2 d
+    M next 1 b  --> 2 b
+    M next 2 {} --> 0 c
     M start add 0
     M serialize
 } -cleanup {
@@ -85,8 +168,8 @@ test fsm-1.2 {} -body {
 
 test fsm-2.0 {} -body {
     ::automata::FSM create M
-    M next 0 a  --> {1 a}
-    M next 1 b  --> {0 b}
+    M next 0 a  --> 1 a
+    M next 1 b  --> 0 b
     M start add 0
     M final add 0
     dump M
@@ -104,9 +187,9 @@ transitions:
 
 test fsm-2.1 {} -body {
     ::automata::FSM create M
-    M next 0 a  --> {1 a}
-    M next 1 b  --> {2 b}
-    M next 2 {} --> {0 c}
+    M next 0 a  --> 1 a
+    M next 1 b  --> 2 b
+    M next 2 {} --> 0 c
     M start add 0
     M final add 0
     dump M
@@ -159,10 +242,10 @@ test nfa-1.0 {} -body {
     M next s1 1 --> s1
     M start add s0
     M final add s1
-    M get T
+    list [M is deterministic] [M get T]
 } -cleanup {
     log::lvSuppressLE i 1
     M destroy
-} -result {s0 {0 s0 1 {s0 s1}} s1 {0 s0 1 s1}}
+} -result {0 {s0 {0 s0 1 {s0 s1}} s1 {0 s0 1 s1}}}
 
 cleanupTests

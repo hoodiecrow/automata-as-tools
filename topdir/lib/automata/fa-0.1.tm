@@ -3,7 +3,7 @@ namespace eval automata {}
 
 oo::class create ::automata::fa {
     # implements a similar interface to Tcllib ::grammar::fa
-    variable has
+    variable is
 
     method serialize {{type grammar::fa}} {
         # TODO loses output information
@@ -68,13 +68,15 @@ oo::class create ::automata::fa {
         }
     }
 
-    # states method delegated to ::automata::FSM
-    # state? (added) method delegated to ::automata::FSM
+    forward edges my get T
+
+    forward states my get Q
+    forward state? my IsIn? Q
 
     method state {verb args} {
         set args [lassign $args s]
         switch $verb {
-            add { my AddState $s }
+            add { my StateAdd $s }
             delete { error {not implemented yet} }
             exists { my state? $s }
             rename { error {not implemented yet} }
@@ -84,22 +86,14 @@ oo::class create ::automata::fa {
         }
     }
 
-    # startstates method delegated to ::automata::FSM
-    # start? method delegated to ::automata::FSM
-
-    method start?set stateset {
-        foreach s $stateset {
-            if {[my start? $s]} {
-                return 1
-            }
-        }
-        return 0
-    }
+    forward startstates my get S
+    forward start? my IsIn? S
+    forward start?set my IsInMultiple? S
 
     method start {verb args} {
         set args [lassign $args s]
         switch $verb {
-            add { my AddStart $s }
+            add { my StartAdd $s }
             remove { error {not implemented yet} }
             default {
                 error {unexpected alternative}
@@ -107,22 +101,14 @@ oo::class create ::automata::fa {
         }
     }
 
-    # finalstates method delegated to ::automata::FSM
-    # final? method delegated to ::automata::FSM
-
-    method final?set stateset {
-        foreach s $stateset {
-            if {[my final? $s]} {
-                return 1
-            }
-        }
-        return 0
-    }
+    forward finalstates my get F
+    forward final? my IsIn? F
+    forward final?set my IsInMultiple? F
 
     method final {verb args} {
         set args [lassign $args s]
         switch $verb {
-            add { my AddFinal $s }
+            add { my FinalAdd $s }
             remove { error {not implemented yet} }
             default {
                 error {unexpected alternative}
@@ -134,8 +120,8 @@ oo::class create ::automata::fa {
 
     method symbols@ args {
         switch [llength $args] {
-            1 { my SymbolsS {*}$args }
-            2 { my SymbolsT {*}$args }
+            1 { my SymbolsFrom {*}$args }
+            2 { my SymbolsFromTo {*}$args }
             default {
                 error {unexpected alternative}
             }
@@ -145,7 +131,7 @@ oo::class create ::automata::fa {
     method symbols@set stateset {
         set result [list]
         foreach s $stateset {
-            lappend result {*}[my SymbolsS $s]
+            lappend result {*}[my SymbolsFrom $s]
         }
         return [lsort -unique $result]
     }
@@ -153,7 +139,7 @@ oo::class create ::automata::fa {
     method symbol {verb args} {
         set args [lassign $args s]
         switch $verb {
-            add { my AddSymbol $s }
+            add { my SymbolAdd $s }
             delete { error {not implemented yet} }
             rename { error {not implemented yet} }
             exists { expr {$s in [my symbols]} }
@@ -164,10 +150,19 @@ oo::class create ::automata::fa {
     }
 
     method next {s sym args} {
-        if {[llength $args] != 2} {
+        if {$sym eq "ε"} {
+            set sym {}
+        }
+        if {[llength $args] == 0} {
             my GetTarget $s $sym
         } else {
-            my SetTarget $s $sym {*}$args
+            my SetTarget $s $sym {*}[lmap token [lrange $args 1 end] {
+                if {$token eq "ε"} {
+                    set token {}
+                } else {
+                    set token
+                }
+            }]
         }
     }
 
@@ -184,45 +179,15 @@ oo::class create ::automata::fa {
     }
 
     method is quality {
-        switch $quality {
-            deterministic {
-                error {not implemented yet}
-            }
-            complete {
-                error {not implemented yet}
-            }
-            useful {
-                error {not implemented yet}
-            }
-            epsilon-free {
-                expr {!$has(epsilon)}
-            }
-            default {
-                error {unexpected alternative}
-            }
-        }
+        return $is($quality)
     }
 
-    method reachable_states {} {
-        error {not implemented yet}
-    }
-    method unreachable_states {} {
-        error {not implemented yet}
-    }
-    method reachable s {
-        error {not implemented yet}
-    }
-    method useful_states {} {
-        error {not implemented yet}
-    }
-    method unuseful_states {} {
-        error {not implemented yet}
-    }
-    method useful s {
-        error {not implemented yet}
-    }
-    method epsilon_closure s {
-        error {not implemented yet}
-    }
+    method reachable_states {} { error {not implemented yet} }
+    method unreachable_states {} { error {not implemented yet} }
+    method reachable s { error {not implemented yet} }
+    method useful_states {} { error {not implemented yet} }
+    method unuseful_states {} { error {not implemented yet} }
+    method useful s { error {not implemented yet} }
+    method epsilon_closure s { error {not implemented yet} }
 
 }

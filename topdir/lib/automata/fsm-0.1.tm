@@ -1,4 +1,15 @@
 
+proc lselect {varName cond items} {
+    upvar 1 $varName item
+    return [lmap item $items {
+        if [uplevel 1 [list expr $cond]] {
+            set item
+        } else {
+            continue
+        }
+    }]
+}
+
 ::tcl::tm::path add [file dirname [file dirname [file normalize [info script]]]]
 
 package require automata::fa
@@ -8,47 +19,45 @@ namespace eval automata {}
 oo::class create ::automata::FSM {
     mixin ::automata::fa
 
-    variable tuple steps has
+    variable tuple steps is
 
     constructor args {
-        set has(epsilon) 0
+        set is(epsilon-free) 1
+        set is(deterministic) 1
+        oo::objdefine [self] forward StateAdd my AddState {state {dict set tuple T $state {}}} Q
+        oo::objdefine [self] forward StartAdd my AddState {} S
+        oo::objdefine [self] forward FinalAdd my AddState {} F
         my NormalizeTuple [lindex $args 0]
     }
 
     method NormalizeTuple t {
         set tuple [dict merge {A {} B {} Q {} T {} S {} F {}} $t]
         dict with tuple {
-            dict for {q items} $T {
-                lappend Q $q
-                dict for {token targets} $items {
-                    if {$token eq {}} {
-                        set has(epsilon) 1
-                    } else {
-                        lappend A $token
-                    }
-                    foreach target $targets {
-                        set tokens [lassign $target q]
-                        lappend Q $q
-                        foreach token $tokens {
-                            if {$token ne {}} {
-                                lappend B $token
-                            }
-                        }
-                    }
+            dict for {state transitions} $T {
+                lappend Q $state
+                dict for {symbol targets} $transitions {
+                    my NormalizeTransition $state $symbol $targets
                 }
             }
             set A [lsort -unique $A]
             set B [lsort -unique $B]
             set Q [lsort -unique $Q]
-            foreach s $S {
-                if {$s ni $Q} {
-                    return -code error [format {unknown starting state "%s"} $s]
-                }
-            }
-            foreach f $F {
-                if {$f ni $Q} {
-                    return -code error [format {unknown final state "%s"} $f]
-                }
+        }
+    }
+
+    method NormalizeTransition {state symbol targets} {
+        if {[llength [dict get $tuple T $state $symbol]] > 1} {
+            set is(deterministic) 0
+        }
+        if {$symbol eq {}} {
+            set is(epsilon-free) 0
+            set is(deterministic) 0
+        }
+        my SymbolAdd $symbol
+        foreach target $targets {
+            my StateAdd [lindex $target 0]
+            foreach output [lrange $target 1 end] {
+                my OutputAdd $output
             }
         }
     }
@@ -61,54 +70,33 @@ oo::class create ::automata::FSM {
         }
     }
 
-    method Moves q {
-        if {[dict exists $tuple T $q]} {
-            dict get $tuple T $q
+    method Moves state {
+        if {[dict exists $tuple T $state]} {
+            dict get $tuple T $state
         }
     }
 
-    method ConsumeInA {tapeA token} {
-        if {$token eq {}} {
-            set _tapeA $tapeA
-        } elseif {$token eq [lindex $tapeA 0]} {
-            set _tapeA [lrange $tapeA 1 end]
-        } else {
-            return -code continue
-        }
-        return $_tapeA
-    }
-
-    method ProduceInA {tapeA tokenA} {
-        if {$tokenA eq {}} {
-            set tapeA
-        } else {
-            linsert $tapeA end $tokenA
-        }
-    }
-
-    method ConsumeInB {tapeB tokens} {
-        set _tapeB [list]
+    method Consume {tape tokens} {
         if {[llength $tokens] == 1 && [lindex $tokens 0] eq {}} {
-            set _tapeB $tapeB
+            return $tape
         } else {
             foreach token $tokens {
-                if {$token ne [lindex $tapeB 0]} {
+                if {$token ne [lindex $tape 0]} {
                     return -code continue
                 }
-                set tapeB [lrange $tapeB 1 end]
+                set tape [lrange $tape 1 end]
             }
-            set _tapeB $tapeB
+            set return $tape
         }
-        return $_tapeB
     }
 
-    method ProduceInB {tapeB tokens} {
+    method Produce {tape tokens} {
         foreach token $tokens {
             if {$token ne {}} {
-                lappend tapeB $token
+                lappend tape $token
             }
         }
-        return $tapeB
+        return $tape
     }
 
     method NullTape args {
@@ -116,24 +104,24 @@ oo::class create ::automata::FSM {
     }
 
     method FilterResults {results select} {
-        return [lmap result $results {
-            if {$select eq {} || [lindex $result 1] in $select} {
-                set result
-            } else {
-                continue
-            }
-        }]
+        if {$select eq {}} {
+            return $results
+        } else {
+            return [lselect result {[lindex $result 1] in $select} $results]
+        }
     }
 
     method Inner {results stateTuples methodA methodB {select {}}} {
+        # Two base cases: 1) no more transitions, or 2) steps completed.
+        # Return filtered results in base case.
         if {[llength $stateTuples] == 0} {
             return [my FilterResults $results $select]
         } else {
             set _stateTuples [list]
             foreach stateTuple $stateTuples {
                 lassign $stateTuple tapeA q tapeB
-                dict for {tokenA targets} [my Moves $q] {
-                    set _tapeA [my $methodA $tapeA $tokenA]
+                dict for {token targets} [my Moves $q] {
+                    set _tapeA [my $methodA $tapeA [list $token]]
                     foreach target $targets {
                         set _tapeB [my $methodB $tapeB [lassign $target q]]
                         lappend _stateTuples [list $_tapeA $q $_tapeB]
@@ -155,42 +143,30 @@ oo::class create ::automata::FSM {
         } else {
             set steps {}
         }
-        set results [my Inner {} {*}$args]
+        set args [lassign $args tapeA tapeB]
+        set stateTuples [my StartingTuples $tapeA $tapeB]
+        set results [my Inner {} $stateTuples {*}$args [dict get $tuple F]]
         if {$steps ne {} && $steps > 0} {
-            return -code error [format {unable to continue with %d steps left} $steps]
-        } else {
-            return $results
+            return -code error [format {premature stop with %d steps left} $steps]
         }
+        return $results
     }
 
-    method AddState s {
-        dict with tuple {
-            if {![dict exists $T $s]} {
-                dict set T $s {}
-            }
-            set Q [lsort -unique [list {*}$Q $s]]
-        }
-    }
-
-    method AddStart state {
+    method AddState {ifmissing key state} {
         dict with tuple {
             if {$state ni $Q} {
-                return -code error [format {state "%s" not in state set} $state]
+                if {$ifmissing eq {}} {
+                    return -code error [format {state "%s" not in state set} $state]
+                } else {
+                    apply [linsert $ifmissing end [self namespace]] $state
+                }
             }
-            set S [lsort -unique [list {*}$S $state]]
+            set $key [lsort -unique [list {*}[set $key] $state]]
         }
+        return
     }
 
-    method AddFinal state {
-        dict with tuple {
-            if {$state ni $Q} {
-                return -code error [format {state "%s" not in state set} $state]
-            }
-            set F [lsort -unique [list {*}$F $state]]
-        }
-    }
-
-    method AddSymbol symbol {
+    method SymbolAdd symbol {
         if {$symbol ne {}} {
             dict with tuple {
                 set A [lsort -unique [list {*}$A $symbol]]
@@ -198,7 +174,8 @@ oo::class create ::automata::FSM {
         }
     }
 
-    method AddOutput symbol {
+    method OutputAdd symbol {
+        log::log d [info level 0] 
         if {$symbol ne {}} {
             dict with tuple {
                 set B [lsort -unique [list {*}$B $symbol]]
@@ -206,18 +183,18 @@ oo::class create ::automata::FSM {
         }
     }
 
-    method SymbolsS state {
-        if {[dict exists $tuple T $state]} {
-            lmap {token -} [dict get $tuple T $state] {set token}
+    method SymbolsFrom from {
+        if {[dict exists $tuple T $from]} {
+            lmap {token -} [dict get $tuple T $from] {set token}
         }
     }
 
-    method SymbolsT {state destination} {
+    method SymbolsFromTo {from to} {
         set result [list]
-        if {[dict exists $tuple T $state]} {
-            dict for {token targets} [dict get $tuple T $state] {
+        if {[dict exists $tuple T $from]} {
+            dict for {token targets} [dict get $tuple T $from] {
                 foreach target $targets {
-                    if {[lindex $target 0] eq $destination} {
+                    if {[lindex $target 0] eq $to} {
                         lappend result $token
                     }
                 }
@@ -230,60 +207,43 @@ oo::class create ::automata::FSM {
         dict get $tuple T $state $symbol
     }
 
-    method SetTarget {state symbol "-->" target} {
-        my AddState $state
-        my AddSymbol $symbol
+    method SetTarget {state symbol args} {
+        my StateAdd $state
+        my SymbolAdd $symbol
         if {![dict exists $tuple T $state $symbol]} {
             dict set tuple T $state $symbol {}
         }
         dict with tuple T $state {
-            lappend $symbol $target
+            lappend $symbol $args
         }
-        foreach output [lrange $target 1 end] {
-            my AddOutput $output
+        foreach output [lrange $args 1 end] {
+            my OutputAdd $output
         }
-        # TODO overkill
-        if no {
-            my NormalizeTuple $tuple
-        }
+        my NormalizeTransition $state $symbol [lrange $args 0 0]
     }
 
-    method get name {
-        dict get $tuple $name
-    }
-
-    method edges state {
-        if {[dict exists $tuple T $state]} {
-            dict get $tuple T $state
-        }
-    }
-
-    method states {} {
-        dict get $tuple Q
-    }
-
-    method state? state {
-        expr {$state in [dict get $tuple Q]}
-    }
-
-    method startstates {} {
-        dict get $tuple S
-    }
-
-    method start? state {
+    method IsIn? {key state} {
         dict with tuple {
-            expr {$S eq {} || $state in $S}
+            set states [set $key]
+            expr {[llength $states] == 0 || $state in $states}
         }
     }
 
-    method finalstates {} {
-        dict get $tuple F
-    }
-
-    method final? state {
+    method IsInMultiple? {key stateset} {
         dict with tuple {
-            expr {$F eq {} || $state in $F}
+            set states [set $key]
+            foreach state $stateset {
+                if {$state in $states} {
+                    return 1
+                }
+            }
+            return 0
         }
+    }
+
+    method get args {
+        # assume that things exist
+        dict get $tuple {*}$args
     }
 
     method symbols {} {
@@ -291,8 +251,7 @@ oo::class create ::automata::FSM {
     }
 
     method accept tape {
-        set stateTuples [my StartingTuples $tape {}]
-        set results [my Iterate $stateTuples ConsumeInA NullTape [dict get $tuple F]]
+        set results [my Iterate $tape {} Consume NullTape]
         foreach result $results {
             lassign $result tape
             if {[llength $tape] == 0} {
@@ -303,8 +262,7 @@ oo::class create ::automata::FSM {
     }
 
     method recognize {tapeA tapeB} {
-        set stateTuples [my StartingTuples $tapeA $tapeB]
-        set results [my Iterate $stateTuples ConsumeInA ConsumeInB [dict get $tuple F]]
+        set results [my Iterate $tapeA $tapeB Consume Consume]
         foreach result $results {
             lassign $result tapeA q tapeB
             if {[llength $tapeA] == 0 && [llength $tapeB] == 0} {
@@ -314,35 +272,22 @@ oo::class create ::automata::FSM {
         return 0
     }
 
-    method translate tapeA {
-        set stateTuples [my StartingTuples $tapeA {}]
-        set results [my Iterate $stateTuples ConsumeInA ProduceInB [dict get $tuple F]]
-        return [lmap result $results {
-            lassign $result tapeA q tapeB
-            if {[llength $tapeA] == 0} {
-                set tapeB
-            } else {
-                continue
-            }
+    method translate tape {
+        set results [my Iterate $tape {} Consume Produce]
+        return [lmap result [lselect result {[llength [lindex $result 0]] == 0} $results] {
+            lindex $result 2
         }]
     }
 
-    method reconstruct tapeB {
-        set stateTuples [my StartingTuples {} $tapeB]
-        set results [my Iterate $stateTuples ProduceInA ConsumeInB [dict get $tuple F]]
-        return [lmap result $results {
-            lassign $result tapeA q tapeB
-            if {[llength $tapeB] == 0} {
-                set tapeA
-            } else {
-                continue
-            }
+    method reconstruct tape {
+        set results [my Iterate {} $tape Produce Consume]
+        return [lmap result [lselect result {[llength [lindex $result 2]] == 0} $results] {
+            lindex $result 0
         }]
     }
 
     method generate steps {
-        set stateTuples [my StartingTuples {} {}]
-        my Iterate -steps $steps $stateTuples ProduceInA ProduceInB
+        my Iterate -steps $steps {} {} Produce Produce
     }
 
 }
