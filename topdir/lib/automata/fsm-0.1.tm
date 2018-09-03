@@ -16,6 +16,89 @@ package require automata::fa
 
 namespace eval automata {}
 
+oo::class create ::automata::TransitionMatrix {
+    variable data is
+
+    constructor args {
+        lassign $args data
+        set is(epsilon-free) 1
+        set is(deterministic) 1
+    }
+
+    # TODO this is a deterministic transmat: only one edge per fromState,transSymbol,nextState
+
+    method fromStates {} {
+        dict keys $data
+    }
+
+    method transSymbols args {
+        if {[llength $args] == 0} {
+            set _data $data
+        } elseif {[llength $args] == 1} {
+            lassign $args fromStates
+            set _data [dict filter $data script {key val} {
+                expr {$key in $fromStates}
+            }]
+        } else {
+            lassign $args fromStates nextStates
+            dict for {fromState edges} $data {
+                dict for {transSymbol edge} $edges {
+                    dict for {nextState target} $edge {
+                        if {$fromState in $fromStates && $nextState in $toStates} {
+                            lappend result $transSymbol
+                        }
+                    }
+                }
+            }
+            return $result
+        }
+        dict for {fromState edges} $_data {
+            dict for {transSymbol edge} $edges {
+                lappend result $transSymbol
+            }
+        }
+        return $result
+    }
+
+    method nextStates {{states {}} {symbols {}}} {
+        if {$states eq {}} {
+            set _data $data
+        } else {
+            set _data [dict filter $data script {key val} {
+                expr {$key in $states}
+            }]
+        }
+        dict for {fromState edges} $_data {
+            if {$symbols eq {}} {
+                set _edges $edges
+            } else {
+                set _edges [dict filter $edges script {key val} {
+                    expr {$key in $symbols}
+                }]
+            }
+            dict for {transSymbol edge} $_edges {
+                dict for {nextState target} $edge {
+                    lappend result $transSymbol
+                }
+            }
+        }
+        return $result
+    }
+
+    method addTransition {fromState transSymbol nextState {target {}}} {
+        dict set data $fromState $transSymbol $nextState $target
+    }
+
+    method getEdges fromState {
+        dict get $data $fromState
+    }
+
+    method getEdge {fromState transSymbol} {
+        dict get $data $fromState $transSymbol
+    }
+
+}
+
 oo::class create ::automata::FSM {
     mixin ::automata::fa
 
