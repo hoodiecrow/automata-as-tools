@@ -42,10 +42,11 @@ test fa-1.0 {} -body {
 test startstates-1.0 {} -body {
     ::automata::FSM create M
     M start add a
+    M states
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {state "a" not in state set} -returnCodes error
+} -result {a}
 
 test startstates-1.1 {} -body {
     ::automata::FSM create M {Q a}
@@ -78,10 +79,11 @@ test startstates-1.3 {} -body {
 test finalstates-1.0 {} -body {
     ::automata::FSM create M
     M final add a
+    M states
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {state "a" not in state set} -returnCodes error
+} -result {a}
 
 test finalstates-1.1 {} -body {
     ::automata::FSM create M {Q a}
