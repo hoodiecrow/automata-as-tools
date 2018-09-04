@@ -17,129 +17,24 @@ package require automata::transitionlist
 
 namespace eval automata {}
 
-oo::class create ::automata::TransitionMatrix {
-    variable data is
-
-    constructor args {
-        lassign $args data
-        set is(epsilon-free) 1
-        set is(deterministic) 1
-    }
-
-    # TODO this is a deterministic transmat: only one edge per fromState,transSymbol,nextState
-
-    method fromStates {} {
-        dict keys $data
-    }
-
-    method transSymbols args {
-        if {[llength $args] == 0} {
-            set _data $data
-        } elseif {[llength $args] == 1} {
-            lassign $args fromStates
-            set _data [dict filter $data script {key val} {
-                expr {$key in $fromStates}
-            }]
-        } else {
-            lassign $args fromStates nextStates
-            dict for {fromState edges} $data {
-                dict for {transSymbol edge} $edges {
-                    dict for {nextState target} $edge {
-                        if {$fromState in $fromStates && $nextState in $toStates} {
-                            lappend result $transSymbol
-                        }
-                    }
-                }
-            }
-            return $result
-        }
-        dict for {fromState edges} $_data {
-            dict for {transSymbol edge} $edges {
-                lappend result $transSymbol
-            }
-        }
-        return $result
-    }
-
-    method nextStates {{states {}} {symbols {}}} {
-        if {$states eq {}} {
-            set _data $data
-        } else {
-            set _data [dict filter $data script {key val} {
-                expr {$key in $states}
-            }]
-        }
-        dict for {fromState edges} $_data {
-            if {$symbols eq {}} {
-                set _edges $edges
-            } else {
-                set _edges [dict filter $edges script {key val} {
-                    expr {$key in $symbols}
-                }]
-            }
-            dict for {transSymbol edge} $_edges {
-                dict for {nextState target} $edge {
-                    lappend result $transSymbol
-                }
-            }
-        }
-        return $result
-    }
-
-    method addTransition {fromState transSymbol nextState {target {}}} {
-        dict set data $fromState $transSymbol $nextState $target
-    }
-
-    method getEdges fromState {
-        dict get $data $fromState
-    }
-
-    method getEdge {fromState transSymbol} {
-        dict get $data $fromState $transSymbol
-    }
-
-}
-
 oo::class create ::automata::FSM {
     mixin ::automata::fa
 
-    variable tuple steps is
+    variable tuple steps
 
     constructor args {
-        set is(epsilon-free) 1
-        set is(deterministic) 1
         my NormalizeTuple [lindex $args 0]
     }
 
     method NormalizeTuple t {
         set tuple [dict merge {A {} B {} Q {} T {} S {} F {}} $t]
         dict with tuple {
-            dict for {state transitions} $T {
-                lappend Q $state
-                dict for {symbol targets} $transitions {
-                    my NormalizeTransition $state $symbol $targets
-                }
+            if {$T eq {}} {
+                set T [::automata::TransitionList new]
             }
-            set A [lsort -unique $A]
-            set B [lsort -unique $B]
-            set Q [lsort -unique $Q]
-        }
-    }
-
-    method NormalizeTransition {state symbol targets} {
-        if {[llength [dict get $tuple T $state $symbol]] > 1} {
-            set is(deterministic) 0
-        }
-        if {$symbol eq {}} {
-            set is(epsilon-free) 0
-            set is(deterministic) 0
-        }
-        my SymbolAAdd $symbol
-        foreach target $targets {
-            my StateAdd [lindex $target 0]
-            foreach sym [lrange $target 1 end] {
-                my SymbolBAdd $sym
-            }
+            set Q [lsort -unique [concat $Q [$T getAllStates]]]
+            my AddSymbols A {*}[$T getSymbols]
+            my AddSymbols B {*}[$T getAllValueSymbols]
         }
     }
 
@@ -152,32 +47,31 @@ oo::class create ::automata::FSM {
     }
 
     method Moves state {
-        if {[dict exists $tuple T $state]} {
-            dict get $tuple T $state
+        [dict get $tuple T] getEdges $state
+    }
+
+    method StripBlanks tokens {
+        lmap token $tokens {
+            if {$token ne {}} {
+                set token
+            } else {
+                continue
+            }
         }
     }
 
     method Consume {source tokens} {
-        if {[llength $tokens] == 1 && [lindex $tokens 0] eq {}} {
-            return $source
-        } else {
-            foreach token $tokens {
-                if {$token ne [lindex $source 0]} {
-                    return -code continue
-                }
-                set source [lrange $source 1 end]
+        foreach token [my StripBlanks $tokens] {
+            if {$token ne [lindex $source 0]} {
+                return -code continue
             }
-            return $source
+            set source [lrange $source 1 end]
         }
+        return $source
     }
 
     method Produce {drain tokens} {
-        foreach token $tokens {
-            if {$token ne {}} {
-                lappend drain $token
-            }
-        }
-        return $drain
+        lappend drain {*}[my StripBlanks $tokens]
     }
 
     method NullTape args {
@@ -200,13 +94,20 @@ oo::class create ::automata::FSM {
         } else {
             set _stateTuples [list]
             foreach stateTuple $stateTuples {
-                lassign $stateTuple a q b
-                dict for {token targets} [my Moves $q] {
-                    set _tapeA [my $methodA $a [list $token]]
-                    foreach target $targets {
-                        set _tapeB [my $methodB $b [lassign $target q]]
-                        lappend _stateTuples [list $_tapeA $q $_tapeB]
-                    }
+                lassign $stateTuple a q0 b
+                set moves {}
+                foreach move [my Moves $q0] {
+                    set edge [lassign $move sym]
+                    dict lappend moves $sym $edge
+                }
+                set newTuple [list]
+                dict for {sym edges} $moves {
+                    lset newTuple 0 [my $methodA $a [list $sym]]
+                    lappend _stateTuples {*}[lmap edge $edges {
+                        lassign $edge q1 target
+                        lset newTuple 1 $q1
+                        lset newTuple 2 [my $methodB $b $target]
+                    }]
                 }
             }
             if {$steps ne {}} {
@@ -235,20 +136,10 @@ oo::class create ::automata::FSM {
 
     method AddState {key state} {
         dict with tuple {
-            set Q [lsort -unique [list {*}$Q $state]]
-            switch $key {
-                Q { }
-                S {
-                    set S [lsort -unique [list {*}$S $state]]
-                    dict set tuple T $state {}
-                }
-                F {
-                    set F [lsort -unique [list {*}$F $state]]
-                }
-                default {
-                    error {unexpected alternative}
-                }
+            if {$key ne "Q"} {
+                set Q [lsort -unique [list {*}$Q $state]]
             }
+            set $key [lsort -unique [list {*}[set $key] $state]]
         }
         return
     }
@@ -257,66 +148,41 @@ oo::class create ::automata::FSM {
     forward StartAdd my AddState S
     forward FinalAdd my AddState F
 
-    method SymbolAAdd symbol {
-        if {$symbol ne {}} {
-            dict with tuple {
-                set A [lsort -unique [list {*}$A $symbol]]
-            }
-        }
-    }
-
-    method SymbolBAdd symbol {
-        log::log d [info level 0] 
-        if {$symbol ne {}} {
-            dict with tuple {
-                set B [lsort -unique [list {*}$B $symbol]]
-            }
-        }
-    }
-
-    method SymbolsFrom from {
-        if {[dict exists $tuple T $from]} {
-            lmap {token -} [dict get $tuple T $from] {set token}
-        }
-    }
-
-    method SymbolsFromTo {from to} {
-        set result [list]
-        if {[dict exists $tuple T $from]} {
-            dict for {token targets} [dict get $tuple T $from] {
-                foreach target $targets {
-                    if {[lindex $target 0] eq $to} {
-                        lappend result $token
-                    }
+    method AddSymbols {key args} {
+        dict with tuple {
+            foreach arg $args {
+                if {$arg ne {}} {
+                    lappend $key $arg
                 }
             }
+            set $key [lsort -unique [set $key]]
         }
-        return $result
     }
 
     method GetTarget {state symbol} {
-        dict get $tuple T $state $symbol
+        [dict get $tuple T] getTransitions $state $symbol
     }
 
-    method SetTarget {state symbol args} {
-        my StateAdd $state
-        my SymbolAAdd $symbol
-        if {![dict exists $tuple T $state $symbol]} {
-            dict set tuple T $state $symbol {}
-        }
-        dict with tuple T $state {
-            lappend $symbol $args
-        }
-        foreach arg [lrange $args 1 end] {
-            my SymbolBAdd $arg
-        }
-        my NormalizeTransition $state $symbol [lrange $args 0 0]
+    method SetTarget {fromstate symbol tostate args} {
+        my StateAdd $fromstate
+        my AddSymbols A $symbol
+        my StateAdd $tostate
+        my AddSymbols B {*}$args
+        [dict get $tuple T] add $fromstate $symbol $tostate $args
+    }
+
+    method IsEpsilonFree {} {
+        [dict get $tuple T] isEpsilonFree
+    }
+
+    method IsDeterministic {} {
+        [dict get $tuple T] isDeterministic
     }
 
     method IsIn? {key state} {
         dict with tuple {
             set states [set $key]
-            expr {[llength $states] == 0 || $state in $states}
+            expr {([llength $states] == 1 && [lindex $states 0] eq "*") || $state in $states}
         }
     }
 

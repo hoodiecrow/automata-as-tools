@@ -10,16 +10,21 @@ oo::class create ::automata::fa {
         # change type to automata::fa and add an output item
         set res [list $type]
         lappend res [my symbols]
+        set d {}
+        set o {}
         foreach state [my states] {
             set outputs {}
-            dict set d $state [list [my start? $state] [my final? $state] [concat {*}[lmap {sym targets} [my edges $state] {
-                concat {*}[lmap target $targets {
-                    set tokens [lassign $target q]
-                    dict set outputs $sym $tokens
-                    list $sym $q
-                }]
-            }]]]
-            dict set o $state $outputs
+            set e {}
+            set f {}
+            dict lappend d $state [my start? $state]
+            dict lappend d $state [my final? $state]
+            foreach move [my Moves $state] {
+                lassign $move sym q1 value
+                dict lappend e $sym $q1
+                dict lappend f $sym $value
+            }
+            dict lappend d $state $e
+            dict set o $state $f
         }
         switch $type {
             grammar::fa { lappend res $d }
@@ -51,8 +56,12 @@ oo::class create ::automata::fa {
             automata::fa {
                 dict for {s transition} $transitions {
                     lassign $transition ss fs d
+                    oo::objdefine $m export SetTarget
                     dict for {sym q} $d {
-                        $m next $s $sym --> [list $q {*}[dict get $outputs $s $sym]]
+                        $m SetTarget $s $sym $q [dict get $outputs $s $sym]
+                        if no {
+                            $m next $s $sym --> [list $q {*}[dict get $outputs $s $sym]]
+                        }
                     }
                     if {$ss} {
                         $m start add $s
@@ -66,6 +75,7 @@ oo::class create ::automata::fa {
                 error {unexpected alternative}
             }
         }
+        return $m
     }
 
     forward edges my get T
@@ -179,7 +189,13 @@ oo::class create ::automata::fa {
     }
 
     method is quality {
-        return $is($quality)
+        switch $quality {
+            epsilon-free  { my IsEpsilonFree }
+            deterministic { my IsDeterministic }
+            default {
+                error {unexpected alternative}
+            }
+        }
     }
 
     method reachable_states {} { error {not implemented yet} }

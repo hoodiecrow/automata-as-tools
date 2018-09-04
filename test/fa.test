@@ -8,24 +8,26 @@ namespace import ::tcltest::*
 ::tcltest::loadTestedCommands
 
 proc dump machine {
-    upvar 1 $machine M
     set res {}
-    lappend res "A = [list [M get A]]"
-    lappend res "B = [list [M get B]]"
-    lappend res "Q = [list [M get Q]]"
-    lappend res "S = [list [M get S]]"
-    lappend res "F = [list [M get F]]"
+    lappend res "A = [list [$machine get A]]"
+    lappend res "B = [list [$machine get B]]"
+    lappend res "Q = [list [$machine get Q]]"
+    lappend res "S = [list [$machine get S]]"
+    lappend res "F = [list [$machine get F]]"
     lappend res "transitions:"
-    lappend res {*}[apply [list T {
-        dict for {q moves} $T {
-            dict for {a targets} $moves {
-                foreach target $targets {
-                    lappend res [list $q $a $target]
+    lappend res {*}[[$machine get T] dump]
+    if no {
+        lappend res {*}[apply [list T {
+            dict for {q moves} $T {
+                dict for {a targets} $moves {
+                    foreach target $targets {
+                        lappend res [list $q $a $target]
+                    }
                 }
             }
-        }
-        set res
-    }] [M get T]]
+            set res
+        }] [$machine get T]]
+    }
     join $res \n
 }
 
@@ -121,19 +123,20 @@ test fsm-1.0 {} -body {
     set res {}
     lappend res [M is deterministic]
     lappend res [M serialize automata::fa]
-    lappend res [dump [M deserialize [lindex $res 1]]]
+    set m [M deserialize [lindex $res 1]]
+    lappend res [dump $m]
     set res
 } -cleanup {
     log::lvSuppressLE i 1
     M destroy
-} -result {1 {automata::fa {a b} {0 {1 1 {a 1}} 1 {0 1 {b 0}}} {0 {a a} 1 {b b}}} {A = {a b}
+} -result {1 {automata::fa {a b} {0 {1 0 {a 1}} 1 {0 0 {b 0}}} {0 {a a} 1 {b b}}} {A = {a b}
 B = {a b}
 Q = {0 1}
 S = 0
 F = {}
 transitions:
-0 a {1 a}
-1 b {0 b}}}
+0 a 1 a
+1 b 0 b}}
 
 test fsm-1.1 {} -body {
     ::automata::FSM create M
@@ -151,9 +154,9 @@ Q = {0 1 2}
 S = 0
 F = {}
 transitions:
-0 a {1 a}
-1 b {2 b}
-2 {} {0 c}}
+0 a 1 a
+1 b 2 b
+2 {} 0 c}
 
 test fsm-1.2 {} -body {
     ::automata::FSM create M
@@ -166,7 +169,7 @@ test fsm-1.2 {} -body {
 } -cleanup {
     log::lvSuppressLE i 1
     M destroy
-} -result {grammar::fa {a b c d} {0 {1 1 {a 1 b 2}} 1 {0 1 {b 2}} 2 {0 1 {{} 0}}}}
+} -result {grammar::fa {a b c d} {0 {1 0 {a 1 b 2}} 1 {0 0 {b 2}} 2 {0 0 {{} 0}}}}
 
 test fsm-2.0 {} -body {
     ::automata::FSM create M
@@ -184,8 +187,8 @@ Q = {0 1}
 S = 0
 F = 0
 transitions:
-0 a {1 a}
-1 b {0 b}}
+0 a 1 a
+1 b 0 b}
 
 test fsm-2.1 {} -body {
     ::automata::FSM create M
@@ -204,9 +207,9 @@ Q = {0 1 2}
 S = 0
 F = 0
 transitions:
-0 a {1 a}
-1 b {2 b}
-2 {} {0 c}}
+0 a 1 a
+1 b 2 b
+2 {} 0 c}
 
 test dfa-1.0 {} -body {
     ::automata::FSM create M
@@ -228,12 +231,12 @@ Q = {s0 s1 s2}
 S = s0
 F = s0
 transitions:
-s0 0 s0
-s0 1 s1
-s1 0 s2
-s1 1 s0
-s2 0 s1
-s2 1 s2}
+s0 0 s0 {}
+s0 1 s1 {}
+s1 0 s2 {}
+s1 1 s0 {}
+s2 0 s1 {}
+s2 1 s2 {}}
 
 test nfa-1.0 {} -body {
     ::automata::FSM create M
@@ -244,10 +247,10 @@ test nfa-1.0 {} -body {
     M next s1 1 --> s1
     M start add s0
     M final add s1
-    list [M is deterministic] [M get T]
+    list [M is deterministic] [[M get T] dump]
 } -cleanup {
     log::lvSuppressLE i 1
     M destroy
-} -result {0 {s0 {0 s0 1 {s0 s1}} s1 {0 s0 1 s1}}}
+} -result {0 {{s0 0 s0 {}} {s0 1 s0 {}} {s0 1 s1 {}} {s1 0 s0 {}} {s1 1 s1 {}}}}
 
 cleanupTests
