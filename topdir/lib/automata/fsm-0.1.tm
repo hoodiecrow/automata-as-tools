@@ -13,6 +13,7 @@ proc lselect {varName cond items} {
 ::tcl::tm::path add [file dirname [file dirname [file normalize [info script]]]]
 
 package require automata::fa
+package require automata::transitionlist
 
 namespace eval automata {}
 
