@@ -17,7 +17,7 @@ oo::class create ::automata::fa {
             set f {}
             dict lappend d $state [my start? $state]
             dict lappend d $state [my final? $state]
-            foreach move [my Moves $state] {
+            foreach move [my T getEdges $state] {
                 lassign $move sym q1 value
                 dict lappend e $sym $q1
                 dict lappend f $sym $value

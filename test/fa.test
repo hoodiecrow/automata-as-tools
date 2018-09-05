@@ -15,19 +15,7 @@ proc dump machine {
     lappend res "S = [list [$machine get S]]"
     lappend res "F = [list [$machine get F]]"
     lappend res "transitions:"
-    lappend res {*}[[$machine get T] dump]
-    if no {
-        lappend res {*}[apply [list T {
-            dict for {q moves} $T {
-                dict for {a targets} $moves {
-                    foreach target $targets {
-                        lappend res [list $q $a $target]
-                    }
-                }
-            }
-            set res
-        }] [$machine get T]]
-    }
+    lappend res {*}[$machine T dump]
     join $res \n
 }
 
@@ -247,7 +235,7 @@ test nfa-1.0 {} -body {
     M next s1 1 --> s1
     M start add s0
     M final add s1
-    list [M is deterministic] [[M get T] dump]
+    list [M is deterministic] [M T dump]
 } -cleanup {
     log::lvSuppressLE i 1
     M destroy

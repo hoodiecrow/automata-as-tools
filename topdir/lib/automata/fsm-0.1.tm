@@ -29,15 +29,18 @@ oo::class create ::automata::FSM {
     variable tuple steps
 
     constructor args {
-        my NormalizeTuple [lindex $args 0]
+        lassign $args tuple
+        set tuple [dict merge {A {} B {} Q {} S {} F {}} $tuple]
+        ::automata::TransitionList create T
     }
 
+    forward T T
+    export T
+
     method NormalizeTuple t {
-        set tuple [dict merge {A {} B {} Q {} T {} S {} F {}} $t]
+        # TODO depr
+        set tuple [dict merge {A {} B {} Q {} S {} F {}} $t]
         dict with tuple {
-            if {$T eq {}} {
-                set T [::automata::TransitionList new]
-            }
             set Q [lsort -unique [concat $Q [$T getAllStates]]]
             my AddSymbols A {*}[$T getSymbols]
             my AddSymbols B {*}[$T getAllValueSymbols]
@@ -50,10 +53,6 @@ oo::class create ::automata::FSM {
         lmap state [dict get $tuple S] {
             list $a $state $b
         }
-    }
-
-    method Moves state {
-        [dict get $tuple T] getEdges $state
     }
 
     method Consume {source tokens} {
@@ -87,7 +86,7 @@ oo::class create ::automata::FSM {
         foreach transition $transitions {
             lassign $transition a q0 b
             set moves {}
-            foreach move [my Moves $q0] {
+            foreach move [my T getEdges $q0] {
                 dict group moves {*}$move
             }
             set newTuple [list]
@@ -154,7 +153,7 @@ oo::class create ::automata::FSM {
     }
 
     method GetTarget {state symbol} {
-        [dict get $tuple T] getTransitions $state $symbol
+        my T getTransitions $state $symbol
     }
 
     method SetTarget {fromstate symbol tostate args} {
@@ -162,15 +161,15 @@ oo::class create ::automata::FSM {
         my AddSymbols A $symbol
         my StateAdd $tostate
         my AddSymbols B {*}$args
-        [dict get $tuple T] add $fromstate $symbol $tostate $args
+        my T add $fromstate $symbol $tostate $args
     }
 
     method IsEpsilonFree {} {
-        [dict get $tuple T] isEpsilonFree
+        my T isEpsilonFree
     }
 
     method IsDeterministic {} {
-        [dict get $tuple T] isDeterministic
+        my T isDeterministic
     }
 
     method IsIn? {key state} {
