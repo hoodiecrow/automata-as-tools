@@ -13,7 +13,6 @@ oo::class create ::automata::fa {
         set d {}
         set o {}
         foreach state [my states] {
-            set outputs {}
             set e {}
             set f {}
             dict lappend d $state [my start? $state]

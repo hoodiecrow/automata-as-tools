@@ -29,7 +29,7 @@ oo::class create ::automata::TransitionList {
         }
     }
 
-    method add {q0 s q1 v} {
+    method add {q0 s q1 {v {}}} {
         lappend data [list $q0 $s $q1 $v]
     }
 

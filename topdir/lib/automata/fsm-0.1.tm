@@ -10,6 +10,12 @@ proc lselect {varName cond items} {
     }]
 }
 
+proc ::tcl::dict::group {varName key args} {
+    upvar 1 $varName var
+    dict lappend var $key $args
+}
+namespace ensemble configure dict -map [dict merge [namespace ensemble configure dict -map] {group ::tcl::dict::group}]
+
 ::tcl::tm::path add [file dirname [file dirname [file normalize [info script]]]]
 
 package require automata::fa
@@ -50,18 +56,8 @@ oo::class create ::automata::FSM {
         [dict get $tuple T] getEdges $state
     }
 
-    method StripBlanks tokens {
-        lmap token $tokens {
-            if {$token ne {}} {
-                set token
-            } else {
-                continue
-            }
-        }
-    }
-
     method Consume {source tokens} {
-        foreach token [my StripBlanks $tokens] {
+        foreach token [lselect token {$token ne {}} $tokens] {
             if {$token ne [lindex $source 0]} {
                 return -code continue
             }
@@ -71,7 +67,7 @@ oo::class create ::automata::FSM {
     }
 
     method Produce {drain tokens} {
-        lappend drain {*}[my StripBlanks $tokens]
+        lappend drain {*}[lselect token {$token ne {}} $tokens]
     }
 
     method NullTape args {
@@ -86,36 +82,34 @@ oo::class create ::automata::FSM {
         }
     }
 
-    method Inner {results transitions methodA methodB {select {}}} {
+    method Inner {transitions methodA methodB {select {}}} {
+        set _transitions [list]
+        foreach transition $transitions {
+            lassign $transition a q0 b
+            set moves {}
+            foreach move [my Moves $q0] {
+                dict group moves {*}$move
+            }
+            set newTuple [list]
+            dict for {sym edges} $moves {
+                lset newTuple 0 [my $methodA $a [list $sym]]
+                lappend _transitions {*}[lmap edge $edges {
+                    lassign $edge q1 target
+                    lset newTuple 1 $q1
+                    lset newTuple 2 [my $methodB $b $target]
+                }]
+            }
+        }
         # Two base cases: 1) no more transitions, or 2) steps completed.
-        # Return filtered results in base case.
-        if {[llength $transitions] == 0} {
-            return [my FilterResults $results $select]
+        if {
+            [llength $_transitions] == 0 ||
+            ($steps ne {} && [incr steps -1] < 0)
+        } then {
+            # Return filtered results in base case.
+            return [my FilterResults $transitions $select]
         } else {
-            set _transitions [list]
-            foreach transition $transitions {
-                lassign $transition a q0 b
-                set moves {}
-                foreach move [my Moves $q0] {
-                    set edge [lassign $move sym]
-                    dict lappend moves $sym $edge
-                }
-                set newTuple [list]
-                dict for {sym edges} $moves {
-                    lset newTuple 0 [my $methodA $a [list $sym]]
-                    lappend _transitions {*}[lmap edge $edges {
-                        lassign $edge q1 target
-                        lset newTuple 1 $q1
-                        lset newTuple 2 [my $methodB $b $target]
-                    }]
-                }
-            }
-            if {$steps ne {}} {
-                if {[incr steps -1] < 0} {
-                    return [my FilterResults $transitions $select]
-                }
-            }
-            return [my Inner $transitions $_transitions $methodA $methodB $select]
+            # Recursive case.
+            return [my Inner $_transitions $methodA $methodB $select]
         }
     }
 
@@ -127,7 +121,7 @@ oo::class create ::automata::FSM {
         }
         set args [lassign $args a b]
         set transitions [my StartingTransitions $a $b]
-        set results [my Inner {} $transitions {*}$args [dict get $tuple F]]
+        set results [my Inner $transitions {*}$args [dict get $tuple F]]
         if {$steps ne {} && $steps > 0} {
             return -code error [format {premature stop with %d steps left} $steps]
         }

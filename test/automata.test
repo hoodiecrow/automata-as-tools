@@ -153,7 +153,7 @@ test generate-1.0 {} -setup $m -body {
 } -result {{{a a} 1 {a a a a}}}
 
 test generate-1.1 {} -setup $m -body {
-    M next 1 ε --> 2 ε
+    M next 1 ε --> 2
     M next 1 a --> 3 a
     M next 2 a --> 3 b
     M next 3 ε --> 1 a
@@ -167,7 +167,7 @@ test generate-1.1 {} -setup $m -body {
 test recognize-1.0 {recognize relation {a b} -> {x y}} -setup $m -body {
     M next 1 a --> 1 x
     M next 1 b --> 2 y
-    M next 2 ε --> 1 ε
+    M next 2 ε --> 1
     M start add 1
     M final add 1
     M recognize {a a} {x x}
@@ -198,7 +198,7 @@ test recognize-1.2 {recognize {a*(b+c+)?} relation {a b c} -> {x y z}} -setup $m
     M next 2 b --> 2 y
     M next 2 c --> 3 z
     M next 3 c --> 3 z
-    M next 3 ε --> 1 ε
+    M next 3 ε --> 1
     M start add 1
     M final add 1
     set res {}
