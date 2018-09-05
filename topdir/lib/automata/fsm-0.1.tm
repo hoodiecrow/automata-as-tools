@@ -38,7 +38,7 @@ oo::class create ::automata::FSM {
         }
     }
 
-    method StartingTuples {a b} {
+    method StartingTransitions {a b} {
         set a [list {*}$a]
         set b [list {*}$b]
         lmap state [dict get $tuple S] {
@@ -86,15 +86,15 @@ oo::class create ::automata::FSM {
         }
     }
 
-    method Inner {results stateTuples methodA methodB {select {}}} {
+    method Inner {results transitions methodA methodB {select {}}} {
         # Two base cases: 1) no more transitions, or 2) steps completed.
         # Return filtered results in base case.
-        if {[llength $stateTuples] == 0} {
+        if {[llength $transitions] == 0} {
             return [my FilterResults $results $select]
         } else {
-            set _stateTuples [list]
-            foreach stateTuple $stateTuples {
-                lassign $stateTuple a q0 b
+            set _transitions [list]
+            foreach transition $transitions {
+                lassign $transition a q0 b
                 set moves {}
                 foreach move [my Moves $q0] {
                     set edge [lassign $move sym]
@@ -103,7 +103,7 @@ oo::class create ::automata::FSM {
                 set newTuple [list]
                 dict for {sym edges} $moves {
                     lset newTuple 0 [my $methodA $a [list $sym]]
-                    lappend _stateTuples {*}[lmap edge $edges {
+                    lappend _transitions {*}[lmap edge $edges {
                         lassign $edge q1 target
                         lset newTuple 1 $q1
                         lset newTuple 2 [my $methodB $b $target]
@@ -112,10 +112,10 @@ oo::class create ::automata::FSM {
             }
             if {$steps ne {}} {
                 if {[incr steps -1] < 0} {
-                    return [my FilterResults $stateTuples $select]
+                    return [my FilterResults $transitions $select]
                 }
             }
-            return [my Inner $stateTuples $_stateTuples $methodA $methodB $select]
+            return [my Inner $transitions $_transitions $methodA $methodB $select]
         }
     }
 
@@ -126,8 +126,8 @@ oo::class create ::automata::FSM {
             set steps {}
         }
         set args [lassign $args a b]
-        set stateTuples [my StartingTuples $a $b]
-        set results [my Inner {} $stateTuples {*}$args [dict get $tuple F]]
+        set transitions [my StartingTransitions $a $b]
+        set results [my Inner {} $transitions {*}$args [dict get $tuple F]]
         if {$steps ne {} && $steps > 0} {
             return -code error [format {premature stop with %d steps left} $steps]
         }
