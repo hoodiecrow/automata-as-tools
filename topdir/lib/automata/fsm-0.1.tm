@@ -37,16 +37,6 @@ oo::class create ::automata::FSM {
     forward T T
     export T
 
-    method NormalizeTuple t {
-        # TODO depr
-        set tuple [dict merge {A {} B {} Q {} S {} F {}} $t]
-        dict with tuple {
-            set Q [lsort -unique [concat $Q [$T getAllStates]]]
-            my AddSymbols A {*}[$T getSymbols]
-            my AddSymbols B {*}[$T getAllValueSymbols]
-        }
-    }
-
     method StartingTransitions {a b} {
         set a [list {*}$a]
         set b [list {*}$b]
