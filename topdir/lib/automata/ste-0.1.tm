@@ -30,8 +30,11 @@ oo::class create ::automata::STE {
         }
     }
 
-    method add {q0 s q1 {v {}}} {
-        lappend data [list $q0 $s $q1 $v]
+    method add {q0 sym q1 {v {}}} {
+        if {$sym eq "ε"} {
+            set sym {}
+        }
+        lappend data [list $q0 $sym $q1 $v]
     }
 
     method getAllStates {} {
@@ -79,6 +82,7 @@ oo::class create ::automata::STE {
     # ---
 
     method iterate args {
+        log::log d [info level 0] 
         if {[lindex $args 0] eq "-steps"} {
             set args [lassign $args - steps]
         } else {

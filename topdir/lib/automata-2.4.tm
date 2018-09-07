@@ -2,6 +2,7 @@
 ::tcl::tm::path add [file dirname [file normalize [info script]]]
 
 package require automata::fsm
+package require automata::fst
 
 if no {
     apply {args {
@@ -28,3 +29,4 @@ proc ::tcl::dict::group {varName key args} {
     dict lappend var $key $args
 }
 namespace ensemble configure dict -map [dict merge [namespace ensemble configure dict -map] {group ::tcl::dict::group}]
+

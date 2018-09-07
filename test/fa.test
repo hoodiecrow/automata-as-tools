@@ -7,6 +7,12 @@ namespace import ::tcltest::*
 
 ::tcltest::loadTestedCommands
 
+
+
+cleanupTests ; return
+
+
+
 proc dump machine {
     set res {}
     lappend res "A = [list [$machine get A]]"
