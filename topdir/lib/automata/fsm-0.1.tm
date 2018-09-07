@@ -62,16 +62,15 @@ oo::class create ::automata::FSM {
         return $moves
     }
 
-    method CreateTransitions {varName transition methodA methodB moves} {
+    method CreateTransitions {varName fnA fnB moves} {
         upvar 1 $varName _transitions
-        lassign $transition a q0 b
         set newTuple [list]
         dict for {sym edges} $moves {
-            lset newTuple 0 [my $methodA $a [list $sym]]
+            lset newTuple 0 [my {*}$fnA [list $sym]]
             lappend _transitions {*}[lmap edge $edges {
                 lassign $edge q1 target
                 lset newTuple 1 $q1
-                lset newTuple 2 [my $methodB $b $target]
+                lset newTuple 2 [my {*}$fnB $target]
             }]
         }
     }
@@ -81,10 +80,11 @@ oo::class create ::automata::FSM {
         # _transitions = moves from that point/those points
         set _transitions [list]
         foreach transition $transitions {
+            lassign $transition a q0 b
             # Get possible moves, grouped by input symbol.
-            set moves [my GetMoves [lindex $transition 1]]
+            set moves [my GetMoves $q0]
             # Create transitions for possible moves.
-            my CreateTransitions _transitions $transition $methodA $methodB $moves
+            my CreateTransitions _transitions [list $methodA $a] [list $methodB $b] $moves
         }
         # Two base cases: 1) no more transitions, or 2) steps completed.
         if {
