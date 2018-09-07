@@ -1,0 +1,10 @@
+
+state transition engine:
+	partial function δ : S × A → S or δ : S × A → P(S)
+
+event response engine ("output"):
+	entry		s → e fires when current state set to s (move *,s)
+	exit		s → e fires when current state changes from s (move s,*)
+	move		s0,s1 → e fires when current state changes from s0 to s1
+	transition	s,a → e fires when transition is state s and symbol a
+
