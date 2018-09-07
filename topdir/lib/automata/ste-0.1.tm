@@ -115,7 +115,7 @@ oo::class create ::automata::STE {
         lappend drain {*}[lselect token {$token ne {}} $tokens]
     }
 
-    method NullTape args {
+    method NoOp args {
         return {}
     }
 

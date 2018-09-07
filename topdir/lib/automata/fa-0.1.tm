@@ -191,8 +191,8 @@ oo::class create ::automata::fa {
 
     method is quality {
         switch $quality {
-            epsilon-free  { my IsEpsilonFree }
-            deterministic { my IsDeterministic }
+            epsilon-free  { my T isEpsilonFree }
+            deterministic { my T isDeterministic }
             default {
                 error {unexpected alternative}
             }

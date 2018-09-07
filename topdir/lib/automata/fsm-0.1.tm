@@ -21,8 +21,9 @@ oo::class create ::automata::FSM {
     export T
 
     method AddState {key state} {
+        # Add the state symbol to Q and optionally to F or S.
         dict with data {
-            if {$key ne "Q"} {
+            if {$key in {F S}} {
                 set Q [lsort -unique [list {*}$Q $state]]
             }
             set $key [lsort -unique [list {*}[set $key] $state]]
@@ -31,6 +32,7 @@ oo::class create ::automata::FSM {
     }
     
     method AddSymbols {key args} {
+        # Add one or more non-empty symbols to (key).
         dict with data {
             foreach arg $args {
                 if {$arg ne {}} {
@@ -42,10 +44,13 @@ oo::class create ::automata::FSM {
     }
 
     method GetTarget {state symbol} {
+        # Query the STE for a state to move to.
         my T getTransitions $state $symbol
     }
 
     method SetTarget {fromstate symbol tostate args} {
+        # Add a new transition to the STE, and put the states
+        # and the symbols in their boxes.
         my AddState Q $fromstate
         my AddSymbols A $symbol
         my AddState Q $tostate
@@ -53,26 +58,21 @@ oo::class create ::automata::FSM {
         my T add $fromstate $symbol $tostate $args
     }
 
-    method IsEpsilonFree {} {
-        my T isEpsilonFree
-    }
-
-    method IsDeterministic {} {
-        my T isDeterministic
-    }
-
-    method IsIn? {key state} {
+    method IsIn? {key value} {
+        # Does the value exist in the key?
+        # (Or, is the key set to '*'?)
         dict with data {
-            set states [set $key]
-            expr {([llength $states] == 1 && [lindex $states 0] eq "*") || $state in $states}
+            set values [set $key]
+            expr {([llength $values] == 1 && [lindex $values 0] eq "*") || $value in $values}
         }
     }
 
-    method IsInMultiple? {key stateset} {
+    method IsInMultiple? {key valueset} {
+        # Does at least one of the values exist in the key?
         dict with data {
-            set states [set $key]
-            foreach state $stateset {
-                if {$state in $states} {
+            set values [set $key]
+            foreach value $valueset {
+                if {$value in $values} {
                     return 1
                 }
             }
@@ -85,10 +85,13 @@ oo::class create ::automata::FSM {
         dict get $data {*}$args
     }
 
+    # Finally, the actual behavior of the machine
+
     method accept a {
+        # Are we in a final state when all input symbols are consumed?
         set s [dict get $data S]
         set f [dict get $data F]
-        set results [my T iterate $a $s {} $f Consume NullTape]
+        set results [my T iterate $a $s {} $f Consume NoOp]
         foreach result $results {
             lassign $result a
             if {[llength $a] == 0} {
@@ -99,6 +102,7 @@ oo::class create ::automata::FSM {
     }
 
     method classify {a b} {
+        # What state are we in when all input symbols in a and b are consumed?
         set s [dict get $data S]
         set f [dict get $data F]
         set results [my T iterate $a $s $b $f Consume Consume]
@@ -108,6 +112,7 @@ oo::class create ::automata::FSM {
     }
 
     method recognize {a b} {
+        # Are we in a final state when all input symbols in a and b are consumed?
         set s [dict get $data S]
         set f [dict get $data F]
         set results [my T iterate $a $s $b $f Consume Consume]
@@ -121,6 +126,7 @@ oo::class create ::automata::FSM {
     }
 
     method translate a {
+        # What symbols have been added to b when all input symbols in a are consumed?
         set s [dict get $data S]
         set f [dict get $data F]
         set results [my T iterate $a $s {} $f Consume Produce]
@@ -130,6 +136,7 @@ oo::class create ::automata::FSM {
     }
 
     method reconstruct b {
+        # What symbols have been added to a when all input symbols in b are consumed?
         set s [dict get $data S]
         set f [dict get $data F]
         set results [my T iterate {} $s $b $f Produce Consume]
@@ -139,6 +146,7 @@ oo::class create ::automata::FSM {
     }
 
     method generate steps {
+        # If we take N steps into the transition sequence (or sequence powerset), what to we get in a and b?
         set s [dict get $data S]
         set f [dict get $data F]
         my T iterate -steps $steps {} $s {} $f Produce Produce
