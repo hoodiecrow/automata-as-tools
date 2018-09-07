@@ -1,25 +1,8 @@
 
-proc lselect {varName cond items} {
-    upvar 1 $varName item
-    return [lmap item $items {
-        if [uplevel 1 [list expr $cond]] {
-            set item
-        } else {
-            continue
-        }
-    }]
-}
-
-proc ::tcl::dict::group {varName key args} {
-    upvar 1 $varName var
-    dict lappend var $key $args
-}
-namespace ensemble configure dict -map [dict merge [namespace ensemble configure dict -map] {group ::tcl::dict::group}]
-
 ::tcl::tm::path add [file dirname [file dirname [file normalize [info script]]]]
 
 package require automata::fa
-package require automata::transitionlist
+package require automata::ste
 
 namespace eval automata {}
 
@@ -31,7 +14,7 @@ oo::class create ::automata::FSM {
     constructor args {
         lassign $args tuple
         set tuple [dict merge {A {} B {} Q {} S {} F {}} $tuple]
-        ::automata::TransitionList create T
+        ::automata::STE create T
     }
 
     forward T T
@@ -199,6 +182,13 @@ oo::class create ::automata::FSM {
             }
         }
         return 0
+    }
+
+    method classify {a b} {
+        set results [my Iterate $a $b Consume Consume]
+        return [lmap result $results {
+            index $result 1
+        }]
     }
 
     method recognize {a b} {

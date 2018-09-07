@@ -1,7 +1,8 @@
 
 namespace eval automata {}
 
-oo::class create ::automata::TransitionList {
+# "State Transition Engine"
+oo::class create ::automata::STE {
     variable data
 
     constructor args {
