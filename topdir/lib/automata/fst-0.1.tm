@@ -2,7 +2,6 @@
 ::tcl::tm::path add [file dirname [file dirname [file normalize [info script]]]]
 
 package require automata::fsa
-package require automata::ste
 
 namespace eval automata {}
 
@@ -13,8 +12,7 @@ oo::class create ::automata::FST {
 
     constructor args {
         lassign $args data
-        set data [dict merge {A {} Q {} S {} F {}} $data]
-        ::automata::STE create T
+        set data [dict merge {A {} B {} Q {} S {} F {}} $data]
     }
 
     method recognize {a b} {

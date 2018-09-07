@@ -1,6 +1,15 @@
 
+::tcl::tm::path add [file dirname [file dirname [file normalize [info script]]]]
+
+package require automata::ste
+
 oo::class create ::automata::FSA {
     variable data
+
+    constructor args {
+        ::automata::STE create T
+        next {*}$args
+    }
 
     forward T T
     export T
