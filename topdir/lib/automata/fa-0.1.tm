@@ -85,9 +85,9 @@ oo::class create ::automata::fa {
     method state {verb args} {
         set args [lassign $args s]
         switch $verb {
-            add { my StateAdd $s }
+            add { my AddState Q $s }
             delete { error {not implemented yet} }
-            exists { my state? $s }
+            exists { my IsIn? Q $s }
             rename { error {not implemented yet} }
             default {
                 error {unexpected alternative}
@@ -102,7 +102,7 @@ oo::class create ::automata::fa {
     method start {verb args} {
         set args [lassign $args s]
         switch $verb {
-            add { my StartAdd $s }
+            add { my AddState S $s }
             remove { error {not implemented yet} }
             default {
                 error {unexpected alternative}
@@ -117,7 +117,7 @@ oo::class create ::automata::fa {
     method final {verb args} {
         set args [lassign $args s]
         switch $verb {
-            add { my FinalAdd $s }
+            add { my AddState F $s }
             remove { error {not implemented yet} }
             default {
                 error {unexpected alternative}
@@ -125,7 +125,9 @@ oo::class create ::automata::fa {
         }
     }
 
-    # symbols method delegated to ::automata::FSM
+    method symbols {} {
+        lsort -unique [concat [my get A] [my get B]]
+    }
 
     method symbols@ args {
         switch [llength $args] {

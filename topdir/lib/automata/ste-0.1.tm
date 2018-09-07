@@ -3,7 +3,7 @@ namespace eval automata {}
 
 # "State Transition Engine"
 oo::class create ::automata::STE {
-    variable data
+    variable data steps
 
     constructor args {
         lassign $args data
@@ -74,6 +74,102 @@ oo::class create ::automata::STE {
 
     method getAllValueSymbols {} {
         lsort -unique [concat {*}[my getValues]]
+    }
+
+    # ---
+
+    method iterate args {
+        if {[lindex $args 0] eq "-steps"} {
+            set args [lassign $args - steps]
+        } else {
+            set steps {}
+        }
+        set args [lassign $args a s b f]
+        set transitions [my StartingTransitions $a $s $b]
+        set results [my Inner $transitions {*}$args $f]
+        if {$steps ne {} && $steps > 0} {
+            return -code error [format {premature stop with %d steps left} $steps]
+        }
+        return $results
+    }
+
+    method StartingTransitions {a states b} {
+        set a [list {*}$a]
+        set b [list {*}$b]
+        lmap state $states {
+            list $a $state $b
+        }
+    }
+
+    method Consume {source tokens} {
+        foreach token [lselect token {$token ne {}} $tokens] {
+            if {$token ne [lindex $source 0]} {
+                return -code continue
+            }
+            set source [lrange $source 1 end]
+        }
+        return $source
+    }
+
+    method Produce {drain tokens} {
+        lappend drain {*}[lselect token {$token ne {}} $tokens]
+    }
+
+    method NullTape args {
+        return {}
+    }
+
+    method GetMoves q0 {
+        set moves {}
+        foreach move [my getEdges $q0] {
+            dict group moves {*}$move
+        }
+        return $moves
+    }
+
+    method CreateTransitions {varName fnA fnB moves} {
+        upvar 1 $varName _transitions
+        set newTuple [list]
+        dict for {sym edges} $moves {
+            lset newTuple 0 [my {*}$fnA [list $sym]]
+            lappend _transitions {*}[lmap edge $edges {
+                lassign $edge q1 target
+                lset newTuple 1 $q1
+                lset newTuple 2 [my {*}$fnB $target]
+            }]
+        }
+    }
+
+    method FilterResults {results select} {
+        if {$select eq {}} {
+            return $results
+        } else {
+            return [lselect result {[lindex $result 1] in $select} $results]
+        }
+    }
+
+    method Inner {transitions methodA methodB {select {}}} {
+        # transitions  = moves into the point(s) where we are now
+        # _transitions = moves from that point/those points
+        set _transitions [list]
+        foreach transition $transitions {
+            lassign $transition a q0 b
+            # Get possible moves, grouped by input symbol.
+            set moves [my GetMoves $q0]
+            # Create transitions for possible moves.
+            my CreateTransitions _transitions [list $methodA $a] [list $methodB $b] $moves
+        }
+        # Two base cases: 1) no more transitions, or 2) steps completed.
+        if {
+            [llength $_transitions] == 0 ||
+            ($steps ne {} && [incr steps -1] < 0)
+        } then {
+            # Return filtered results in base case.
+            return [my FilterResults $transitions $select]
+        } else {
+            # Recursive case.
+            return [my Inner $_transitions $methodA $methodB $select]
+        }
     }
 
 }
