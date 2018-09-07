@@ -54,23 +54,37 @@ oo::class create ::automata::FSM {
         }
     }
 
+    method GetMoves q0 {
+        set moves {}
+        foreach move [my T getEdges $q0] {
+            dict group moves {*}$move
+        }
+        return $moves
+    }
+
+    method CreateTransitions {varName transition methodA methodB moves} {
+        upvar 1 $varName _transitions
+        lassign $transition a q0 b
+        set newTuple [list]
+        dict for {sym edges} $moves {
+            lset newTuple 0 [my $methodA $a [list $sym]]
+            lappend _transitions {*}[lmap edge $edges {
+                lassign $edge q1 target
+                lset newTuple 1 $q1
+                lset newTuple 2 [my $methodB $b $target]
+            }]
+        }
+    }
+
     method Inner {transitions methodA methodB {select {}}} {
+        # transitions  = moves into the point(s) where we are now
+        # _transitions = moves from that point/those points
         set _transitions [list]
         foreach transition $transitions {
-            lassign $transition a q0 b
-            set moves {}
-            foreach move [my T getEdges $q0] {
-                dict group moves {*}$move
-            }
-            set newTuple [list]
-            dict for {sym edges} $moves {
-                lset newTuple 0 [my $methodA $a [list $sym]]
-                lappend _transitions {*}[lmap edge $edges {
-                    lassign $edge q1 target
-                    lset newTuple 1 $q1
-                    lset newTuple 2 [my $methodB $b $target]
-                }]
-            }
+            # Get possible moves, grouped by input symbol.
+            set moves [my GetMoves [lindex $transition 1]]
+            # Create transitions for possible moves.
+            my CreateTransitions _transitions $transition $methodA $methodB $moves
         }
         # Two base cases: 1) no more transitions, or 2) steps completed.
         if {
