@@ -53,7 +53,7 @@ If any further arguments are given, the first of those will be set as a scalar c
 A Finite State Machine recognizes a regular language. It can be
 asked to accept or classify a list of input symbols.
 
-This machine is defined by the tuple `\<A, Q, S, F, T\>`:
+This machine is defined by the tuple `<A, Q, S, F, T>`:
 
 * *A* is the input alphabet (does not accept the empty string as symbol).
 * *Q* is the set of state symbols.
@@ -72,7 +72,7 @@ This machine is defined by the tuple `\<A, Q, S, F, T\>`:
 A Finite State Transducer recognizes or encodes a regular relation.
 It can be asked to *recognize* two lists of symbols, i.e. indicate if they fulfill the relation; or *translate* a list of input symbols into a list of output symbols that fulfills the relation; or *reconstruct* a list of input symbols from a list of output symbols, or *generate* a list of input symbols and a list of output symbols by walking a given number of steps through the transition space.
 
-This machine is defined by the tuple `\<A, B, Q, S, F, T\>`:
+This machine is defined by the tuple `<A, B, Q, S, F, T>`:
 
 * *A* is the input alphabet (does not accept the empty string as symbol).
 * *B* is the output alphabet (does not accept the empty string as symbol).
@@ -91,7 +91,7 @@ This machine is defined by the tuple `\<A, B, Q, S, F, T\>`:
 
 ### PDA (Pushdown Automaton)
 
-This machine is defined by the tuple `\<A, B, Q, Z, S, F, T\>`:
+This machine is defined by the tuple `<A, B, Q, Z, S, F, T>`:
 
 * *A* is the input alphabet (does not accept the empty string as symbol).
 * *B* is the stack alphabet (does not accept the empty string as symbol).
