@@ -3,10 +3,10 @@ namespace eval automata {}
 
 # "State Transition Engine"
 oo::class create ::automata::STE {
-    variable data steps
+    variable data steps ns components
 
     constructor args {
-        lassign $args data
+        lassign $args ns components
         set is(epsilon-free) 1
         set is(deterministic) 1
     }
@@ -30,7 +30,19 @@ oo::class create ::automata::STE {
         }
     }
 
-    method add {q0 sym q1 {v {}}} {
+    method set {q0 sym q1 {v {}}} {
+        if {$sym eq "ε"} {
+            set sym {}
+        }
+        $ns\::[lindex $components 0] set $q0 $q1
+        $ns\::[lindex $components 1] set $sym
+        if {$v ne {}} {
+            $ns\::[lindex $components 2] set {*}$v
+        }
+        lappend data [list $q0 $sym $q1 $v]
+    }
+
+    method _add {q0 sym q1 {v {}}} {
         if {$sym eq "ε"} {
             set sym {}
         }
@@ -63,6 +75,8 @@ oo::class create ::automata::STE {
         set items [lsearch -all -index 1 -inline $items $s]
         lmap item $items {lrange $item 2 end}
     }
+
+    forward get my getTransitions
 
     method getTargets {q0 s {q1 *}} {
         set items [lsearch -all -index 0 -inline $data $q0]
