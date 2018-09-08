@@ -29,8 +29,8 @@ This class is used for most of the values that make up the machine-defining tupl
 
 * `get` : yields the underlying value
 * `set ?value...?` : sets the underlying value by replacing a scalar or inserting new values in a set. 
-* `forall var cond coll` : tests condition *cond* once for every member of collection *coll*. The value of *var* is set to the value of the item when *cond* is evaluated. Returns 1 if every item passes the test, and aborts testing with a return value of 0 if any test fails.
-* `any var cond coll` : tests condition *cond* once for every member of collection *coll*. The value of *var* is set to the value of the item when *cond* is evaluated. Returns 0 if no item passes the test, and aborts testing with a return value of 1 if any test passes.
+* `forall var cond` : tests condition *cond* once for every member of the component's value. The value of *var* is set to the value of the item when *cond* is evaluated. Returns 1 if every item passes the test, and aborts testing with a return value of 0 if any test fails.
+* `any var cond` : tests condition *cond* once for every member of the component's value. The value of *var* is set to the value of the item when *cond* is evaluated. Returns 0 if no item passes the test, and aborts testing with a return value of 1 if any test passes.
 
 **Creation:**
 

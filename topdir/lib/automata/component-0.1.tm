@@ -31,9 +31,9 @@ oo::class create ::automata::Component {
         }
     }
 
-    method any {varName cond coll} {
+    method any {varName cond} {
         upvar 1 $varName var
-        foreach var $coll {
+        foreach var $data {
             if {[uplevel 1 [list expr $cond]]} {
                 return 1
             }
@@ -41,9 +41,9 @@ oo::class create ::automata::Component {
         return 0
     }
 
-    method forall {varName cond coll} {
+    method forall {varName cond} {
         upvar 1 $varName var
-        foreach var $coll {
+        foreach var $data {
             if {![uplevel 1 [list expr $cond]]} {
                 return 0
             }
