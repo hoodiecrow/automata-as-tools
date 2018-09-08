@@ -24,10 +24,14 @@ oo::class create ::automata::Component {
                 }
             }
         }
-        lassign $args data
+        if {$scalar} {
+            lassign $args data
+        } else {
+            set data $args
+        }
     }
 
-    method exists {varName cond coll} {
+    method any {varName cond coll} {
         upvar 1 $varName var
         foreach var $coll {
             if {[uplevel 1 [list expr $cond]]} {
@@ -61,6 +65,7 @@ oo::class create ::automata::Component {
             }
             if {$scalar} {
                 set data $value
+                return
             } else {
                 lappend data $value
             }

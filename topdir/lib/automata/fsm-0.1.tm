@@ -36,13 +36,11 @@ oo::class create ::automata::FSM {
     method classify a {
         # What state are we in when all input symbols are consumed?
         set results [my T iterate $a [my S get] {} [my F get] Consume NoOp]
-        foreach result $results {
-            lassign $result a q
-            if {[llength $a] == 0} {
-                return $q
-            }
+        if {[llength $a] == 0} {
+            return [lmap result $results {lindex $result 1}]
+        } else {
+            return {}
         }
-        return {}
     }
 
 }

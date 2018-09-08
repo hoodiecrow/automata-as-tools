@@ -40,13 +40,11 @@ oo::class create ::automata::PDA {
         # What state are we in when all input symbols are consumed and the
         # stack has only one item?
         set results [my T iterate $a [my S get] [my Z get] [my F get] Consume Pushdown]
-        foreach result $results {
-            lassign $result a q b
-            if {[llength $a] == 0 && [llength $b] == 1} {
-                return $q
-            }
+        if {[llength $a] == 0} {
+            return [lmap result $results {lindex $result 1}]
+        } else {
+            return {}
         }
-        return {}
     }
 
 }
