@@ -3,6 +3,14 @@
 
 package require automata::fsm
 package require automata::fst
+package require automata::pda
+
+# change output function to have four slots:
+# q0 sym q1
+# q0  *   * output on leave
+#  *  *  q1 output on enter
+# q0  *  q1 output on move
+# q0 sym  * output on transit
 
 if no {
     apply {args {

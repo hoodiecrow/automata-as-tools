@@ -2,6 +2,7 @@
 namespace eval automata {}
 
 # "State Transition Engine"
+# Supports finite state automata and pushdown automata
 oo::class create ::automata::STE {
     variable data steps ns components
 
@@ -30,23 +31,16 @@ oo::class create ::automata::STE {
         }
     }
 
-    method set {q0 sym q1 {v {}}} {
+    method set {q0 sym q1 args} {
         if {$sym eq "ε"} {
             set sym {}
         }
         $ns\::[lindex $components 0] set $q0 $q1
         $ns\::[lindex $components 1] set $sym
-        if {$v ne {}} {
-            $ns\::[lindex $components 2] set {*}$v
+        if {[llength $args] > 0} {
+            $ns\::[lindex $components 2] set {*}$args
         }
-        lappend data [list $q0 $sym $q1 $v]
-    }
-
-    method _add {q0 sym q1 {v {}}} {
-        if {$sym eq "ε"} {
-            set sym {}
-        }
-        lappend data [list $q0 $sym $q1 $v]
+        lappend data [list $q0 $sym $q1 $args]
     }
 
     method getAllStates {} {
@@ -120,6 +114,7 @@ oo::class create ::automata::STE {
     }
 
     method Consume {source tokens} {
+        log::log d [info level 0] 
         foreach token [lselect token {$token ne {}} $tokens] {
             if {$token ne [lindex $source 0]} {
                 return -code continue
@@ -131,6 +126,15 @@ oo::class create ::automata::STE {
 
     method Produce {drain tokens} {
         lappend drain {*}[lselect token {$token ne {}} $tokens]
+    }
+
+    method Pushdown {stack tokens} {
+        log::log d [info level 0] 
+        set tokens [lassign $tokens top]
+        if {$top ne [lindex $stack 0]} {
+            return -code continue
+        }
+        lreplace $stack 0 0 {*}[lselect token {$token ne {}} $tokens]
     }
 
     method NoOp args {
@@ -171,6 +175,7 @@ oo::class create ::automata::STE {
         # _transitions = moves from that point/those points
         set _transitions [list]
         foreach transition $transitions {
+            log::log d \$transition=$transition 
             lassign $transition a q0 b
             # Get possible moves, grouped by input symbol.
             set moves [my GetMoves $q0]

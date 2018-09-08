@@ -1,6 +1,7 @@
 
 oo::class create ::automata::Component {
     variable data scalar superset nonempty
+
     constructor args {
         set scalar 0
         set superset {}
@@ -66,4 +67,5 @@ oo::class create ::automata::Component {
         }
         set data [lsort -unique $data]
     }
+
 }
