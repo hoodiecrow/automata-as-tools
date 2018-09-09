@@ -9,20 +9,24 @@ namespace eval automata {}
 oo::class create ::automata::FSM {
     variable data
 
-    constructor args {
-        ::automata::Component create A -nonempty
-        ::automata::Component create Q
-        ::automata::Component create S -in [namespace which Q]
-        ::automata::Component create F -in [namespace which Q]
-        ::automata::STE create T [self namespace] {Q A}
-    }
+#: A Finite State Machine recognizes a regular language. It can be asked to accept or classify a list of input symbols.
 
-    foreach m {A Q S F T} {
-        forward $m $m ; export $m
+    constructor args {
+#: This machine is defined by the tuple `<A, Q, S, F, T>`:
+        ::automata::Component create A -nonempty
+#: * *A* is the input alphabet (does not accept the empty string as symbol).
+        ::automata::Component create Q
+#: * *Q* is the set of state symbols.
+        ::automata::Component create S -in [namespace which Q]
+#: * *S* is a symbol which is a member of the set of state symbols (for a deterministic FSM) or a set of symbols which is a subset of the state symbols (for a nondeterministic FSM). Processing will start at this/these symbols.
+        ::automata::Component create F -in [namespace which Q]
+#: * *F* is a set of symbols which is a subset of *Q*. These are the accepting final states.
+        ::automata::STE create T [self namespace] {Q A}
+#: * *T* is the transition relation, an instance of the `STE` class.
     }
 
     method accept a {
-        # Are we in a final state when all input symbols are consumed?
+        #: Are we in a final state when all input symbols are consumed?
         set results [my T iterate $a [my S get] {} [my F get] Consume NoOp]
         foreach result $results {
             lassign $result a
@@ -34,7 +38,7 @@ oo::class create ::automata::FSM {
     }
 
     method classify a {
-        # What state are we in when all input symbols are consumed?
+        #: What state are we in when all input symbols are consumed?
         set results [my T iterate $a [my S get] {} [my F get] Consume NoOp]
         if {[llength $a] == 0} {
             return [lmap result $results {lindex $result 1}]
@@ -42,5 +46,11 @@ oo::class create ::automata::FSM {
             return {}
         }
     }
+
+    foreach m {A Q S F T} {
+        forward $m $m ; export $m
+    }
+
+#: * `A`, `Q`, `S`, `F`, `T` : public methods to give access to the components.
 
 }

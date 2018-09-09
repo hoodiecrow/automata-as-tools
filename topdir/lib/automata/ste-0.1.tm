@@ -1,24 +1,32 @@
 
 namespace eval automata {}
 
-# "State Transition Engine"
-# Supports finite state automata and pushdown automata
 oo::class create ::automata::STE {
     variable data steps ns components
 
+    # "State Transition Engine"
+    #
+    # Handles the definition of transition relations and iteration through the
+    # transition matrix.
+    #
+    # Supports finite state automata and pushdown automata. Use TME for
+    # Turing-class machines.
+
     constructor args {
+        #: Use arguments to set the namespace of the machine tuple, and the
+        #: names of the components affected by defining a transition.
         lassign $args ns components
-        set is(epsilon-free) 1
-        set is(deterministic) 1
     }
 
-    method dump {} {set data}
+    method Dump {} {set data}
 
     method isEpsilonFree {} {
+        #: Is the transition matrix free from epsilon transitions?
         expr {{} ni [my getSymbols]}
     }
 
     method isDeterministic {} {
+        #: Is the transition matrix deterministic?
         if {![my isEpsilonFree]} {
             return 0
         } else {
@@ -32,6 +40,11 @@ oo::class create ::automata::STE {
     }
 
     method set {q0 sym q1 args} {
+        #: Define a transition. `q0`, `sym`, and `q1` are the origin state, the
+        #: transition input symbol, and the target state, respectively. `args`
+        #: is zero or more symbols that are used for output or for the stack.
+        #: Adding a transition will update the *Q*, *A*, and *B* set
+        #: components.
         if {$sym eq "ε"} {
             set sym {}
         }
@@ -44,35 +57,45 @@ oo::class create ::automata::STE {
     }
 
     method getAllStates {} {
+        #: Return the set of all states in the transition matrix.
         lsort -unique [concat \
             [lmap item $data {lindex $item 0}] \
             [lmap item $data {lindex $item 2}]]
     }
 
     method getFromStates {} {
+        #: Return the set of all origin states in the transition matrix.
         lsort -unique [lmap item $data {lindex $item 0}]
     }
 
     method getSymbols {{q0 *} {q1 *}} {
+        #: Return the set of input symbols in the transition matrix. The set
+        #: can be limited to specific origin and/or target state.
         set items [lsearch -all -index 0 -inline $data $q0]
         set items [lsearch -all -index 2 -inline $items $q1]
         lmap item $items {lindex $item 1}
     }
 
     method getEdges q0 {
+        #: Return the list of edges from a given origin state.
         set items [lsearch -all -index 0 -inline $data $q0]
         lmap item $items {lrange $item 1 end}
     }
 
     method getTransitions {q0 s} {
+        #: Return the list of transitions selected by an origin state and an
+        #: input symbol.
         set items [lsearch -all -index 0 -inline $data $q0]
         set items [lsearch -all -index 1 -inline $items $s]
         lmap item $items {lrange $item 2 end}
     }
 
     forward get my getTransitions
+        #: `get` is a synonym for `getTransitions`.
 
     method getTargets {q0 s {q1 *}} {
+        #: Return the output values for given origin state, input symbol, and
+        #: optionally target state.
         set items [lsearch -all -index 0 -inline $data $q0]
         set items [lsearch -all -index 1 -inline $items $s]
         set items [lsearch -all -index 2 -inline $items $q1]
@@ -80,25 +103,34 @@ oo::class create ::automata::STE {
     }
 
     method getValues {} {
+        #: Return all output values (groups of output symbols).
         lmap item $data {lindex $item end}
     }
 
     method getAllValueSymbols {} {
+        #: Return the set of all output symbols.
         lsort -unique [concat {*}[my getValues]]
     }
 
-    # ---
-
     method iterate args {
+        #: Start a walk through the transition matrix.
         log::log d [info level 0] 
         if {[lindex $args 0] eq "-steps"} {
+            #: The option `-steps steps` is recognized: if given it limits the
+            #: number of steps the walk will comprise.
             set args [lassign $args - steps]
         } else {
             set steps {}
         }
         set args [lassign $args a s b f]
+        #: Provide arguments for the input sequence, the set of starting
+        #: states, the output sequence, and the set of final states.
         set transitions [my StartingTransitions $a $s $b]
         set results [my Inner $transitions {*}$args $f]
+        #: The final arguments are two directives for dealing with the input
+        #: and output sequence: either `Consume` for matching and removing
+        #: symbols; `Produce` for rule-based addition of symbols; `Pushdown`
+        #: for stack handling; or `NoOp` to avoid dealing with the sequence.
         if {$steps ne {} && $steps > 0} {
             return -code error [format {premature stop with %d steps left} $steps]
         }
