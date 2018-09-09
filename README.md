@@ -17,7 +17,12 @@ Doing
 Prospective
 
 * Karel robot
+* SECD machine
 * Register machine
+* Stack machine
+* Counter machine
+* Queue automaton
+* Counter automaton
 
 ## Classes overview
 
