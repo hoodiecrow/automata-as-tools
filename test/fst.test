@@ -236,4 +236,49 @@ test dfst-2.1 {edge detector} -setup $t -body {
     log::lvSuppressLE i 1
 } -result {{{0 0 1}} {{0 0 1}} {{0 0 1 0 1 1 1 0}}}
 
+test dfst-2.2 {edge detector, same as above with slightly different init} -setup $t -body {
+foreach {q0 sym q1 out} {
+    si 0 s0 0
+    si 1 s1 0
+    s0 0 s0 0
+    s0 1 s1 1
+    s1 0 s0 1
+    s1 1 s1 0
+} {
+    M T set $q0 $sym $q1 $out
+}
+M S set si
+M F set s0 s1
+    set res {}
+    lappend res [M translate {1 1 0}]
+    lappend res [M translate {0 0 1}]
+    lappend res [M translate {1 1 0 0 1 0 1 1}]
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {{{0 0 1}} {{0 0 1}} {{0 0 1 0 1 1 1 0}}}
+
+test dfst-2.3 {edge detector, same as 2.1 with slightly different init} -setup $t -body {
+foreach {q0 sym q1 out} {
+    si 0 s0 0
+    si 1 s1 0
+    s0 0 s0 0
+    s0 1 s1 1
+    s1 0 s0 1
+    s1 1 s1 0
+} {
+    M T set $q0 $sym $q1 $out
+}
+M S set si
+M F set s0 s1
+    set res {}
+    lappend res [M recognize {1 1 0} {0 0 1}]
+    lappend res [M translate {1 1 0}]
+    lappend res [M reconstruct {0 0 1 0}]
+    lappend res [M generate 3]
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {}
+
 cleanupTests ; return ; # ---------------------------------

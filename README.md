@@ -58,3 +58,64 @@ M accept {0 0}
 ```
 
 return 0 and 1, respectively.
+
+### Finite state transducer
+
+This is a finite state transducer from another Wikipedia example. 
+
+<a title="By עברית: עצמי. (עברית: תמונה זו נוצרה בעזרת OmniGraffle.) [GFDL (http://www.gnu.org/copyleft/fdl.html) or CC BY-SA 3.0 
+ (https://creativecommons.org/licenses/by-sa/3.0
+)], via Wikimedia Commons" href="https://commons.wikimedia.org/wiki/File:Mealy.png"><img width="128" alt="Mealy" src="https://upload.wikimedia.org/wikipedia/commons/b/b4/Mealy.png"></a>
+
+```
+::automata::FST create M
+foreach {q0 sym q1 out} {
+    si 0 s0 0
+    si 1 s1 0
+    s0 0 s0 0
+    s0 1 s1 1
+    s1 0 s0 1
+    s1 1 s1 0
+} {
+    M T set $q0 $sym $q1 $out
+}
+M S set si
+M F set s0 s1
+```
+
+The sequences `1 1 0` and `0 0 1` are both translated to `0 0 1`:
+
+```
+M translate {1 1 0}
+# => {0 0 1}
+```
+
+also, the same machine can recognize that two sequences fulfill the transition relation and reconstruct the input sequence(s):
+
+```
+M recognize {1 1 0} {0 0 1}
+# => 1
+
+M reconstruct {0 0 1}
+# => {{0 0 1} {1 1 0}}
+```
+
+It can also generate different valid input/output given a number of steps to take:
+
+```
+M generate 3
+```
+
+results in the input/output combinations:
+
+```
+{0 0 0} {0 0 0}
+{0 0 1} {0 0 1}
+{0 1 0} {0 1 1}
+{0 1 1} {0 1 0}
+{1 0 0} {0 1 0}
+{1 0 1} {0 1 1}
+{1 1 0} {0 0 1}
+{1 1 1} {0 0 0}
+```
+
