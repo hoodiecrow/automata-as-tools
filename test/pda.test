@@ -66,6 +66,38 @@ test pda-1.2 {} -setup {
     log::lvSuppressLE i 1
 } -result {0 0 1 1}
 
+test pda-1.3 {} -setup {
+    ::automata::PDA create M
+    M T set p 0 p Z A Z
+    M T set p 0 p A A A
+    M T set p ε q Z Z
+    M T set p ε q A A
+    M T set q 1 q A
+    M T set q ε r Z Z
+    M S set p
+    M Z set Z
+    M F set r
+} -body {
+    M print
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -output {A Input alphabet : 0, 1
+B Stack alphabet : A, Z
+Q State symbols  : p, q, r
+Z Stack bottom   : Z
+S Start symbol(s): p
+F Final symbol(s): r
+Transitions
+q0  inp q1  out
+p   0   p   Z A Z
+p   0   p   A A A
+p   ε   q   Z Z
+p   ε   q   A A
+q   1   q   A
+q   ε   r   Z Z
+}
+
 if {[package vcompare [package present automata] 2.3] > 0} { 
     cleanupTests ; return 
 } 

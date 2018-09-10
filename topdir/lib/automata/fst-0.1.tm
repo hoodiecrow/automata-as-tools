@@ -12,18 +12,23 @@ oo::class create ::automata::FST {
 
     constructor args {
 #: This machine is defined by the tuple `<A, B, Q, S, F, T>`:
-        ::automata::Component create A -nonempty
+        ::automata::Component create A -label "Input alphabet" -nonempty
 #: * *A* is the input alphabet (does not accept the empty string as symbol).
-        ::automata::Component create B -nonempty
+        ::automata::Component create B -label "Output alphabet" -nonempty
 #: * *B* is the output alphabet (does not accept the empty string as symbol).
-        ::automata::Component create Q
+        ::automata::Component create Q -label "State symbols"
 #: * *Q* is the set of state symbols.
-        ::automata::Component create S -in [namespace which Q]
+        ::automata::Component create S -label "Start symbol(s)" -in [namespace which Q]
 #: * *S* is a symbol which is a member of the set of state symbols (for a deterministic FST) or a set of symbols which is a subset of the state symbols (for a nondeterministic FST). Processing will start at this/these symbols.
-        ::automata::Component create F -in [namespace which Q]
+        ::automata::Component create F -label "Final symbol(s)" -in [namespace which Q]
 #: * *F* is a set of symbols which is a subset of *Q*. These are the accepting final states.
         ::automata::STE create T [self namespace] {Q A B}
 #: * *T* is the transition relation, an instance of the `STE` class.
+    }
+
+    method print {} {
+        #: Print the machine description by printing its components.
+        puts [join [lmap c {A B Q S F T} {my $c print}] \n]
     }
 
     method recognize {a b} {

@@ -60,6 +60,33 @@ M F set s1
     log::lvSuppressLE i 1
 } -result {1 0 0 1 1 0}
 
+test dfa-1.2 {find even number of ones/zeros: print the machine} -setup $m -body {
+foreach {q0 sym q1} {
+    s1 0 s2
+    s1 1 s1
+    s2 0 s1
+    s2 1 s2
+} {
+    M T set $q0 $sym $q1
+}
+M S set s1
+M F set s1
+    M print
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -output {A Input alphabet : 0, 1
+Q State symbols  : s1, s2
+S Start symbol(s): s1
+F Final symbol(s): s1
+Transitions
+q0  inp q1  out
+s1  0   s2  
+s1  1   s1  
+s2  0   s1  
+s2  1   s2  
+}
+
 test nfa-1.0 {} -setup $m -body {
     M T set s0 0 s0
     M T set s0 1 s0

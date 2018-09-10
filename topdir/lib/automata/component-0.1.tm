@@ -1,5 +1,5 @@
 oo::class create ::automata::Component {
-    variable data scalar superset nonempty
+    variable data label scalar superset nonempty
 
     #: This class is used for most of the values that make up the
     #: machine-defining tuples. The value itself can be a scalar or a set (set
@@ -12,6 +12,10 @@ oo::class create ::automata::Component {
             #: The following options are recognized by the constructor:
             #: 
             switch [lindex $args 0] {
+                -label {
+                    #: * `-label` : stores a description string.
+                    set args [lassign $args - label]
+                }
                 -scalar {
                     #: * `-scalar` : sets the value type to *scalar*.
                     set args [lassign $args -]
@@ -43,6 +47,18 @@ oo::class create ::automata::Component {
             lassign $args data
         } else {
             set data $args
+        }
+    }
+
+    method print {} {
+        #: Print the component's name, label, and value.
+        set _data [lmap v $data {if {$v eq {}} {lindex ε} {set v}}]
+        if {[string match *(s) $label] && $scalar} {
+            return [format {%s %-15s: %s} [namespace tail [self]] [string range $label 0 end-3] $_data]
+        } elseif {$scalar} {
+            return [format {%s %-15s: %s} [namespace tail [self]] $label $_data]
+        } else {
+            return [format {%s %-15s: %s} [namespace tail [self]] $label [join $_data ", "]]
         }
     }
 

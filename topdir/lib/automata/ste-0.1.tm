@@ -20,6 +20,20 @@ oo::class create ::automata::STE {
 
     method Dump {} {set data}
 
+    method print {} {
+        #: Print the component's transitions.
+        lappend res "Transitions"
+        lappend res [format {%-3s %-3s %-3s %s} q0 inp q1 out]
+        foreach t $data {
+            lassign $t q0 inp q1 out
+            if {$inp eq {}} {
+                set inp ε
+            }
+            lappend res [format {%-3s %-3s %-3s %s} $q0 $inp $q1 $out]
+        }
+        return [join $res \n]
+    }
+
     method isEpsilonFree {} {
         #: Is the transition matrix free from epsilon transitions?
         expr {{} ni [my getSymbols]}

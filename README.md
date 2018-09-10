@@ -59,6 +59,23 @@ M accept {0 0}
 
 return 0 and 1, respectively.
 
+The machine can be printed:
+
+```
+M print
+# =>
+A Input alphabet : 0, 1
+Q State symbols  : s1, s2
+S Start symbol(s): s1
+F Final symbol(s): s1
+Transitions
+q0  inp q1  out
+s1  0   s2  
+s1  1   s1  
+s2  0   s1  
+s2  1   s2  
+```
+
 ### Finite state transducer
 
 This is a finite state transducer from another Wikipedia example. 
