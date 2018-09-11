@@ -67,37 +67,6 @@ cleanupTests ; return ; # ---------------------------------
 
 
 
-test tm-1.0 {3 state, 2 symbol busy beaver} -setup $m -body {
-    DTM create M {
-        I {0 1}
-        S {A B C HALT}
-        T {0 1}
-        s A
-        H {HALT}
-        b 0
-        t {
-            {A 0} B
-            {A 1} C
-            {B 0} A
-            {B 1} B
-            {C 0} B
-            {C 1} HALT
-        }
-        o {
-            {A 0} {1 R}
-            {A 1} {1 L}
-            {B 0} {1 L}
-            {B 1} {1 R}
-            {C 0} {1 L}
-            {C 1} {1 R}
-        }
-    }
-    M run
-} -cleanup {
-    M destroy
-    log::lvSuppressLE i 1
-} -result {0 0 0 0 0 1 1 1 1 1 1 0 0 0}
-
 test tm-1.1 {4 state, 2 symbol busy beaver} -setup $m -body {
     DTM create M {
         I {0 1}

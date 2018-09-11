@@ -130,7 +130,7 @@ oo::class create ::automata::STE {
         #: Start a walk through the transition matrix.
         log::log d [info level 0] 
         variable limit
-        set limit 30
+        set limit 120
         if {[lindex $args 0] eq "-steps"} {
             #: The option `-steps steps` is recognized: if given it limits the
             #: number of steps the walk will comprise.
