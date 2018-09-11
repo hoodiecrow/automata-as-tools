@@ -33,7 +33,7 @@ oo::class create ::automata::FST {
 
     method recognize {a b} {
         #: Are we in a final state when all input symbols in a and b are consumed?
-        set results [my T iterate $a [my S get] $b [my F get] Consume {} Consume]
+        set results [my T iterate $a [my S get] $b [my F get] MatchAll Consume Consume]
         foreach result $results {
             lassign $result a q b
             if {[llength $a] == 0 && [llength $b] == 0} {
@@ -45,7 +45,7 @@ oo::class create ::automata::FST {
 
     method translate a {
         #: What symbols have been added to b when all input symbols in a are consumed?
-        set results [my T iterate $a [my S get] {} [my F get] Consume {} Produce]
+        set results [my T iterate $a [my S get] {} [my F get] MatchAll Consume Produce]
         return [lmap result [lselect result {[llength [lindex $result 0]] == 0} $results] {
             lindex $result 2
         }]
@@ -53,7 +53,7 @@ oo::class create ::automata::FST {
 
     method reconstruct b {
         #: What symbols have been added to a when all input symbols in b are consumed?
-        set results [my T iterate {} [my S get] $b [my F get] Produce {} Consume]
+        set results [my T iterate {} [my S get] $b [my F get] MatchAll Produce Consume]
         return [lmap result [lselect result {[llength [lindex $result 2]] == 0} $results] {
             lindex $result 0
         }]
@@ -61,7 +61,7 @@ oo::class create ::automata::FST {
 
     method generate steps {
         #: If we take N steps into the transition sequence (or sequence powerset), what to we get in a and b?
-        my T iterate -steps $steps {} [my S get] {} [my F get] Produce {} Produce
+        my T iterate -steps $steps {} [my S get] {} [my F get] MatchAll Produce Produce
     }
 
     foreach m {A B Q S F T} {

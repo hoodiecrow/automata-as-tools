@@ -162,6 +162,10 @@ oo::class create ::automata::STE {
         }
     }
 
+    method MatchTop {source symbol} {
+        expr {$symbol eq [lindex $source 0]}
+    }
+
     method Consume {source tokens} {
         log::log d [info level 0] 
         foreach token [lselect token {$token ne {}} $tokens] {
@@ -186,17 +190,13 @@ oo::class create ::automata::STE {
         lreplace $stack 0 0 {*}[lselect token {$token ne {}} $tokens]
     }
 
-    method Read {tape tokens} {
+    method MatchTape {source symbol} {
         log::log d [info level 0] 
-        set _tape [lassign $tape tape0]
-        set sym [lindex $tape [lindex $tape 0]+1]
-        log::log d \$sym=$sym 
-        foreach token [lselect token {$token ne {}} $tokens] {
-            if {$token ne $sym} {
-                return -code continue
-            }
-        }
-        return $tape
+        expr {[lindex $source [lindex $source 0]+1] eq $symbol}
+    }
+
+    method MatchAll args {
+        return 1
     }
 
     method PrintMove {tape tokens} {
@@ -244,18 +244,21 @@ oo::class create ::automata::STE {
         return $moves
     }
 
-    method CreateTransitions {varName fnA prA fnB moves} {
+    method CreateTransitions {varName matchA fnA fnB moves} {
         log::log d [info level 0] 
         upvar 1 $varName _transitions
         set newTuple [list]
+        # it would be nice to search for matching lines by the top of the input sequence or the current tape position, but 
+        set moves [dict filter $moves script {sym edges} {
+            expr {$sym eq {} || [my {*}$matchA $sym]}
+        }]
         dict for {sym edges} $moves {
-            set tape [my {*}$fnA [list $sym]]
-            log::log d foo 
-            lset newTuple 0 $tape
             lappend _transitions {*}[lmap edge $edges {
                 lassign $edge q1 target
-                if {$prA ne {}} {
-                    lset newTuple 0 [my $prA $tape $target]
+                if {[lindex $fnA 0] eq "PrintMove"} {
+                    lset newTuple 0 [my {*}$fnA $target]
+                } else {
+                    lset newTuple 0 [my {*}$fnA [list $sym]]
                 }
                 lset newTuple 1 $q1
                 lset newTuple 2 [my {*}$fnB $target]
@@ -272,7 +275,7 @@ oo::class create ::automata::STE {
         }
     }
 
-    method Inner {transitions methodA methodA1 methodB {select {}}} {
+    method Inner {transitions matchA methodA methodB {select {}}} {
         log::log d [info level 0] 
         variable limit
         if {[incr limit -1] <= 0} { error {too many iterations} }
@@ -285,7 +288,7 @@ oo::class create ::automata::STE {
             # Get possible moves, grouped by input symbol.
             set moves [my GetMoves $q0]
             # Create transitions for possible moves.
-            my CreateTransitions _transitions [list $methodA $a] $methodA1 [list $methodB $b] $moves
+            my CreateTransitions _transitions [list $matchA $a] [list $methodA $a] [list $methodB $b] $moves
         }
         # Two base cases: 1) no more transitions, or 2) steps completed.
         if {
@@ -296,7 +299,7 @@ oo::class create ::automata::STE {
             return [my FilterResults $transitions $select]
         } else {
             # Recursive case.
-            return [my Inner $_transitions $methodA $methodA1 $methodB $select]
+            return [my Inner $_transitions $matchA $methodA $methodB $select]
         }
     }
 

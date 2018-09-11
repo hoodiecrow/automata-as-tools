@@ -35,7 +35,7 @@ oo::class create ::automata::PDA {
 
     method accept a {
         #: Are we in a final state when all input symbols are consumed and the stack has only one item?
-        set results [my T iterate $a [my S get] [my Z get] [my F get] Consume {} Pushdown]
+        set results [my T iterate $a [my S get] [my Z get] [my F get] MatchTop Consume Pushdown]
         foreach result $results {
             lassign $result a q b
             if {[llength $a] == 0 && [llength $b] == 1} {
@@ -47,7 +47,7 @@ oo::class create ::automata::PDA {
 
     method classify a {
         #: What state are we in when all input symbols are consumed and the stack has only one item?
-        set results [my T iterate $a [my S get] [my Z get] [my F get] Consume {} Pushdown]
+        set results [my T iterate $a [my S get] [my Z get] [my F get] MatchTop Consume Pushdown]
         if {[llength $a] == 0} {
             return [lmap result $results {lindex $result 1}]
         } else {

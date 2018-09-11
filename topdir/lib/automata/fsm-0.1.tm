@@ -32,7 +32,7 @@ oo::class create ::automata::FSM {
 
     method accept a {
         #: Are we in a final state when all input symbols are consumed?
-        set results [my T iterate $a [my S get] {} [my F get] Consume {} NoOp]
+        set results [my T iterate $a [my S get] {} [my F get] MatchTop Consume NoOp]
         foreach result $results {
             lassign $result a
             if {[llength $a] == 0} {
@@ -44,7 +44,7 @@ oo::class create ::automata::FSM {
 
     method classify a {
         #: What state are we in when all input symbols are consumed?
-        set results [my T iterate $a [my S get] {} [my F get] Consume {} NoOp]
+        set results [my T iterate $a [my S get] {} [my F get] MatchTop Consume NoOp]
         if {[llength $a] == 0} {
             return [lmap result $results {lindex $result 1}]
         } else {
