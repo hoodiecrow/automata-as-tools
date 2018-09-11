@@ -78,7 +78,7 @@ s2  1   s2
 
 ### Finite state transducer
 
-This is a finite state transducer from another Wikipedia example. It recognizes a regular relation A = {0, 1}, B = {0, 1} such that for state *q* and input *a*, output is ω(s<sub>i</sub>, a: a ⊂ A) = 0, ω(s<sub>0</sub>, 1) = 1, ω(s<sub>1</sub>, 0) = 1, and ω(a: q ⊂ {s<sub>0</sub>, s<sub>1</sub>}, a: a ⊂ A) = 0. Simply put, it's an edge detector that outputs 1 if the input changes and 0 if it stays the same.
+This is a finite state transducer from another Wikipedia example. It recognizes a regular relation A = {0, 1}, B = {0, 1} such that for state *q* and input *a*, output is ω(s<sub>i</sub>, a: a ∈ A) = 0, ω(s<sub>0</sub>, 1) = 1, ω(s<sub>1</sub>, 0) = 1, and ω(a: q ∈ {s<sub>0</sub>, s<sub>1</sub>}, a: a ∈ A) = 0. Simply put, it's an edge detector that outputs 1 if the input changes and 0 if it stays the same.
 
 <a title="By עברית: עצמי. (עברית: תמונה זו נוצרה בעזרת OmniGraffle.) [GFDL (http://www.gnu.org/copyleft/fdl.html) or CC BY-SA 3.0 
  (https://creativecommons.org/licenses/by-sa/3.0
