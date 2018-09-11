@@ -32,7 +32,7 @@ See Wiki for slightly more detailed documentation.
 
 ### Finite state machine
 
-This is a finite-state machine from a Wikipedia example. It accepts sequences of 1 and 0 symbols that contain an even number of 0s.
+This is a finite-state machine from a Wikipedia example. It recognizes sequences of 1 and 0 symbols that contain an even number of 0s (`(00|1)*`).
 
 <a title="By Cepheus [Public domain], from Wikimedia Commons" href="https://commons.wikimedia.org/wiki/File:DFAexample.svg"><img width="256" alt="DFAexample" src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9d/DFAexample.svg/256px-DFAexample.svg.png"></a>
 
@@ -78,7 +78,7 @@ s2  1   s2
 
 ### Finite state transducer
 
-This is a finite state transducer from another Wikipedia example. 
+This is a finite state transducer from another Wikipedia example. It recognizes a regular relation `A = {0, 1}, B = {0, 1}` such that for state *q* and input *a*, output is ω(s<sub>i</sub>, 0) = 0, ω(s<sub>0</sub>, 1) = 1, ω(s<sub>1</sub>, 0) = 1, and ω(*, *) = 0. Simply put, it's an edge detector that outputs 1 if the input changes and 0 if it stays the same.
 
 <a title="By עברית: עצמי. (עברית: תמונה זו נוצרה בעזרת OmniGraffle.) [GFDL (http://www.gnu.org/copyleft/fdl.html) or CC BY-SA 3.0 
  (https://creativecommons.org/licenses/by-sa/3.0

@@ -13,7 +13,7 @@ oo::class create ::automata::Component {
             #: 
             switch [lindex $args 0] {
                 -label {
-                    #: * `-label` : stores a description string.
+                    #: * `-label str` : stores a description string.
                     set args [lassign $args - label]
                 }
                 -scalar {
