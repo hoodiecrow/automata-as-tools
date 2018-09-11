@@ -133,8 +133,6 @@ oo::class create ::automata::STE {
     method iterate args {
         #: Start a walk through the transition matrix.
         log::log d [info level 0] 
-        variable limit
-        set limit 120
         if {[lindex $args 0] eq "-steps"} {
             #: The option `-steps steps` is recognized: if given it limits the
             #: number of steps the walk will comprise.
@@ -146,12 +144,14 @@ oo::class create ::automata::STE {
         #: Provide arguments for the input sequence, the set of starting
         #: states, the output sequence, and the set of final states.
         set transitions [my StartingTransitions $a $s $b]
+        #: The final arguments are three directives for selecting valid moves
+        #: and dealing with the input and output sequence: 1) either MatchTop
+        #: for selecting moves by the first input symbol; MatchTape for
+        #: selecting by current cell on the tape; or MatchAll to select all
+        #: moves. 2) either Consume to remove matching symbols; Produce to add
+        #: symbols; Pushdown for stack handling; PrintMove to write to the tape
+        #: and move it; or NoOp to skip dealing with the sequence.
         set results [my Inner $transitions {*}$args $f]
-        #: The final arguments are two directives for dealing with the input
-        #: and output sequence: either `Consume` for matching and removing
-        #: symbols; `Produce` for rule-based addition of symbols; `Pushdown`
-        #: for stack handling; or `NoOp` to avoid dealing with the sequence.
-        #: TODO update
         if {$steps ne {} && $steps > 0} {
             return -code error [format {premature stop with %d steps left} $steps]
         }
@@ -164,10 +164,6 @@ oo::class create ::automata::STE {
         lmap state $states {
             list $a $state $b
         }
-    }
-
-    method MatchTop {source symbol} {
-        expr {$symbol eq [lindex $source 0]}
     }
 
     method Consume {source tokens} {
@@ -192,15 +188,6 @@ oo::class create ::automata::STE {
             return -code continue
         }
         lreplace $stack 0 0 {*}[lselect token {$token ne {}} $tokens]
-    }
-
-    method MatchTape {source symbol} {
-        log::log d [info level 0] 
-        expr {[lindex $source [lindex $source 0]+1] eq $symbol}
-    }
-
-    method MatchAll args {
-        return 1
     }
 
     method PrintMove {tape tokens} {
@@ -240,7 +227,21 @@ oo::class create ::automata::STE {
         return {}
     }
 
-    method GetMovesFromTuples tuples {
+    method GetMoves {matchA q0 a} {
+        switch $matchA {
+            MatchTop {
+                set tuples [concat [my get $q0 {}] [my get $q0 [lindex $a 0]]]
+            }
+            MatchTape {
+                set tuples [concat [my get $q0 {}] [my get $q0 [lindex $a [lindex $a 0]+1]]]
+            }
+            MatchAll {
+                set tuples [my get $q0 *]
+            }
+            default {
+                error $matchA
+            }
+        }
         set moves {}
         foreach move [lmap tuple $tuples {lrange $tuple 1 end}] {
             dict group moves {*}$move
@@ -277,8 +278,6 @@ oo::class create ::automata::STE {
 
     method Inner {transitions matchA methodA methodB {select {}}} {
         log::log d [info level 0] 
-        variable limit
-        if {[incr limit -1] <= 0} { error {too many iterations} }
         # transitions  = moves into the point(s) where we are now
         # _transitions = moves from that point/those points
         set _transitions [list]
@@ -286,21 +285,7 @@ oo::class create ::automata::STE {
             log::log d \$transition=$transition 
             lassign $transition a q0 b
             # Get possible moves, grouped by input symbol.
-            switch $matchA {
-                MatchTop {
-                    set tuples [concat [my get $q0 {}] [my get $q0 [lindex $a 0]]]
-                }
-                MatchTape {
-                    set tuples [concat [my get $q0 {}] [my get $q0 [lindex $a [lindex $a 0]+1]]]
-                }
-                MatchAll {
-                    set tuples [my get $q0 *]
-                }
-                default {
-                    error $matchA
-                }
-            }
-            set moves [my GetMovesFromTuples $tuples]
+            set moves [my GetMoves $matchA $q0 $a]
             # Create transitions for possible moves.
             my CreateTransitions _transitions [list $methodA $a] [list $methodB $b] $moves
         }
