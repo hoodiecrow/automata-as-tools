@@ -104,8 +104,12 @@ oo::class create ::automata::STE {
         lmap item $items {lrange $item 2 end}
     }
 
-    forward get my getTransitions
-        #: `get` is a synonym for `getTransitions`.
+    method get {q0 s} {
+        #: Return the list of tuples selected by an origin state and an input
+        #: symbol.
+        set items [lsearch -all -index 0 -inline $data $q0]
+        return [lsearch -all -index 1 -inline $items $s]
+    }
 
     method getTargets {q0 s {q1 *}} {
         #: Return the output values for given origin state, input symbol, and
@@ -236,22 +240,18 @@ oo::class create ::automata::STE {
         return {}
     }
 
-    method GetMoves q0 {
+    method GetMovesFromTuples tuples {
         set moves {}
-        foreach move [my getEdges $q0] {
+        foreach move [lmap tuple $tuples {lrange $tuple 1 end}] {
             dict group moves {*}$move
         }
         return $moves
     }
 
-    method CreateTransitions {varName matchA fnA fnB moves} {
+    method CreateTransitions {varName fnA fnB moves} {
         log::log d [info level 0] 
         upvar 1 $varName _transitions
         set newTuple [list]
-        # it would be nice to search for matching lines by the top of the input sequence or the current tape position, but 
-        set moves [dict filter $moves script {sym edges} {
-            expr {$sym eq {} || [my {*}$matchA $sym]}
-        }]
         dict for {sym edges} $moves {
             lappend _transitions {*}[lmap edge $edges {
                 lassign $edge q1 target
@@ -286,9 +286,23 @@ oo::class create ::automata::STE {
             log::log d \$transition=$transition 
             lassign $transition a q0 b
             # Get possible moves, grouped by input symbol.
-            set moves [my GetMoves $q0]
+            switch $matchA {
+                MatchTop {
+                    set tuples [concat [my get $q0 {}] [my get $q0 [lindex $a 0]]]
+                }
+                MatchTape {
+                    set tuples [concat [my get $q0 {}] [my get $q0 [lindex $a [lindex $a 0]+1]]]
+                }
+                MatchAll {
+                    set tuples [my get $q0 *]
+                }
+                default {
+                    error $matchA
+                }
+            }
+            set moves [my GetMovesFromTuples $tuples]
             # Create transitions for possible moves.
-            my CreateTransitions _transitions [list $matchA $a] [list $methodA $a] [list $methodB $b] $moves
+            my CreateTransitions _transitions [list $methodA $a] [list $methodB $b] $moves
         }
         # Two base cases: 1) no more transitions, or 2) steps completed.
         if {
