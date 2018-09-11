@@ -143,7 +143,7 @@ results in the input/output combinations:
 
 ### Pushdown Automaton
 
-This is a PDA which recognizes the language {0<sup>n</sup>1<sup>n</sup> n ⇐ 0} (not a regular language):
+This is a PDA which recognizes the language {0<sup>n</sup>1<sup>n</sup> n ≥ 0} (not a regular language):
 
 ```
 A Input alphabet : {0, 1}
