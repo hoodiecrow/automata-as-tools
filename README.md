@@ -64,10 +64,10 @@ The machine can be printed:
 ```
 M print
 # =>
-A Input alphabet : 0, 1
-Q State symbols  : s1, s2
-S Start symbol(s): s1
-F Final symbol(s): s1
+A Input alphabet : {0, 1}
+Q State symbols  : {s1, s2}
+S Start symbol(s): {s1}
+F Final symbol(s): {s1}
 Transitions
 q0  inp q1  out
 s1  0   s2  
@@ -139,5 +139,49 @@ results in the input/output combinations:
 {1 0 1} {0 1 1}
 {1 1 0} {0 0 1}
 {1 1 1} {0 0 0}
+```
+
+### Pushdown Automaton
+
+This is a PDA which recognizes the language {0<sup>n</sup>1<sup>n</sup> n ⇐ 0} (not a regular language):
+
+```
+A Input alphabet : {0, 1}
+B Stack alphabet : {A, Z}
+Q State symbols  : {p, q, r}
+Z Stack bottom   : Z
+S Start symbol(s): {p}
+F Final symbol(s): {r}
+Transitions
+q0  inp q1  out
+p   0   p   Z A Z
+p   0   p   A A A
+p   ε   q   Z Z
+p   ε   q   A A
+q   1   q   A
+q   ε   r   Z Z
+```
+
+It is defined thus:
+
+```
+::automata::PDA create M
+M T set p 0 p Z A Z
+M T set p 0 p A A A
+M T set p ε q Z Z
+M T set p ε q A A
+M T set q 1 q A
+M T set q ε r Z Z
+M S set p
+M Z set Z
+M F set r
+```
+
+
+```
+M accept {1 1 0}
+# => 0
+M accept {0 1}
+# => 1
 ```
 

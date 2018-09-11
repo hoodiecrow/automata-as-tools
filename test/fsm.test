@@ -75,10 +75,10 @@ M F set s1
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -output {A Input alphabet : 0, 1
-Q State symbols  : s1, s2
-S Start symbol(s): s1
-F Final symbol(s): s1
+} -output {A Input alphabet : {0, 1}
+Q State symbols  : {s1, s2}
+S Start symbol(s): {s1}
+F Final symbol(s): {s1}
 Transitions
 q0  inp q1  out
 s1  0   s2  

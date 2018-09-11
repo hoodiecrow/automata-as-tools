@@ -58,7 +58,7 @@ oo::class create ::automata::Component {
         } elseif {$scalar} {
             return [format {%s %-15s: %s} [namespace tail [self]] $label $_data]
         } else {
-            return [format {%s %-15s: %s} [namespace tail [self]] $label [join $_data ", "]]
+            return [format {%s %-15s: {%s}} [namespace tail [self]] $label [join $_data ", "]]
         }
     }
 
