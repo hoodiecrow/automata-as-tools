@@ -17,7 +17,7 @@ oo::class create ::automata::BTM {
         ::automata::Component create B -label "Init alphabet" -exclude {} -in [namespace which A]
         #: * *B* is the initial alphabet (does not accept the empty string as symbol).
         ::automata::Component create b -label "Blank symbol" -scalar
-        #: * *b* is the blank symbol in the tape alphabet (does not occur in initial alphabet).
+        #: * *b* is the blank symbol in the tape alphabet.
         ::automata::Component create Q -label "State symbols"
         #: * *Q* is the set of state symbols.
         ::automata::Component create S -label "Start symbol(s)" -in [namespace which Q] -scalar
@@ -34,7 +34,7 @@ oo::class create ::automata::BTM {
     }
 
     method run {tape {tapeIndex 0}} {
-        #: Do we reach a final state?
+        #: Run this tape from this position, return tape, current position, and ending state.
         set results [my T iterate [linsert $tape 0 $tapeIndex] [my S get] {} [my F get] Read PrintMove NoOp]
         # there should only be one
         lassign $results result

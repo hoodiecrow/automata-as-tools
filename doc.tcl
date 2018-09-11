@@ -11,6 +11,7 @@ foreach file $files {
         {fsm-.*\.tm$} { set target FSM.md }
         {fst-.*\.tm$} { set target FST.md }
         {pda-.*\.tm$} { set target PDA.md }
+        {btm-.*\.tm$} { set target BTM.md }
         default {
             continue
         }
