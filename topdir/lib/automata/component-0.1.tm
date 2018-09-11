@@ -1,5 +1,5 @@
 oo::class create ::automata::Component {
-    variable data label scalar superset nonempty
+    variable data label scalar superset exclude
 
     #: This class is used for most of the values that make up the
     #: machine-defining tuples. The value itself can be a scalar or a set (set
@@ -7,7 +7,7 @@ oo::class create ::automata::Component {
     constructor args {
         set scalar 0
         set superset {}
-        set nonempty 0
+        set exclude {}
         while {[llength $args] > 0} {
             #: The following options are recognized by the constructor:
             #: 
@@ -28,11 +28,12 @@ oo::class create ::automata::Component {
                     #: argument to the component's `set` method.
                     set args [lassign $args - superset]
                 }
-                -nonempty {
-                    #: * `-nonempty` : the set or scalar will not accept empty
-                    #: values
-                    set args [lassign $args -]
-                    set nonempty 1
+                -exclude {
+                    #: * `-exclude syms` : the set or scalar will not accept the listed symbols (if given an empty list, reject empty symbols)
+                    set args [lassign $args - exclude]
+                    if {[llength $exclude] == 0} {
+                        set exclude [list {}]
+                    }
                 }
                 default {
                     break
@@ -71,7 +72,7 @@ oo::class create ::automata::Component {
         #: sets the underlying value by replacing a scalar or inserting new
         #: values in a set. 
         foreach value $args {
-            if {$value eq {} && $nonempty} {
+            if {$value in $exclude} {
                 continue
             }
             if {$superset ne {}} {

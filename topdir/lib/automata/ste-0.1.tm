@@ -129,6 +129,8 @@ oo::class create ::automata::STE {
     method iterate args {
         #: Start a walk through the transition matrix.
         log::log d [info level 0] 
+        variable limit
+        set limit 30
         if {[lindex $args 0] eq "-steps"} {
             #: The option `-steps steps` is recognized: if given it limits the
             #: number of steps the walk will comprise.
@@ -145,6 +147,7 @@ oo::class create ::automata::STE {
         #: and output sequence: either `Consume` for matching and removing
         #: symbols; `Produce` for rule-based addition of symbols; `Pushdown`
         #: for stack handling; or `NoOp` to avoid dealing with the sequence.
+        #: TODO update
         if {$steps ne {} && $steps > 0} {
             return -code error [format {premature stop with %d steps left} $steps]
         }
@@ -183,6 +186,52 @@ oo::class create ::automata::STE {
         lreplace $stack 0 0 {*}[lselect token {$token ne {}} $tokens]
     }
 
+    method Read {tape tokens} {
+        log::log d [info level 0] 
+        set _tape [lassign $tape tape0]
+        set sym [lindex $tape [lindex $tape 0]+1]
+        log::log d \$sym=$sym 
+        foreach token [lselect token {$token ne {}} $tokens] {
+            if {$token ne $sym} {
+                return -code continue
+            }
+        }
+        return $tape
+    }
+
+    method PrintMove {tape tokens} {
+        log::log d [info level 0] 
+        set _tape [lassign $tape tape0]
+        lassign $tokens out move
+        if {$out eq "E"} {
+            lset _tape $tape0 [$ns\::b get]
+        } else {
+            lset _tape $tape0 $out
+        }
+        switch $move {
+            L {
+                incr tape0
+                if {$tape0 >= [expr {[llength $_tape] - 1}]} {
+                    lappend _tape [$ns\::b get]
+                }
+            }
+            R {
+                if {$tape0 < 1} {
+                    set _tape [linsert $_tape 0 [$ns\::b get]]
+                } else {
+                    incr tape0 -1
+                }
+            }
+            N {}
+            default {
+                error {unexpected alternative}
+            }
+        }
+        log::log d \$tape0=$tape0 
+        log::log d \$_tape=$_tape 
+        return [linsert $_tape 0 $tape0]
+    }
+
     method NoOp args {
         return {}
     }
@@ -195,16 +244,23 @@ oo::class create ::automata::STE {
         return $moves
     }
 
-    method CreateTransitions {varName fnA fnB moves} {
+    method CreateTransitions {varName fnA prA fnB moves} {
+        log::log d [info level 0] 
         upvar 1 $varName _transitions
         set newTuple [list]
         dict for {sym edges} $moves {
-            lset newTuple 0 [my {*}$fnA [list $sym]]
+            set tape [my {*}$fnA [list $sym]]
+            log::log d foo 
+            lset newTuple 0 $tape
             lappend _transitions {*}[lmap edge $edges {
                 lassign $edge q1 target
+                if {$prA ne {}} {
+                    lset newTuple 0 [my $prA $tape $target]
+                }
                 lset newTuple 1 $q1
                 lset newTuple 2 [my {*}$fnB $target]
             }]
+            log::log d \$_transitions=$_transitions 
         }
     }
 
@@ -216,7 +272,10 @@ oo::class create ::automata::STE {
         }
     }
 
-    method Inner {transitions methodA methodB {select {}}} {
+    method Inner {transitions methodA methodA1 methodB {select {}}} {
+        log::log d [info level 0] 
+        variable limit
+        if {[incr limit -1] <= 0} { error {too many iterations} }
         # transitions  = moves into the point(s) where we are now
         # _transitions = moves from that point/those points
         set _transitions [list]
@@ -226,7 +285,7 @@ oo::class create ::automata::STE {
             # Get possible moves, grouped by input symbol.
             set moves [my GetMoves $q0]
             # Create transitions for possible moves.
-            my CreateTransitions _transitions [list $methodA $a] [list $methodB $b] $moves
+            my CreateTransitions _transitions [list $methodA $a] $methodA1 [list $methodB $b] $moves
         }
         # Two base cases: 1) no more transitions, or 2) steps completed.
         if {
@@ -237,7 +296,7 @@ oo::class create ::automata::STE {
             return [my FilterResults $transitions $select]
         } else {
             # Recursive case.
-            return [my Inner $_transitions $methodA $methodB $select]
+            return [my Inner $_transitions $methodA $methodA1 $methodB $select]
         }
     }
 

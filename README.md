@@ -30,9 +30,11 @@ See Wiki for slightly more detailed documentation.
 
 ## Examples
 
+All examples are from Wikipedia articles unless otherwise stated.
+
 ### Finite state machine
 
-This is a finite-state machine from a Wikipedia example. It recognizes sequences of 1 and 0 symbols that contain an even number of 0s (`(00|1)*`).
+This is a finite-state machine which recognizes sequences of 1 and 0 symbols that contain an even number of 0s (`(00|1)*`).
 
 <a title="By Cepheus [Public domain], from Wikimedia Commons" href="https://commons.wikimedia.org/wiki/File:DFAexample.svg"><img width="256" alt="DFAexample" src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/9d/DFAexample.svg/256px-DFAexample.svg.png"></a>
 
@@ -78,7 +80,7 @@ s2  1   s2
 
 ### Finite state transducer
 
-This is a finite state transducer from another Wikipedia example. It recognizes
+This is a finite state transducer. It recognizes
 a regular relation A = {0, 1}, B = {0, 1} such that for state *q* and input
 *a*, output is ω(s<sub>i</sub>, a: a ∈ A) = 0, ω(s<sub>0</sub>, 1) = 1,
 ω(s<sub>1</sub>, 0) = 1, ω(s<sub>0</sub>, 0) = 0, and ω(s<sub>1</sub>, 1) = 0.
@@ -143,7 +145,7 @@ results in the input/output combinations:
 
 ### Pushdown Automaton
 
-This is a PDA which recognizes the language {0<sup>n</sup>1<sup>n</sup> n ≥ 0} (not a regular language):
+This is a PDA which recognizes the language {0<sup>n</sup>1<sup>n</sup> | n ≥ 0} (not a regular language):
 
 ```
 A Input alphabet : {0, 1}
@@ -184,4 +186,50 @@ M accept {1 1 0}
 M accept {0 1}
 # => 1
 ```
+
+### Basic Turing Machine
+
+This is a basic Turing machine which implements a 3-state, 2-symbol "Busy Beaver":
+
+```
+A Tape alphabet  : {0, 1}
+B Init alphabet  : {0, 1}
+b Blank symbol   : 0
+Q State symbols  : {A, B, C, H}
+S Start symbol   : A
+F Final symbol(s): {H}
+Transitions
+q0  inp q1  out
+A   0   B   1 R
+A   1   C   1 L
+B   0   A   1 L
+B   1   B   1 R
+C   0   B   1 L
+C   1   H   1 R
+```
+
+It is defined as
+
+
+```
+::automata::BTM create M
+M T set A 0 B 1 R
+M T set A 1 C 1 L
+M T set B 0 A 1 L
+M T set B 1 B 1 R
+M T set C 0 B 1 L
+M T set C 1 H 1 R
+M S set A
+M b set 0
+M F set H
+```
+
+and produces:
+
+```
+M run {0}
+# => {1 1 1 1 1 1 0} 1 H
+```
+
+I.e. the sequence 1 1 1 1 1 1 0, ending with the reader in position #1 and state H.
 

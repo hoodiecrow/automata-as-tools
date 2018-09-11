@@ -1,0 +1,75 @@
+package require tcltest
+namespace import ::tcltest::*
+
+::tcltest::configure {*}$argv
+
+::tcltest::testConstraint noskip 1
+
+::tcltest::loadTestedCommands
+
+test btm-1.0 {3 state, 2 symbol busy beaver} -setup {} -body {
+    ::automata::BTM create M
+    M T set A 0 B 1 R
+    M T set A 1 C 1 L
+    M T set B 0 A 1 L
+    M T set B 1 B 1 R
+    M T set C 0 B 1 L
+    M T set C 1 H 1 R
+    M S set A
+    M b set 0
+    M F set H
+    M run {0}
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {{1 1 1 1 1 1 0} 1 H}
+
+test btm-1.1 {same machine, starting from C with some symbols written} -setup {} -body {
+    ::automata::BTM create M
+    M T set A 0 B 1 R
+    M T set A 1 C 1 L
+    M T set B 0 A 1 L
+    M T set B 1 B 1 R
+    M T set C 0 B 1 L
+    M T set C 1 H 1 R
+    M S set C
+    M b set 0
+    M F set H
+    M run {1 1 0 0} 2
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {{1 1 1 1 1 1 0} 1 H}
+
+test btm-1.2 {3 state, 2 symbol busy beaver print} -setup {} -body {
+    ::automata::BTM create M
+    M T set A 0 B 1 R
+    M T set A 1 C 1 L
+    M T set B 0 A 1 L
+    M T set B 1 B 1 R
+    M T set C 0 B 1 L
+    M T set C 1 H 1 R
+    M S set A
+    M b set 0
+    M F set H
+    M print
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -output {A Tape alphabet  : {0, 1}
+B Init alphabet  : {0, 1}
+b Blank symbol   : 0
+Q State symbols  : {A, B, C, H}
+S Start symbol   : A
+F Final symbol(s): {H}
+Transitions
+q0  inp q1  out
+A   0   B   1 R
+A   1   C   1 L
+B   0   A   1 L
+B   1   B   1 R
+C   0   B   1 L
+C   1   H   1 R
+}
+
+cleanupTests ; return ; # ---------------------------------

@@ -13,7 +13,7 @@ oo::class create ::automata::FSM {
 
     constructor args {
 #: This machine is defined by the tuple `<A, Q, S, F, T>`:
-        ::automata::Component create A -label "Input alphabet" -nonempty
+        ::automata::Component create A -label "Input alphabet" -exclude {}
 #: * *A* is the input alphabet (does not accept the empty string as symbol).
         ::automata::Component create Q -label "State symbols"
 #: * *Q* is the set of state symbols.
@@ -32,7 +32,7 @@ oo::class create ::automata::FSM {
 
     method accept a {
         #: Are we in a final state when all input symbols are consumed?
-        set results [my T iterate $a [my S get] {} [my F get] Consume NoOp]
+        set results [my T iterate $a [my S get] {} [my F get] Consume {} NoOp]
         foreach result $results {
             lassign $result a
             if {[llength $a] == 0} {
@@ -44,7 +44,7 @@ oo::class create ::automata::FSM {
 
     method classify a {
         #: What state are we in when all input symbols are consumed?
-        set results [my T iterate $a [my S get] {} [my F get] Consume NoOp]
+        set results [my T iterate $a [my S get] {} [my F get] Consume {} NoOp]
         if {[llength $a] == 0} {
             return [lmap result $results {lindex $result 1}]
         } else {

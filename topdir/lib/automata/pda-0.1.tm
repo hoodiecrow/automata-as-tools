@@ -12,9 +12,9 @@ oo::class create ::automata::PDA {
 
     constructor args {
 #: This machine is defined by the tuple `<A, B, Q, Z, S, F, T>`:
-        ::automata::Component create A -label "Input alphabet" -nonempty
+        ::automata::Component create A -label "Input alphabet" -exclude {}
 #: * *A* is the input alphabet (does not accept the empty string as symbol).
-        ::automata::Component create B -label "Stack alphabet" -nonempty
+        ::automata::Component create B -label "Stack alphabet" -exclude {}
 #: * *B* is the stack alphabet (does not accept the empty string as symbol).
         ::automata::Component create Q -label "State symbols"
 #: * *Q* is the set of state symbols.
@@ -35,7 +35,7 @@ oo::class create ::automata::PDA {
 
     method accept a {
         #: Are we in a final state when all input symbols are consumed and the stack has only one item?
-        set results [my T iterate $a [my S get] [my Z get] [my F get] Consume Pushdown]
+        set results [my T iterate $a [my S get] [my Z get] [my F get] Consume {} Pushdown]
         foreach result $results {
             lassign $result a q b
             if {[llength $a] == 0 && [llength $b] == 1} {
@@ -47,7 +47,7 @@ oo::class create ::automata::PDA {
 
     method classify a {
         #: What state are we in when all input symbols are consumed and the stack has only one item?
-        set results [my T iterate $a [my S get] [my Z get] [my F get] Consume Pushdown]
+        set results [my T iterate $a [my S get] [my Z get] [my F get] Consume {} Pushdown]
         if {[llength $a] == 0} {
             return [lmap result $results {lindex $result 1}]
         } else {

@@ -4,6 +4,7 @@
 package require automata::fsm
 package require automata::fst
 package require automata::pda
+package require automata::btm
 
 # change output function to have four slots:
 # q0 sym q1
