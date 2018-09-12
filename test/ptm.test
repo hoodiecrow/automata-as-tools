@@ -1,0 +1,61 @@
+package require tcltest
+namespace import ::tcltest::*
+
+::tcltest::configure {*}$argv
+
+::tcltest::testConstraint noskip 1
+
+::tcltest::loadTestedCommands
+
+test ptm-1.0 {2 state, 2 symbol busy beaver} -setup {} -body {
+    ::automata::PTM create M
+    set code {
+        A:	J1:+4
+            P
+            R
+            J:B
+            P
+            L
+            J:B
+        B:	J1:+4
+            P
+            L
+            J:A
+            P
+            N
+            J:H
+        H:	H
+    }
+    M run $code {0} 0
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {1 1 1 1}
+
+test ptm-1.1 {multiply two numbers in unary} -setup {} -body {
+    ::automata::PTM create M
+    M run {
+                 R J1:-1 R J1:-1 R P
+                 L
+        a_loop:  L J1:-1 L J1:-1 R
+                 E
+                 R J0:done
+                 R J1:-1 R
+        b_loop:  R
+                 J0:a_loop
+                 E
+                 R J1:-1 R J1:-1
+                 P
+                 L J1:-1 L J1:-1 P
+                 J1:b_loop
+                 R
+                 J0:a_loop
+                 E
+        done:    H
+    } {0 1 1 1 1 0 1 1 1 1 1 0 0} 0
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {0 0 0 0 0 0 1 1 1 1 1 0 1 1 1 1 1 1 1 1 1 1 1 1 1 0}
+
+cleanupTests ; return ; # ---------------------------------

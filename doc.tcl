@@ -12,6 +12,7 @@ foreach file $files {
         {fst-.*\.tm$} { set target FST.md }
         {pda-.*\.tm$} { set target PDA.md }
         {btm-.*\.tm$} { set target BTM.md }
+        {ptm-.*\.tm$} { set target PTM.md }
         default {
             continue
         }

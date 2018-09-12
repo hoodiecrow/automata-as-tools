@@ -8,19 +8,19 @@ Mostly done, I think:
 * Finite state machine
 * Finite state transducer
 * Push-down automaton
+* (Basic) Turing machine
+* Post-Turing machine
 
 Doing
 
-* Post-Turing machine
-* (Basic) Turing machine
+* Register machine
+* Stack machine
+* Counter machine
 
 Prospective
 
 * Karel robot
 * SECD machine
-* Register machine
-* Stack machine
-* Counter machine
 * Queue automaton
 * Counter automaton
 
@@ -233,3 +233,34 @@ M run {0}
 
 I.e. the sequence 1 1 1 1 1 1 0, ending with the reader in position #1 and state H.
 
+### Post-Turing Machine
+
+This one is really simple, since the operation set handles the transitions. This is the code for a 2-state Busy Beaver:
+
+```
+set code {
+    A:	J1:+4
+        P
+        R
+        J:B
+        P
+        L
+        J:B
+    B:	J1:+4
+        P
+        L
+        J:A
+        P
+        N
+        J:H
+    H:	H
+}
+```
+
+It produces:
+
+```
+::automata::PTM create M
+M run $code {0} 0
+# => 1 1 1 1
+```
