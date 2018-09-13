@@ -53,21 +53,29 @@ oo::class create ::automata::STE {
         }
     }
 
-    method set {q0 sym q1 args} {
-        #: Define a transition. `q0`, `sym`, and `q1` are the origin state, the
-        #: transition input symbol, and the target state, respectively. `args`
-        #: is zero or more symbols that are used for output or for the stack.
-        #: Adding a transition will update the *Q*, *A*, and *B* set
-        #: components.
-        if {$sym eq "ε"} {
-            set sym {}
+    method set {q0 syms q1 args} {
+        log::log d [info level 0] 
+        #: Define a transition. `q0`, `syms`, and `q1` are the origin state, a
+        #: list of transition input symbols, and the target state,
+        #: respectively. `args` is zero or more symbols that are used for
+        #: output or for the stack.  Adding a transition will update the *Q*,
+        #: *A*, and *B* set components.
+        #: In most cases the list of input symbols will contain one symbol:
+        #: passing a list is mostly for compiled transition matrices.
+        #: The symbol ε can be used for epsilon moves.
+        if {$syms eq "ε"} {
+            set syms [list {}]
         }
-        $ns\::[lindex $components 0] set $q0 $q1
-        $ns\::[lindex $components 1] set $sym
-        if {[llength $args] > 0} {
-            $ns\::[lindex $components 2] set {*}$args
+        foreach sym $syms {
+            if {[llength $components] > 0} {
+                $ns\::[lindex $components 0] set $q0 $q1
+                $ns\::[lindex $components 1] set $sym
+                if {[llength $components] > 2 && [llength $args] > 0} {
+                    $ns\::[lindex $components 2] set {*}$args
+                }
+            }
+            lappend data [list $q0 $sym $q1 $args]
         }
-        lappend data [list $q0 $sym $q1 $args]
     }
 
     method getAllStates {} {
@@ -128,6 +136,17 @@ oo::class create ::automata::STE {
     method getAllValueSymbols {} {
         #: Return the set of all output symbols.
         lsort -unique [concat {*}[my getValues]]
+    }
+
+    method fixJumps labels {
+        for {set i 0} {$i < [llength $data]} {incr i} {
+            lassign [lindex $data $i] q0 - q1
+            if {[regexp {^[-+]\d+$} $q1]} {
+                lset data $i 2 [expr $q0$q1]
+            } elseif {[dict exists $labels $q1]} {
+                lset data $i 2 [dict get $labels $q1]
+            }
+        }
     }
 
     method iterate args {
@@ -196,17 +215,20 @@ oo::class create ::automata::STE {
         lassign $tokens out move
         if {$out eq "E"} {
             lset _tape $tape0 [$ns\::b get]
+        } elseif {$out eq "N"} {
+            ;
         } else {
             lset _tape $tape0 $out
         }
+        log::log d \$move=$move 
         switch $move {
-            L {
+            R {
                 incr tape0
                 if {$tape0 >= [expr {[llength $_tape] - 1}]} {
                     lappend _tape [$ns\::b get]
                 }
             }
-            R {
+            L {
                 if {$tape0 < 1} {
                     set _tape [linsert $_tape 0 [$ns\::b get]]
                 } else {
@@ -215,7 +237,7 @@ oo::class create ::automata::STE {
             }
             N {}
             default {
-                error {unexpected alternative}
+                error \$move=$move
             }
         }
         log::log d \$tape0=$tape0 
@@ -250,13 +272,12 @@ oo::class create ::automata::STE {
     }
 
     method CreateTransitions {varName fnA fnB moves} {
-        log::log d [info level 0] 
         upvar 1 $varName _transitions
         set newTuple [list]
         dict for {sym edges} $moves {
             lappend _transitions {*}[lmap edge $edges {
                 lassign $edge q1 target
-                if {[lindex $fnA 0] eq "PrintMove"} {
+                if {[lindex $fnA 0] in {PrintMove PrintMove2}} {
                     lset newTuple 0 [my {*}$fnA $target]
                 } else {
                     lset newTuple 0 [my {*}$fnA [list $sym]]
@@ -264,7 +285,9 @@ oo::class create ::automata::STE {
                 lset newTuple 1 $q1
                 lset newTuple 2 [my {*}$fnB $target]
             }]
-            log::log d \$_transitions=$_transitions 
+            if no {
+                log::log d \$_transitions=$_transitions 
+            }
         }
     }
 

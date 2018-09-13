@@ -13,6 +13,7 @@ Mostly done, I think:
 
 Doing
 
+* Wang B-machine
 * Register machine
 * Stack machine
 * Counter machine
@@ -235,32 +236,32 @@ I.e. the sequence 1 1 1 1 1 1 0, ending with the reader in position #1 and state
 
 ### Post-Turing Machine
 
-This one is really simple, since the operation set handles the transitions. This is the code for a 2-state Busy Beaver:
-
-```
-set code {
-    A:	J1:+4
-        P
-        R
-        J:B
-        P
-        L
-        J:B
-    B:	J1:+4
-        P
-        L
-        J:A
-        P
-        N
-        J:H
-    H:	H
-}
-```
-
-It produces:
+This is the code for a 2-state Busy Beaver:
 
 ```
 ::automata::PTM create M
-M run $code {0} 0
-# => 1 1 1 1
+M compile {
+A:  J1:+4
+    P
+    R
+    J:B
+    P
+    L
+    J:B
+B:  J1:+4
+    P
+    L
+    J:A
+    P
+    N
+    J:H
+H:  H
+}
+```
+
+It produces a list of final tape contents and head position:
+
+```
+M run {0} 0
+# => {1 1 1 1} 1
 ```

@@ -73,6 +73,7 @@ oo::class create ::automata::PTM {
         set ip 1
         # R, L opposite from BTM
         while {[lindex $instructions $ip 0] ne "H"} {
+            log::log d \$tape=[lreplace $tape $tapeIndex $tapeIndex *]
             lassign [lindex $instructions $ip] op next jump
             set ip $next
             switch $op {

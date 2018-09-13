@@ -1,0 +1,102 @@
+Post-Turing machine
+
+1936 Post
+
+tape, binary boxes {mark/slash, empty}
+numbered set of instructions 1,2,3,...,n
+begin at instruction 1
+"worker" operations:
+(a) Marking the box he is in (assumed empty),
+(b) Erasing the mark in the box he is in (assumed marked),
+(c) Moving to the box on his right,
+(d) Moving to the box on his left,
+(e) Determining whether the box he is in, is or is not marked.
+the ith direction is one of
+A perform operation O[a|b|c|d] and then follow direction j[i]
+B perform operation Oe and for yes/no follow j[i]' / j[i]''
+C stop
+no sequential execution
+
+1947 Post
+
+Turing 5-tuples to 4-tuples
+q0,inp,q1,print,move ->
+q0,inp,q1,print|move
+
+1954, 1957 Wang
+
+write 0
+write 1
+move left
+move right
+if scanning 0 then goto instruction i
+if scanning 1 then goto instruction j
+sequential execution is assumed
+stop by running out of instructions
+
+1974 Davis-1
+
+binary {1, 0}
+
+PRINT 1
+PRINT 0
+GO RIGHT
+GO LEFT
+GO TO STEP i IF 1 IS SCANNED
+GO TO STEP i IF 0 IS SCANNED
+STOP
+
+steps are positive numbers (absolute addresses)
+a blank tape is all zeroes
+
+1994 Davis-Sigal-Weyuker
+
+multiple tape alphabet (reduces to binary with blank = 0)
+B means blank
+
+PRINT σ ;Replace scanned symbol with σ
+IF σ GOTO L ;IF scanned symbol is σ THEN goto "the first" instruction labelled L
+RIGHT ;Scan square immediately right of the square currently scanned
+LEFT ;Scan square immediately left of the square currently scanned
+
+2-state busy beaver, A-state
+m-config    tape symbol    print op    motion    final m-config
+A	         0            P          R             B
+A	         1            P          L             B
+
+Post-Turing instructions:
+     1    2    3    4    5    6    7
+     J1   P    R    J    P    L    J
+     5              B              B
+
+P, E, L, R: tape action (exec PELR), then table action (next instr)
+
+J0, J1: tape action (lookup), then table action (goto xxx or next instruction)
+
+J : tape action (lookup), then table action (goto xxx or goto xxx)
+
+jump instructions: (J0 / J1), (J1 / J), (J0, J), or (J0 / J1 / J)
+
+
+2-state busy beaver
+      q0=A           q0=B
+Tape  q1   pr   mo   q1   pr   mo
+0     B    1    R    A    1    L
+1     B    1    L    H    1    N
+
+P-T instructions
+A:	J1:A1
+	P
+	R
+	J:B
+A1:	P
+	L
+	J:B
+B:	J1:B1
+	P
+	L
+	J:A
+B1:	P
+	N
+	J:H
+H:	H

@@ -9,7 +9,7 @@ namespace import ::tcltest::*
 
 test ptm-1.0 {2 state, 2 symbol busy beaver} -setup {} -body {
     ::automata::PTM create M
-    set code {
+    M compile {
         A:	J1:+4
             P
             R
@@ -26,15 +26,15 @@ test ptm-1.0 {2 state, 2 symbol busy beaver} -setup {} -body {
             J:H
         H:	H
     }
-    M run $code {0} 0
+    M run {0} 0
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {1 1 1 1}
+} -result {{1 1 1 1} 1}
 
 test ptm-1.1 {multiply two numbers in unary} -setup {} -body {
     ::automata::PTM create M
-    M run {
+    M compile {
                  R J1:-1 R J1:-1 R P
                  L
         a_loop:  L J1:-1 L J1:-1 R
@@ -52,10 +52,11 @@ test ptm-1.1 {multiply two numbers in unary} -setup {} -body {
                  J0:a_loop
                  E
         done:    H
-    } {0 1 1 1 1 0 1 1 1 1 1 0 0} 0
+    }
+    M run {0 1 1 1 1 0 1 1 1 1 1 0 0} 0
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {0 0 0 0 0 0 1 1 1 1 1 0 1 1 1 1 1 1 1 1 1 1 1 1 1 0}
+} -result {{0 0 0 0 0 0 1 1 1 1 1 0 1 1 1 1 1 1 1 1 1 1 1 1 1 0} 5}
 
 cleanupTests ; return ; # ---------------------------------
