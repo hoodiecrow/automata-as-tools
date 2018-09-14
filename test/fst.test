@@ -7,6 +7,8 @@ namespace import ::tcltest::*
 
 ::tcltest::loadTestedCommands
 
+package require automata::fst
+
 set t {::automata::FST create M}
 
 test fst-1.0 {} -setup $t -body {

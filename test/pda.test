@@ -7,6 +7,8 @@ namespace import ::tcltest::*
 
 ::tcltest::loadTestedCommands
 
+package require automata::pda
+
 test pda-1.0 {0^n1^n | n >= 0} -setup {
     ::automata::PDA create M
     M T set p 0 p Z A Z
@@ -98,7 +100,7 @@ q   1   q   A
 q   ε   r   Z Z
 }
 
-if {[package vcompare [package present automata] 2.3] > 0} { 
+if {[package vcompare [package present automata::pda] 0.1] > 0} { 
     cleanupTests ; return 
 } 
  

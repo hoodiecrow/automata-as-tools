@@ -7,6 +7,8 @@ namespace import ::tcltest::*
 
 ::tcltest::loadTestedCommands
 
+package require automata::ptm
+
 test ptm-1.0 {2 state, 2 symbol busy beaver} -setup {} -body {
     ::automata::PTM create M
     M compile {

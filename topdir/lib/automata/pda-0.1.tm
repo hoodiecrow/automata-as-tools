@@ -1,6 +1,6 @@
 ::tcl::tm::path add [file dirname [file dirname [file normalize [info script]]]]
 
-package require automata::ste
+package require -exact automata::ste 0.1
 package require automata::component
 
 namespace eval automata {}
@@ -32,6 +32,8 @@ oo::class create ::automata::PDA {
         #: Print the machine description by printing its components.
         puts [join [lmap c {A B Q Z S F T} {my $c print}] \n]
     }
+
+    #: The ID of a PDA is (w, q, s) = remaining input, current state, and current stack.
 
     method accept a {
         #: Are we in a final state when all input symbols are consumed and the stack has only one item?

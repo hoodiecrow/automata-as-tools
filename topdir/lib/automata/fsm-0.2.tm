@@ -1,7 +1,7 @@
 
 ::tcl::tm::path add [file dirname [file dirname [file normalize [info script]]]]
 
-package require automata::ste 0.1
+package require automata::ste
 package require automata::component
 
 namespace eval automata {}
@@ -36,9 +36,13 @@ oo::class create ::automata::FSM {
         }
     }
 
+    #: The ID of an FSM is (w, q) = remaining input and current state.
+    #: Every element in ids represents a separate machine, all working in parallel.
+
     method accept a {
         #: Are we in a final state when all input symbols are consumed?
-        set results [my T iterate $a [my S get] {} [my F get] MatchTop Consume NoOp]
+        set ids [lmap s [my S get] {list $a $s}]
+        set results [my T iterate $ids [my F get] MatchTop Consume NoOp]
         foreach result $results {
             lassign $result a
             if {[llength $a] == 0} {
@@ -50,9 +54,8 @@ oo::class create ::automata::FSM {
 
     method classify a {
         #: What state are we in when all input symbols are consumed?
-        #: The ID of an FSM is (w, q) = remaining input and current state.
-        #: Every element in ids represents a separate machine, all working in parallel.
-        set results [my T iterate $a [my S get] {} [my F get] MatchTop Consume NoOp]
+        set ids [lmap s [my S get] {list $a $s}]
+        set results [my T iterate $ids [my F get] MatchTop Consume NoOp]
         if {[llength $a] == 0} {
             return [lmap result $results {lindex $result 1}]
         } else {

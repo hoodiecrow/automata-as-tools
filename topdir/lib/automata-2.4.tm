@@ -1,11 +1,13 @@
 
 ::tcl::tm::path add [file dirname [file normalize [info script]]]
 
-package require automata::fsm
-package require automata::fst
-package require automata::pda
-package require automata::btm
-package require automata::ptm
+if no {
+    package require automata::fsm
+    package require automata::fst
+    package require automata::pda
+    package require automata::btm
+    package require automata::ptm
+}
 
 # change output function to have four slots:
 # q0 sym q1

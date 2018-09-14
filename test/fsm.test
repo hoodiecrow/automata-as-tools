@@ -7,18 +7,18 @@ namespace import ::tcltest::*
 
 ::tcltest::loadTestedCommands
 
+package require automata::fsm
+
 set m {::automata::FSM create M}
 
 test dfa-1.0 {accept binary numbers that are multiples of 3} -setup $m -body {
-    foreach {q0 sym q1} {
+    M compile {
         s0 0 s0
         s0 1 s1
         s1 0 s2
         s1 1 s0
         s2 0 s1
         s2 1 s2
-    } {
-        M T set $q0 $sym $q1
     }
     M S set s0
     M F set s0

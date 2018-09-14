@@ -7,6 +7,8 @@ namespace import ::tcltest::*
 
 ::tcltest::loadTestedCommands
 
+package require automata::btm
+
 test btm-1.0 {3 state, 2 symbol busy beaver} -setup {} -body {
     ::automata::BTM create M
     M T set A 0 B 1 R

@@ -1,6 +1,6 @@
 ::tcl::tm::path add [file dirname [file dirname [file normalize [info script]]]]
 
-package require automata::ste
+package require -exact automata::ste 0.1
 package require automata::component
 
 namespace eval automata {}
@@ -95,6 +95,8 @@ oo::class create ::automata::PTM {
         }
         T fixJumps $labels
     }
+
+    #: The ID of a PTM is (t, q, h) = current tape, current state, and current head.
 
     method run {tape {tapeIndex 0}} {
         #: Run the code on this tape, return tape.

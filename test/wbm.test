@@ -1,0 +1,43 @@
+package require tcltest
+namespace import ::tcltest::*
+
+::tcltest::configure {*}$argv
+
+::tcltest::testConstraint noskip 1
+
+::tcltest::loadTestedCommands
+
+cleanupTests ; return ; # ---------------------------------
+
+test wbm-1.0 {3 state, single symbol busy beaver} -constraints SKIP -setup {} -body {
+    ::automata::WBM create M
+    set code {
+A0 J:A1
+   1
+   R
+   --B
+A1 1
+   L
+   --C
+B0 J:B1
+   1
+   L
+   --A
+B1 1
+   R
+   --B
+C0 J:C1
+   1
+   L
+   --B
+C1 1
+   R
+   H
+    }
+    M run $code {0} 0
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {1 1 1 1}
+
+cleanupTests ; return ; # ---------------------------------

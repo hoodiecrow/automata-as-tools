@@ -1,6 +1,6 @@
 ::tcl::tm::path add [file dirname [file dirname [file normalize [info script]]]]
 
-package require automata::ste
+package require -exact automata::ste 0.1
 package require automata::component
 
 namespace eval automata {}
@@ -30,6 +30,8 @@ oo::class create ::automata::FST {
         #: Print the machine description by printing its components.
         puts [join [lmap c {A B Q S F T} {my $c print}] \n]
     }
+
+    #: The ID of an FST is (a, q, b) = current input, current state, and current output.
 
     method recognize {a b} {
         #: Are we in a final state when all input symbols in a and b are consumed?

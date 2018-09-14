@@ -29,6 +29,23 @@ Prospective
 
 See Wiki for slightly more detailed documentation.
 
+## Implementation
+
+The machines here are (so far) built around a "state transition engine" which handles non-deterministic state transitioning (and, trivially, deterministic s.t. as a degenerate case). Currently, it supports output based on state and input (as a Mealy machine, though a Moore machine can be simulated by coordinating for input). It supports 1½ input streams: by using one stream bi-directionally, e.g. pushdown automata can be supported.
+
+I have undoubtedly made many mistakes here. It is at this point mostly a project of exploration.
+
+## References
+
+For consistency, I've used Wikipedia articles (not that those are always consistent), occasionally correcting against other articles.
+
+https://en.wikipedia.org/wiki/Abstract_machine
+https://en.wikipedia.org/wiki/Finite-state_machine
+https://en.wikipedia.org/wiki/Pushdown_automaton
+https://en.wikipedia.org/wiki/Turing_machine
+
+Everything in this project can be reached from pages linked to by those pages.
+
 ## Examples
 
 All examples are from Wikipedia articles unless otherwise stated.
@@ -147,6 +164,11 @@ results in the input/output combinations:
 ### Pushdown Automaton
 
 This is a PDA which recognizes the language {0<sup>n</sup>1<sup>n</sup> | n ≥ 0} (not a regular language):
+
+<a title="By Jochgem [CC BY-SA 3.0 
+ (https://creativecommons.org/licenses/by-sa/3.0
+) or GFDL (http://www.gnu.org/copyleft/fdl.html)], from Wikimedia Commons" href="https://commons.wikimedia.org/wiki/File:Pda-example.svg"><img width="256" alt="Pda-example" src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Pda-example.svg/256px-Pda-example.svg.png"></a>
+
 
 ```
 A Input alphabet : {0, 1}

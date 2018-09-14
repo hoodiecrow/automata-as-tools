@@ -1,6 +1,6 @@
 ::tcl::tm::path add [file dirname [file dirname [file normalize [info script]]]]
 
-package require automata::ste
+package require -exact automata::ste 0.1
 package require automata::component
 
 namespace eval automata {}
@@ -32,6 +32,8 @@ oo::class create ::automata::BTM {
         #: Print the machine description by printing its components.
         puts [join [lmap c {A B b Q S F T} {my $c print}] \n]
     }
+
+    #: The ID of a BTM is (t, q, h) = current tape, current state, and current head.
 
     method run {tape {tapeIndex 0}} {
         #: Run this tape from this position, return tape, current position, and ending state.
