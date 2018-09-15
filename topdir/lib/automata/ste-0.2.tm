@@ -159,13 +159,9 @@ oo::class create ::automata::STE {
         } else {
             set steps {}
         }
-        set args [lassign $args ids f]
         #: Provide arguments for the input sequence, the set of starting
         #: states, the output sequence, and the set of final states.
-        if no {
-        set transitions [my StartingTransitions $a $s $b]
-        }
-        set transitions $ids
+        #: TODO update
         #: The final arguments are three directives for selecting valid moves
         #: and dealing with the input and output sequence: 1) either MatchTop
         #: for selecting moves by the first input symbol; MatchTape for
@@ -173,19 +169,12 @@ oo::class create ::automata::STE {
         #: moves. 2) either Consume to remove matching symbols; Produce to add
         #: symbols; Pushdown for stack handling; PrintMove to write to the tape
         #: and move it; or NoOp to skip dealing with the sequence.
-        set results [my Inner $transitions {*}$args $f]
+        #: TODO update
+        set results [my Inner {*}$args]
         if {$steps ne {} && $steps > 0} {
             return -code error [format {premature stop with %d steps left} $steps]
         }
         return $results
-    }
-
-    method StartingTransitions {a states b} {
-        set a [list {*}$a]
-        set b [list {*}$b]
-        lmap state $states {
-            list $a $state $b
-        }
     }
 
     method Consume {source tokens} {
@@ -288,43 +277,30 @@ oo::class create ::automata::STE {
                 lset newTuple 1 $q1
                 lset newTuple 2 [my {*}$fnB $target]
             }]
-            if no {
-                log::log d \$_transitions=$_transitions 
-            }
         }
     }
 
-    method FilterResults {results select} {
-        if {$select eq {}} {
-            return $results
-        } else {
-            return [lselect result {[lindex $result 1] in $select} $results]
-        }
-    }
-
-    method Inner {transitions matchA methodA methodB {select {}}} {
+    method Inner {ids matchA methodA methodB} {
         log::log d [info level 0] 
-        # transitions  = moves into the point(s) where we are now
-        # _transitions = moves from that point/those points
-        set _transitions [list]
-        foreach transition $transitions {
-            log::log d \$transition=$transition 
-            lassign $transition a q0 b
+        # ids  = moves into the point(s) where we are now
+        # _ids = moves from that point/those points
+        set _ids [list]
+        foreach id $ids {
+            lassign $id a q0 b
             # Get possible moves, grouped by input symbol.
             set moves [my GetMoves $matchA $q0 $a]
-            # Create transitions for possible moves.
-            my CreateTransitions _transitions [list $methodA $a] [list $methodB $b] $moves
+            # Create ids for possible moves.
+            my CreateTransitions _ids [list $methodA $a] [list $methodB $b] $moves
         }
-        # Two base cases: 1) no more transitions, or 2) steps completed.
+        # Two base cases: 1) no more ids, or 2) steps completed.
         if {
-            [llength $_transitions] == 0 ||
+            [llength $_ids] == 0 ||
             ($steps ne {} && [incr steps -1] < 0)
         } then {
-            # Return filtered results in base case.
-            return [my FilterResults $transitions $select]
+            return $ids
         } else {
             # Recursive case.
-            return [my Inner $_transitions $matchA $methodA $methodB $select]
+            return [my Inner $_ids $matchA $methodA $methodB]
         }
     }
 
