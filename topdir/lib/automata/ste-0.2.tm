@@ -280,37 +280,29 @@ oo::class create ::automata::STE {
         }
     }
 
-    method Accept id {
-        lassign $id a q0
-        set tuples [my get $q0 {}]
-        set q1s [lmap tuple $tuples {lindex $tuple 2}]
-        lappend newids {*}[lmap q1 $q1s {list $a $q1}]
-        set tuples [my get $q0 [lindex $a 0]]
-        set q1s [lmap tuple $tuples {lindex $tuple 2}]
-        if {[llength $q1s] > 0} {
-            set a [lrange $a 1 end]
-        }
-        lappend newids {*}[lmap q1 $q1s {list $a $q1}]
+    method addNewIDs args {
+        log::log d [info level 0] 
+        lappend newids {*}$args
     }
 
-    method Inner {ids matchA methodA methodB} {
+    method Inner {ids foo} {
         log::log d [info level 0] 
         # ids  = moves into the point(s) where we are now
         # newids = moves from that point/those points
         set newids [list]
         foreach id $ids {
             # Create ids for possible moves.
-            my Accept $id
+            eval $foo [list $id]
         }
         # Two base cases: 1) no more ids, or 2) steps completed.
         if {
             [llength $newids] == 0 ||
             ($steps ne {} && [incr steps -1] < 0)
         } then {
-            return $ids
+            return [lsort -unique [lsort -index 1 $ids]]
         } else {
             # Recursive case.
-            return [my Inner $newids $matchA $methodA $methodB]
+            return [my Inner $newids $foo]
         }
     }
 

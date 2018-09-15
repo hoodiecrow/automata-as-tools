@@ -15,10 +15,11 @@ test fst-1.0 {} -setup $t -body {
     M T set 0 a 1 a
     M T set 1 b 0 b
     M S set 0
+    M F set 0
     M generate 4
 } -cleanup {
-    log::lvSuppressLE i 1
     M destroy
+    log::lvSuppressLE i 1
 } -result {{{a b a b} 0 {a b a b}}}
 
 test fst-1.1 {} -setup $t -body {
@@ -26,6 +27,7 @@ test fst-1.1 {} -setup $t -body {
     M T set 1 b 2 b
     M T set 2 ε 0 c
     M S set 0
+    M F set 0
     M generate 6
 } -cleanup {
     log::lvSuppressLE i 1
@@ -38,6 +40,7 @@ test fst-1.2 {} -setup $t -body {
     M T set 1 b 2 b
     M T set 2 ε 0 c
     M S set 0
+    M F set 0 1 2
     M generate 6
 } -cleanup {
     log::lvSuppressLE i 1
@@ -77,6 +80,7 @@ test generate-1.0 {} -setup $t -body {
     M T set 1 a 2 a
     M T set 2 ε 1 a
     M S set 1
+    M F set 1
     M generate 4
 } -cleanup {
     M destroy
@@ -89,6 +93,7 @@ test generate-1.1 {} -setup $t -body {
     M T set 2 a 3 b
     M T set 3 ε 1 a
     M S set 1
+    M F set 1 2 3
     lsort [M generate 4]
 } -cleanup {
     M destroy
@@ -147,6 +152,7 @@ test dfst-1.0 {} -setup $t -body {
     M T set 1 a 2 a
     M T set 2 ε 1 a
     M S set 1
+    M F set 1
     M generate 4
 } -cleanup {
     M destroy
@@ -209,6 +215,7 @@ test dfst-2.0 {The output becomes 1 and remains 1 thereafter when at least two 0
     M T set I 0 I 1
     M T set I 1 I 1
     M S set A
+    M F set A B C D E F G H I
     set res {}
     lappend res [M translate {1 1}]
     lappend res [M translate {1 1 0 0}]
