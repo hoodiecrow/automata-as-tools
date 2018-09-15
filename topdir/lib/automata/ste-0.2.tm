@@ -285,9 +285,11 @@ oo::class create ::automata::STE {
         set tuples [my get $q0 {}]
         set q1s [lmap tuple $tuples {lindex $tuple 2}]
         lappend newids {*}[lmap q1 $q1s {list $a $q1}]
-        set a [lassign $a symbol]
-        set tuples [my get $q0 $symbol]
+        set tuples [my get $q0 [lindex $a 0]]
         set q1s [lmap tuple $tuples {lindex $tuple 2}]
+        if {[llength $q1s] > 0} {
+            set a [lrange $a 1 end]
+        }
         lappend newids {*}[lmap q1 $q1s {list $a $q1}]
     }
 
