@@ -74,13 +74,6 @@ oo::class create ::automata::BTM {
     
     method run {tape {tapeIndex 0}} {
         #: Run this tape from this position, return tape, current position, and ending state.
-        if no {
-            set results [my T iterate [linsert $tape 0 $tapeIndex] [my S get] {} [my F get] MatchTape PrintMove NoOp]
-            # there should only be one
-            lassign $results result
-            lassign $result tape q
-            return [list [lassign $tape tapeIndex] $tapeIndex $q]
-        }
         set tape [list {*}$tape]
         set ids [list [list $tape [my S get] $tapeIndex]]
         set results [my T iterate $ids [namespace code [list my Process]]]

@@ -159,17 +159,10 @@ oo::class create ::automata::STE {
         } else {
             set steps {}
         }
-        #: Provide arguments for the input sequence, the set of starting
-        #: states, the output sequence, and the set of final states.
-        #: TODO update
-        #: The final arguments are three directives for selecting valid moves
-        #: and dealing with the input and output sequence: 1) either MatchTop
-        #: for selecting moves by the first input symbol; MatchTape for
-        #: selecting by current cell on the tape; or MatchAll to select all
-        #: moves. 2) either Consume to remove matching symbols; Produce to add
-        #: symbols; Pushdown for stack handling; PrintMove to write to the tape
-        #: and move it; or NoOp to skip dealing with the sequence.
-        #: TODO update
+        #: Launch the recursive walk through the transition matrix. A list of
+        #: IDs and a callback method from the machine class are provided as
+        #: arguments. When the walk ends, results should contain a list of IDs
+        #: that represent the endpoint(s) of the walk.
         set results [my Inner {*}$args]
         if {$steps ne {} && $steps > 0} {
             return -code error [format {premature stop with %d steps left} $steps]
@@ -177,122 +170,21 @@ oo::class create ::automata::STE {
         return $results
     }
 
-    method Consume {source tokens} {
-        log::log d [info level 0] 
-        foreach token [lselect token {$token ne {}} $tokens] {
-            if {$token ne [lindex $source 0]} {
-                return -code continue
-            }
-            set source [lrange $source 1 end]
-        }
-        return $source
-    }
-
-    method Produce {drain tokens} {
-        lappend drain {*}[lselect token {$token ne {}} $tokens]
-    }
-
-    method Pushdown {stack tokens} {
-        log::log d [info level 0] 
-        set tokens [lassign $tokens top]
-        if {$top ne [lindex $stack 0]} {
-            return -code continue
-        }
-        lreplace $stack 0 0 {*}[lselect token {$token ne {}} $tokens]
-    }
-
-    method PrintMove {tape tokens} {
-        log::log d [info level 0] 
-        set _tape [lassign $tape tape0]
-        lassign $tokens out move
-        if {$out eq "E"} {
-            lset _tape $tape0 [$ns\::b get]
-        } elseif {$out eq "N"} {
-            ;
-        } else {
-            lset _tape $tape0 $out
-        }
-        log::log d \$move=$move 
-        switch $move {
-            R {
-                incr tape0
-                if {$tape0 >= [expr {[llength $_tape] - 1}]} {
-                    lappend _tape [$ns\::b get]
-                }
-            }
-            L {
-                if {$tape0 < 1} {
-                    set _tape [linsert $_tape 0 [$ns\::b get]]
-                } else {
-                    incr tape0 -1
-                }
-            }
-            N {}
-            default {
-                error \$move=$move
-            }
-        }
-        log::log d \$tape0=$tape0 
-        log::log d \$_tape=$_tape 
-        return [linsert $_tape 0 $tape0]
-    }
-
-    method NoOp args {
-        return {}
-    }
-
-    method GetMoves {matchA q0 a} {
-        switch $matchA {
-            MatchTop {
-                set tuples [concat [my get $q0 {}] [my get $q0 [lindex $a 0]]]
-            }
-            MatchTape {
-                set tuples [concat [my get $q0 {}] [my get $q0 [lindex $a [lindex $a 0]+1]]]
-            }
-            MatchAll {
-                set tuples [my get $q0 *]
-            }
-            default {
-                error $matchA
-            }
-        }
-        set moves {}
-        foreach move [lmap tuple $tuples {lrange $tuple 1 end}] {
-            dict group moves {*}$move
-        }
-        return $moves
-    }
-
-    method CreateTransitions {varName fnA fnB moves} {
-        upvar 1 $varName _transitions
-        set newTuple [list]
-        dict for {sym edges} $moves {
-            lappend _transitions {*}[lmap edge $edges {
-                lassign $edge q1 target
-                if {[lindex $fnA 0] in {PrintMove PrintMove2}} {
-                    lset newTuple 0 [my {*}$fnA $target]
-                } else {
-                    lset newTuple 0 [my {*}$fnA [list $sym]]
-                }
-                lset newTuple 1 $q1
-                lset newTuple 2 [my {*}$fnB $target]
-            }]
-        }
-    }
-
     method addNewIDs args {
         log::log d [info level 0] 
         lappend newids {*}$args
     }
 
-    method Inner {ids foo} {
+    method Inner {ids me} {
         log::log d [info level 0] 
         # ids  = moves into the point(s) where we are now
-        # newids = moves from that point/those points
+        # me = a callback method that queries the transition matrix and builds
+        # new ids for the continuation of the transition walk.
         set newids [list]
+        # newids = moves from that point/those points
         foreach id $ids {
             # Create ids for possible moves.
-            eval $foo [list $id]
+            eval $me [list $id]
         }
         # Two base cases: 1) no more ids, or 2) steps completed.
         if {
@@ -302,7 +194,7 @@ oo::class create ::automata::STE {
             return [lsort -unique [lsort -index 1 $ids]]
         } else {
             # Recursive case.
-            return [my Inner $newids $foo]
+            return [my Inner $newids $me]
         }
     }
 

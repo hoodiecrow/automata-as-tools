@@ -32,7 +32,7 @@ test ptm-1.0 {2 state, 2 symbol busy beaver} -setup {} -body {
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {{1 1 1 1} 1}
+} -result {{{1 1 1 1} 16 1}}
 
 test ptm-1.1 {multiply two numbers in unary} -setup {} -body {
     ::automata::PTM create M
@@ -59,6 +59,6 @@ test ptm-1.1 {multiply two numbers in unary} -setup {} -body {
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {{0 0 0 0 0 0 1 1 1 1 1 0 1 1 1 1 1 1 1 1 1 1 1 1 1 0} 5}
+} -result {{{0 0 0 0 0 0 1 1 1 1 1 0 1 1 1 1 1 1 1 1 1 1 1 1 1 0} 37 5}}
 
 cleanupTests ; return ; # ---------------------------------

@@ -1,6 +1,6 @@
 ::tcl::tm::path add [file dirname [file dirname [file normalize [info script]]]]
 
-package require -exact automata::ste 0.1
+package require -exact automata::ste 0.2
 package require automata::component
 
 namespace eval automata {}
@@ -98,10 +98,49 @@ oo::class create ::automata::PTM {
 
     #: The ID of a PTM is (t, q, h) = current tape, current state, and current head.
 
+    method Process id {
+        lassign $id t q0 h
+        set tuples [my T get $q0 [lindex $t $h]]
+        foreach tuple $tuples {
+            lassign $tuple - inp q1 out
+            lassign $out osym move
+            set _tape $t
+            if {$osym eq "E"} {
+                lset _tape $h [my b get]
+            } elseif {$osym eq "N"} {
+                ;
+            } else {
+                lset _tape $h $osym
+            }
+            switch $move {
+                R {
+                    incr h
+                    if {$h >= [expr {[llength $_tape] - 1}]} {
+                        lappend _tape [my b get]
+                    }
+                }
+                L {
+                    if {$h < 1} {
+                        set _tape [linsert $_tape 0 [my b get]]
+                    } else {
+                        incr h -1
+                    }
+                }
+                N {}
+                default {
+                    error \$move=$move
+                }
+            }
+            my T addNewIDs [list $_tape $q1 $h]
+        }
+    }
+    
     method run {tape {tapeIndex 0}} {
         #: Run the code on this tape, return tape.
-        set result [lindex [my T iterate [linsert $tape 0 $tapeIndex] [S get] {} {} MatchTape PrintMove NoOp] 0 0]
-        return [list [lrange $result 1 end] [lindex $result 0]]
+        set tape [list {*}$tape]
+        set ids [list [list $tape [my S get] $tapeIndex]]
+        set results [my T iterate $ids [namespace code [list my Process]]]
+        set results [lselect result {[lindex $result 1] in [my F get]} $results]
     }
 
     foreach m {A b Q S F T} {
