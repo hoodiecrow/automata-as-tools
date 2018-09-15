@@ -43,7 +43,7 @@ oo::class create ::automata::FSM {
         #: Are we in a final state when all input symbols are consumed?
         set a [list {*}$a]
         set ids [lmap s [my S get] {list $a $s}]
-        set results [my T iterate $ids MatchTop Consume NoOp]
+        set results [my T iterate $ids Accept Consume NoOp]
         set results [lselect result {[lindex $result 1] in [my F get]} $results]
         foreach result $results {
             lassign $result a
@@ -58,7 +58,7 @@ oo::class create ::automata::FSM {
         #: What state are we in when all input symbols are consumed?
         set a [list {*}$a]
         set ids [lmap s [my S get] {list $a $s}]
-        set results [my T iterate $ids [my F get] MatchTop Consume NoOp]
+        set results [my T iterate $ids Accept Consume NoOp]
         set results [lselect result {[lindex $result 1] in [my F get]} $results]
         if {[llength $a] == 0} {
             return [lmap result $results {lindex $result 1}]

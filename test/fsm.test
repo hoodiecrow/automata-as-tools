@@ -61,14 +61,12 @@ M F set s1
 } -result {1 0 0 1 1 0}
 
 test dfa-1.2 {find even number of ones/zeros: print the machine} -setup $m -body {
-foreach {q0 sym q1} {
-    s1 0 s2
-    s1 1 s1
-    s2 0 s1
-    s2 1 s2
-} {
-    M T set $q0 $sym $q1
-}
+    M compile {
+        s1 0 s2
+        s1 1 s1
+        s2 0 s1
+        s2 1 s2
+    }
 M S set s1
 M F set s1
     M print
@@ -109,16 +107,18 @@ test nfa-1.0 {} -setup $m -body {
 } -result {1 0 1 0 1 0}
 
 test nfa-1.1 {find even number of ones/zeros} -setup $m -body {
-    M T set s0 ε s1
-    M T set s0 ε s3
-    M T set s1 0 s2
-    M T set s1 1 s1
-    M T set s2 0 s1
-    M T set s2 1 s2
-    M T set s3 0 s3
-    M T set s3 1 s4
-    M T set s4 0 s4
-    M T set s4 1 s3
+    M compile {
+        s0 ε s1
+        s0 ε s3
+        s1 0 s2
+        s1 1 s1
+        s2 0 s1
+        s2 1 s2
+        s3 0 s3
+        s3 1 s4
+        s4 0 s4
+        s4 1 s3
+    }
     M S set s0
     M F set s1
     M F set s3

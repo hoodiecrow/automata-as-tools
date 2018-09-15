@@ -2,7 +2,7 @@
 namespace eval automata {}
 
 oo::class create ::automata::STE {
-    variable data steps ns components
+    variable data steps newids ns components
 
     # "State Transition Engine"
     #
@@ -280,27 +280,35 @@ oo::class create ::automata::STE {
         }
     }
 
+    method Accept id {
+        lassign $id a q0
+        set tuples [my get $q0 {}]
+        set q1s [lmap tuple $tuples {lindex $tuple 2}]
+        lappend newids {*}[lmap q1 $q1s {list $a $q1}]
+        set a [lassign $a symbol]
+        set tuples [my get $q0 $symbol]
+        set q1s [lmap tuple $tuples {lindex $tuple 2}]
+        lappend newids {*}[lmap q1 $q1s {list $a $q1}]
+    }
+
     method Inner {ids matchA methodA methodB} {
         log::log d [info level 0] 
         # ids  = moves into the point(s) where we are now
-        # _ids = moves from that point/those points
-        set _ids [list]
+        # newids = moves from that point/those points
+        set newids [list]
         foreach id $ids {
-            lassign $id a q0 b
-            # Get possible moves, grouped by input symbol.
-            set moves [my GetMoves $matchA $q0 $a]
             # Create ids for possible moves.
-            my CreateTransitions _ids [list $methodA $a] [list $methodB $b] $moves
+            my Accept $id
         }
         # Two base cases: 1) no more ids, or 2) steps completed.
         if {
-            [llength $_ids] == 0 ||
+            [llength $newids] == 0 ||
             ($steps ne {} && [incr steps -1] < 0)
         } then {
             return $ids
         } else {
             # Recursive case.
-            return [my Inner $_ids $matchA $methodA $methodB]
+            return [my Inner $newids $matchA $methodA $methodB]
         }
     }
 
