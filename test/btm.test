@@ -24,7 +24,7 @@ test btm-1.0 {3 state, 2 symbol busy beaver} -setup {} -body {
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {{1 1 1 1 1 1 0} 4 H}
+} -result {{{1 1 1 1 1 1 0} H 4}}
 
 test btm-1.1 {same machine, starting from C with some symbols written} -constraints BTM -setup {} -body {
     ::automata::BTM create M
@@ -91,6 +91,6 @@ test btm-1.3 {4 state, 2 symbol busy beaver} -setup {} -body {
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {{1 0 1 1 1 1 1 1 1 1 1 1 1 1 0} 1 H}
+} -result {{{1 0 1 1 1 1 1 1 1 1 1 1 1 1 0} H 1}}
 
 cleanupTests ; return ; # ---------------------------------
