@@ -43,6 +43,7 @@ https://en.wikipedia.org/wiki/Abstract_machine
 https://en.wikipedia.org/wiki/Finite-state_machine
 https://en.wikipedia.org/wiki/Pushdown_automaton
 https://en.wikipedia.org/wiki/Turing_machine
+https://www.tutorialspoint.com/automata_theory/index.htm
 
 Everything in this project can be reached from pages linked to by those pages.
 
