@@ -36,6 +36,7 @@ test dfa-1.0 {accept binary numbers that are multiples of 3} -setup $m -body {
     log::lvSuppressLE i 1
 } -result {0 0 1 0 0 1 0}
 
+cleanupTests ; return ; # ---------------------------------
 test dfa-1.1 {find even number of ones/zeros} -setup $m -body {
 foreach {q0 sym q1} {
     s1 0 s2

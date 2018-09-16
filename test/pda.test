@@ -11,12 +11,14 @@ package require automata::pda
 
 test pda-1.0 {0^n1^n | n >= 0} -setup {
     ::automata::PDA create M
-    M T set p 0 p Z A Z
-    M T set p 0 p A A A
-    M T set p ε q Z Z
-    M T set p ε q A A
-    M T set q 1 q A
-    M T set q ε r Z Z
+    M compile {
+        p 0/Z;A,Z p
+        p 0/A;A,A p
+        p ε/Z;Z   q
+        p ε/A;A   q
+        q 1/A;    q
+        q ε/Z;Z   r
+    }
     M S set p
     M Z set Z
     M F set r
@@ -29,12 +31,14 @@ test pda-1.0 {0^n1^n | n >= 0} -setup {
 
 test pda-1.1 {} -setup {
     ::automata::PDA create M
-    M T set p 0 p Z A Z
-    M T set p 0 p A A A
-    M T set p ε q Z Z
-    M T set p ε q A A
-    M T set q 1 q A
-    M T set q ε r Z Z
+    M compile {
+        p 0/Z;A,Z p
+        p 0/A;A,A p
+        p ε/Z;Z   q
+        p ε/A;A   q
+        q 1/A;    q
+        q ε/Z;Z   r
+    }
     M S set p
     M Z set Z
     M F set r
@@ -47,12 +51,14 @@ test pda-1.1 {} -setup {
 
 test pda-1.2 {} -setup {
     ::automata::PDA create M
-    M T set p 0 p Z A Z
-    M T set p 0 p A A A
-    M T set p ε q Z Z
-    M T set p ε q A A
-    M T set q 1 q A
-    M T set q ε r Z Z
+    M compile {
+        p 0/Z;A,Z p
+        p 0/A;A,A p
+        p ε/Z;Z   q
+        p ε/A;A   q
+        q 1/A;    q
+        q ε/Z;Z   r
+    }
     M S set p
     M Z set Z
     M F set r
@@ -70,12 +76,14 @@ test pda-1.2 {} -setup {
 
 test pda-1.3 {} -setup {
     ::automata::PDA create M
-    M T set p 0 p Z A Z
-    M T set p 0 p A A A
-    M T set p ε q Z Z
-    M T set p ε q A A
-    M T set q 1 q A
-    M T set q ε r Z Z
+    M compile {
+        p 0/Z;A,Z p
+        p 0/A;A,A p
+        p ε/Z;Z   q
+        p ε/A;A   q
+        q 1/A;    q
+        q ε/Z;Z   r
+    }
     M S set p
     M Z set Z
     M F set r

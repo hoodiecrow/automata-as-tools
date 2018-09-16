@@ -6,11 +6,17 @@ package require automata::component
 namespace eval automata {}
 
 oo::class create ::automata::PDA {
-    variable data
+    variable data epsilon
 
     #: A Pushdown Automaton recognizes a context-free language.
 
     constructor args {
+        set epsilon ε
+        #: Recognized options:
+        if {[lindex $args 0] eq "-epsilon"} {
+            #: -epsilon c when the input symbol for an edge is this character, it is treated as an epsilon move. Default is ε.
+            set args [lassign $args - epsilon]
+        }
 #: This machine is defined by the tuple `<A, B, Q, Z, S, F, T>`:
         ::automata::Component create A -label "Input alphabet" -exclude {}
 #: * *A* is the input alphabet (does not accept the empty string as symbol).
@@ -31,6 +37,31 @@ oo::class create ::automata::PDA {
     method print {} {
         #: Print the machine description by printing its components.
         puts [join [lmap c {A B Q Z S F T} {my $c print}] \n]
+    }
+
+    method SplitInput varName {
+        upvar 1 $varName input
+        set input [lmap inputSymbol [split $input ,] {
+            set inputSymbol [string trim $inputSymbol]
+            if {$inputSymbol eq $epsilon} {
+                set inputSymbol {}
+            }
+            set inputSymbol
+        }]
+    }
+
+    method compile tokens {
+        #: 'source' form is three tokens: from, edge, next.
+        #: edge is split by / into input and stack-action
+        #: input can contain one or more input symbols, separated by comma.
+        #: stack-action is split by ; into stack-input and stack-push
+        #: Stack symbols in stack-push are separated by commas.
+        foreach {from edge next} $tokens {
+            lassign [split $edge /] input stackAction
+            my SplitInput input
+            lassign [split $stackAction \;] stackInput stackPush
+            my T set $from $input $next $stackInput {*}[split $stackPush ,]
+        }
     }
 
     #: The ID of a PDA is (w, q, s) = remaining input, current state, and current stack.

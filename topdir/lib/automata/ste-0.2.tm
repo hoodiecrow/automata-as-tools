@@ -63,9 +63,6 @@ oo::class create ::automata::STE {
         #: In most cases the list of input symbols will contain one symbol:
         #: passing a list is mostly for compiled transition matrices.
         #: The symbol ε can be used for epsilon moves.
-        if {$syms eq "ε"} {
-            set syms [list {}]
-        }
         foreach sym $syms {
             if {[llength $components] > 0} {
                 $ns\::[lindex $components 0] set $q0 $q1

@@ -33,6 +33,35 @@ oo::class create ::automata::BTM {
         puts [join [lmap c {A B b Q S F T} {my $c print}] \n]
     }
 
+    method SplitInput varName {
+        upvar 1 $varName input
+        set input [lmap inputSymbol [split $input ,] {
+            set inputSymbol [string trim $inputSymbol]
+            if {[info exists epsilon] && $inputSymbol eq $epsilon} {
+                set inputSymbol {}
+            }
+            set inputSymbol
+        }]
+    }
+
+    method compile tokens {
+        #: 'source' form is three tokens: from, edge, next.
+        #: edge is split by / into input and tape-action
+        #: tape-action is split by ; into print and move
+        foreach {from edge next} $tokens {
+            lassign [split $edge /] input tapeAction
+            my SplitInput input
+            lassign [split $tapeAction \;] print move
+            if {$print eq {}} {
+                set print N
+            }
+            if {$move eq {}} {
+                set move N
+            }
+            my T set $from $input $next $print $move
+        }
+    }
+
     #: The ID of a BTM is (t, q, h) = current tape, current state, and current head.
 
     method Process id {

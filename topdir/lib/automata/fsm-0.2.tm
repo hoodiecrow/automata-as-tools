@@ -7,11 +7,17 @@ package require automata::component
 namespace eval automata {}
 
 oo::class create ::automata::FSM {
-    variable data
+    variable data epsilon
 
 #: A Finite State Machine recognizes a regular language. It can be asked to accept or classify a list of input symbols.
 
     constructor args {
+        set epsilon ε
+        #: Recognized options:
+        if {[lindex $args 0] eq "-epsilon"} {
+            #: -epsilon c when the input symbol for an edge is this character, it is treated as an epsilon move. Default is ε.
+            set args [lassign $args - epsilon]
+        }
 #: This machine is defined by the tuple `<A, Q, S, F, T>`:
         ::automata::Component create A -label "Input alphabet" -exclude {}
 #: * *A* is the input alphabet (does not accept the empty string as symbol).
@@ -30,9 +36,23 @@ oo::class create ::automata::FSM {
         puts [join [lmap c {A Q S F T} {my $c print}] \n]
     }
 
+    method SplitInput varName {
+        upvar 1 $varName input
+        set input [lmap inputSymbol [split $input ,] {
+            set inputSymbol [string trim $inputSymbol]
+            if {$inputSymbol eq $epsilon} {
+                set inputSymbol {}
+            }
+            set inputSymbol
+        }]
+    }
+
     method compile tokens {
-        foreach {q0 sym q1} $tokens {
-            my T set $q0 $sym $q1
+        #: 'source' form is three tokens: from, input, next.
+        #: input can contain one or more input symbols, separated by comma.
+        foreach {from input next} $tokens {
+            my SplitInput input
+            my T set $from $input $next
         }
     }
 
