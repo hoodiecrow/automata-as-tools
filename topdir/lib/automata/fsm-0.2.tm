@@ -33,7 +33,8 @@ oo::class create ::automata::FSM {
 
     method print {} {
         #: Print the machine description by printing its components.
-        puts [join [lmap c {A Q S F T} {my $c print}] \n]
+        variable complist
+        puts [join [lmap c $complist {my $c print}] \n]
     }
 
     method SplitInput varName {
@@ -98,10 +99,6 @@ oo::class create ::automata::FSM {
         } else {
             return {}
         }
-    }
-
-    foreach m {A Q S F T} {
-        forward $m $m ; export $m
     }
 
 #: * `A`, `Q`, `S`, `F`, `T` : public methods to give access to the components.

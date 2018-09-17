@@ -34,18 +34,8 @@ oo::class create ::automata::FST {
 
     method print {} {
         #: Print the machine description by printing its components.
-        puts [join [lmap c {A B Q S F T} {my $c print}] \n]
-    }
-
-    method SplitInput varName {
-        upvar 1 $varName input
-        set input [lmap inputSymbol [split $input ,] {
-            set inputSymbol [string trim $inputSymbol]
-            if {$inputSymbol eq $epsilon} {
-                set inputSymbol {}
-            }
-            set inputSymbol
-        }]
+        variable complist
+        puts [join [lmap c $complist {my $c print}] \n]
     }
 
     method compile tokens {
@@ -53,8 +43,9 @@ oo::class create ::automata::FST {
         #: edge is split by / into input and output
         #: input can contain one or more input symbols, separated by comma.
         foreach {from edge next} $tokens {
-            lassign [split $edge /] input output
-            my SplitInput input
+            regexp {([\w,]*)\s*/\s*([\w,]*)} $edge -> input output
+            splitItems input
+            splitItems output
             my T set $from $input $next {*}$output
         }
     }
@@ -201,9 +192,6 @@ oo::class create ::automata::FST {
         return $results
     }
 
-    foreach m {A B Q S F T} {
-        forward $m $m ; export $m
-    }
 #: * `A`, `B`, `Q`, `S`, `F`, `T` : public methods to give access to the components.
 
 }

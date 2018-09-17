@@ -49,6 +49,11 @@ oo::class create ::automata::Component {
         } else {
             set data $args
         }
+        set ns [namespace qualifiers [self]]
+        set name [namespace tail [self]]
+        lappend $ns\::complist $name
+        oo::objdefine [uplevel 1 {self}] forward $name $name
+        oo::objdefine [uplevel 1 {self}] export $name
     }
 
     method print {} {
@@ -61,6 +66,11 @@ oo::class create ::automata::Component {
         } else {
             return [format {%s %-15s: {%s}} [namespace tail [self]] $label [join $_data ", "]]
         }
+    }
+
+    method clear {} {
+        #: Set the underlying value to {}
+        set data {}
     }
 
     method get {} {

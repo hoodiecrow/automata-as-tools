@@ -36,18 +36,8 @@ oo::class create ::automata::PDA {
 
     method print {} {
         #: Print the machine description by printing its components.
-        puts [join [lmap c {A B Q Z S F T} {my $c print}] \n]
-    }
-
-    method SplitInput varName {
-        upvar 1 $varName input
-        set input [lmap inputSymbol [split $input ,] {
-            set inputSymbol [string trim $inputSymbol]
-            if {$inputSymbol eq $epsilon} {
-                set inputSymbol {}
-            }
-            set inputSymbol
-        }]
+        variable complist
+        puts [join [lmap c $complist {my $c print}] \n]
     }
 
     method compile tokens {
@@ -57,10 +47,10 @@ oo::class create ::automata::PDA {
         #: stack-action is split by ; into stack-input and stack-push
         #: Stack symbols in stack-push are separated by commas.
         foreach {from edge next} $tokens {
-            lassign [split $edge /] input stackAction
-            my SplitInput input
-            lassign [split $stackAction \;] stackInput stackPush
-            my T set $from $input $next $stackInput {*}[split $stackPush ,]
+            regexp {([\w,]*)\s*/\s*(\w*);([\w,]*)} $edge -> input stackInput stackPush
+            splitItems input
+            splitItems stackPush
+            my T set $from $input $next $stackInput {*}$stackPush
         }
     }
 
@@ -117,10 +107,6 @@ oo::class create ::automata::PDA {
         } else {
             return {}
         }
-    }
-
-    foreach m {A B Q Z S F T} {
-        forward $m $m ; export $m
     }
 
 #: * `A`, `B`, `Q`, `Z`, `S`, `F`, `T` : public methods to give access to the components.

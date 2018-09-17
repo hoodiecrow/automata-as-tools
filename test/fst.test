@@ -318,4 +318,35 @@ M F set s0 s1
     log::lvSuppressLE i 1
 } -result {1 {{0 0 1}} {{0 0 1 1} {1 1 0 0}} {{{0 0 0} s0 {0 0 0}} {{0 0 1} s1 {0 0 1}} {{0 1 0} s0 {0 1 1}} {{0 1 1} s1 {0 1 0}} {{1 0 0} s0 {0 1 0}} {{1 0 1} s1 {0 1 1}} {{1 1 0} s0 {0 0 1}} {{1 1 1} s1 {0 0 0}}}}
 
+test dfst-2.4 {edge detector, print} -setup $t -body {
+    M compile {
+        si 0/0 s0
+        si 1/0 s1
+        s0 0/0 s0
+        s0 1/1 s1
+        s1 0/1 s0
+        s1 1/0 s1
+    }
+    M S set si
+    M F set s0
+    M F set s1
+    M print
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -output {A Input alphabet : {0, 1}
+B Output alphabet: {0, 1}
+Q State symbols  : {s0, s1, si}
+S Start symbol(s): {si}
+F Final symbol(s): {s0, s1}
+Transitions
+q0  inp q1  out
+si  0   s0  0
+si  1   s1  0
+s0  0   s0  0
+s0  1   s1  1
+s1  0   s0  1
+s1  1   s1  0
+}
+
 cleanupTests ; return ; # ---------------------------------

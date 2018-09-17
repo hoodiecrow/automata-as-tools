@@ -33,7 +33,8 @@ oo::class create ::automata::PTM {
 
     method print {} {
         #: Print the machine description by printing its components.
-        puts [join [lmap c {A b Q S F T} {my $c print}] \n]
+        variable complist
+        puts [join [lmap c $complist {my $c print}] \n]
     }
 
     method compile tokens {
@@ -93,7 +94,8 @@ oo::class create ::automata::PTM {
             }
             incr i
         }
-        T fixJumps $labels
+        my Q clear
+        my Q set [my T fixJumps $labels]
     }
 
     #: The ID of a PTM is (t, q, h) = current tape, current state, and current head.
@@ -141,10 +143,6 @@ oo::class create ::automata::PTM {
         set ids [list [list $tape [my S get] $tapeIndex]]
         set results [my T iterate $ids [namespace code [list my Process]]]
         set results [lselect result {[lindex $result 1] in [my F get]} $results]
-    }
-
-    foreach m {A b Q S F T} {
-        forward $m $m ; export $m
     }
 
 #: * `A`, `b`, `Q`, `S`, `F`, `T` : public methods to give access to the components.

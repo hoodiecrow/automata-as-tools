@@ -16,6 +16,12 @@ oo::class create ::automata::STE {
         #: Use arguments to set the namespace of the machine tuple, and the
         #: names of the components affected by defining a transition.
         lassign $args ns components
+        # TODO 
+        set ns [namespace qualifiers [self]]
+        set name [namespace tail [self]]
+        lappend $ns\::complist $name
+        oo::objdefine [uplevel 1 {self}] forward $name $name
+        oo::objdefine [uplevel 1 {self}] export $name
     }
 
     method Dump {} {set data}
@@ -135,14 +141,21 @@ oo::class create ::automata::STE {
     }
 
     method fixJumps labels {
+        #: Set labeled or relative jumps to their final address.
+        set _q [list]
         for {set i 0} {$i < [llength $data]} {incr i} {
             lassign [lindex $data $i] q0 - q1
             if {[regexp {^[-+]\d+$} $q1]} {
+                lappend _q $q0
                 lset data $i 2 [expr $q0$q1]
             } elseif {[dict exists $labels $q1]} {
+                lappend _q $q0
                 lset data $i 2 [dict get $labels $q1]
+            } else {
+                lappend _q $q0 $q1
             }
         }
+        return [lsort -unique $_q]
     }
 
     method iterate args {

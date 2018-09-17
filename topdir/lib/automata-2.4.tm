@@ -25,6 +25,18 @@ if no {
     }} set.tcl
 }
 
+proc splitItems varName {
+    upvar 1 $varName var
+    upvar 1 epsilon epsilon
+    set var [lmap symbol [split $var ,] {
+        set symbol [string trim $symbol]
+        if {[info exists epsilon] && $symbol eq $epsilon} {
+            set symbol {}
+        }
+        set symbol
+    }]
+}
+
 proc lselect {varName cond items} {
     upvar 1 $varName item
     return [lmap item $items {

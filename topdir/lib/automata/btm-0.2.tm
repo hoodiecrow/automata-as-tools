@@ -30,18 +30,8 @@ oo::class create ::automata::BTM {
 
     method print {} {
         #: Print the machine description by printing its components.
-        puts [join [lmap c {A B b Q S F T} {my $c print}] \n]
-    }
-
-    method SplitInput varName {
-        upvar 1 $varName input
-        set input [lmap inputSymbol [split $input ,] {
-            set inputSymbol [string trim $inputSymbol]
-            if {[info exists epsilon] && $inputSymbol eq $epsilon} {
-                set inputSymbol {}
-            }
-            set inputSymbol
-        }]
+        variable complist
+        puts [join [lmap c $complist {my $c print}] \n]
     }
 
     method compile tokens {
@@ -49,9 +39,8 @@ oo::class create ::automata::BTM {
         #: edge is split by / into input and tape-action
         #: tape-action is split by ; into print and move
         foreach {from edge next} $tokens {
-            lassign [split $edge /] input tapeAction
-            my SplitInput input
-            lassign [split $tapeAction \;] print move
+            regexp {([\w,]*)\s*/\s*(\w*);(\w*)} $edge -> input print move
+            splitItems input
             if {$print eq {}} {
                 set print N
             }
@@ -107,10 +96,6 @@ oo::class create ::automata::BTM {
         set ids [list [list $tape [my S get] $tapeIndex]]
         set results [my T iterate $ids [namespace code [list my Process]]]
         set results [lselect result {[lindex $result 1] in [my F get]} $results]
-    }
-
-    foreach m {A B b Q S F T} {
-        forward $m $m ; export $m
     }
 
 #: * `A`, `B`, `b`, `Q`, `S`, `F`, `T` : public methods to give access to the components.
