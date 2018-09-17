@@ -193,7 +193,7 @@ oo::class create ::automata::STE {
         # newids = moves from that point/those points
         foreach id $ids {
             # Create ids for possible moves.
-            eval $me [list $id]
+            my $me $id
         }
         # Two base cases: 1) no more ids, or 2) steps completed.
         if {

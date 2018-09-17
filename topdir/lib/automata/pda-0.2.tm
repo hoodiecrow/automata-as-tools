@@ -32,6 +32,33 @@ oo::class create ::automata::PDA {
 #: * *F* is a set of symbols which is a subset of *Q*. These are the accepting final states.
         ::automata::STE create T [self namespace] {Q A B}
 #: * *T* is the transition relation, an instance of the `STE` class.
+
+        #: Inject the makeMoves method into T.
+        oo::objdefine T method makeMoves id {
+            lassign $id a q0 b
+            set tuples1 [my get $q0 {}]
+            set tuples2 [my get $q0 [lindex $a 0]]
+            set tuples [concat $tuples1 $tuples2]
+            set _a [lrange $a 1 end]
+            set id [list]
+            foreach tuple $tuples {
+                lassign $tuple - inp q1 out
+                set o [lassign $out osym]
+                if {$inp eq {}} {
+                    lset id 0 $a
+                } else {
+                    lset id 0 $_a
+                }
+                lset id 1 $q1
+                if {$osym ne [lindex $b 0]} {
+                    continue
+                } else {
+                    lset id 2 [lreplace $b 0 0 {*}$o]
+                }
+                my addNewIDs $id
+            }
+        }
+
     }
 
     method print {} {
@@ -56,36 +83,11 @@ oo::class create ::automata::PDA {
 
     #: The ID of a PDA is (w, q, s) = remaining input, current state, and current stack.
 
-    method Accept id {
-        lassign $id a q0 b
-        set tuples1 [my T get $q0 {}]
-        set tuples2 [my T get $q0 [lindex $a 0]]
-        set tuples [concat $tuples1 $tuples2]
-        set _a [lrange $a 1 end]
-        set id [list]
-        foreach tuple $tuples {
-            lassign $tuple - inp q1 out
-            set o [lassign $out osym]
-            if {$inp eq {}} {
-                lset id 0 $a
-            } else {
-                lset id 0 $_a
-            }
-            lset id 1 $q1
-            if {$osym ne [lindex $b 0]} {
-                continue
-            } else {
-                lset id 2 [lreplace $b 0 0 {*}$o]
-            }
-            my T addNewIDs $id
-        }
-    }
-
     method accept a {
         #: Are we in a final state when all input symbols are consumed and the stack has only one item?
         set a [list {*}$a]
         set ids [lmap s [my S get] {list $a $s [list [my Z get]]}]
-        set results [my T iterate $ids [namespace code [list my Accept]]]
+        set results [my T iterate $ids makeMoves]
         set results [lselect result {[lindex $result 1] in [my F get]} $results]
         foreach result $results {
             lassign $result a q b
@@ -100,7 +102,7 @@ oo::class create ::automata::PDA {
         #: What state are we in when all input symbols are consumed and the stack has only one item?
         set a [list {*}$a]
         set ids [lmap s [my S get] {list $a $s [list [my Z get]]}]
-        set results [my T iterate $ids [namespace code [list my Accept]]]
+        set results [my T iterate $ids makeMoves]
         set results [lselect result {[lindex $result 1] in [my F get]} $results]
         if {[llength $a] == 0} {
             return [lmap result $results {lindex $result 1}]

@@ -30,6 +30,102 @@ oo::class create ::automata::FST {
 #: * *F* is a set of symbols which is a subset of *Q*. These are the accepting final states.
         ::automata::STE create T [self namespace] {Q A B}
 #: * *T* is the transition relation, an instance of the `STE` class.
+
+        #: Inject the processing methods into T.
+        oo::objdefine T method recognize id {
+            lassign $id a q0 b
+            set tuples1 [my get $q0 {}]
+            set tuples2 [my get $q0 [lindex $a 0]]
+            set tuples [concat $tuples1 $tuples2]
+            set _a [lrange $a 1 end]
+            set _b [lrange $b 1 end]
+            set id [list]
+            foreach tuple $tuples {
+                lassign $tuple - inp q1 out
+                if {$inp eq {}} {
+                    lset id 0 $a
+                } else {
+                    lset id 0 $_a
+                }
+                lset id 1 $q1
+                if {$out eq {}} {
+                    lset id 2 $b
+                } elseif {$out ne [lindex $b 0]} {
+                    continue
+                } else {
+                    lset id 2 $_b
+                }
+                my addNewIDs $id
+            }
+        }
+
+        oo::objdefine T method translate id {
+            lassign $id a q0 b
+            set tuples1 [my get $q0 {}]
+            set tuples2 [my get $q0 [lindex $a 0]]
+            set tuples [concat $tuples1 $tuples2]
+            set _a [lrange $a 1 end]
+            set id [list]
+            foreach tuple $tuples {
+                lassign $tuple - inp q1 out
+                if {$inp eq {}} {
+                    lset id 0 $a
+                } else {
+                    lset id 0 $_a
+                }
+                lset id 1 $q1
+                if {$out ne {}} {
+                    lset id 2 [list {*}$b [lindex $out 0]]
+                } else {
+                    lset id 2 $b
+                }
+                my addNewIDs $id
+            }
+        }
+
+        oo::objdefine T method reconstruct id {
+            lassign $id a q0 b
+            set tuples [my getEdges $q0]
+            foreach tuple $tuples {
+                log::log d \$tuple=$tuple 
+                lassign $tuple inp q1 out
+                if {$inp ne {}} {
+                    lset id 0 [list {*}$a [lindex $inp 0]]
+                } else {
+                    lset id 0 $a
+                }
+                lset id 1 $q1
+                if {$out eq {}} {
+                    lset id 2 $b
+                } elseif {$out ne [lindex $b 0]} {
+                    continue
+                } else {
+                    lset id 2 [lrange $b 1 end]
+                }
+                my addNewIDs $id
+            }
+        }
+
+        oo::objdefine T method generate id {
+            lassign $id a q0 b
+            set tuples [my getEdges $q0]
+            foreach tuple $tuples {
+                log::log d \$tuple=$tuple 
+                lassign $tuple inp q1 out
+                if {$inp ne {}} {
+                    set _a [list {*}$a [lindex $inp 0]]
+                } else {
+                    set _a $a
+                }
+                if {$out ne {}} {
+                    set _b [list {*}$b [lindex $out 0]]
+                } else {
+                    set _b $b
+                }
+                my addNewIDs [list $_a $q1 $_b]
+            }
+        }
+
     }
 
     method print {} {
@@ -52,106 +148,12 @@ oo::class create ::automata::FST {
 
     #: The ID of an FST is (a, q, b) = current input, current state, and current output.
 
-    method Recognize id {
-        lassign $id a q0 b
-        set tuples1 [my T get $q0 {}]
-        set tuples2 [my T get $q0 [lindex $a 0]]
-        set tuples [concat $tuples1 $tuples2]
-        set _a [lrange $a 1 end]
-        set _b [lrange $b 1 end]
-        set id [list]
-        foreach tuple $tuples {
-            lassign $tuple - inp q1 out
-            if {$inp eq {}} {
-                lset id 0 $a
-            } else {
-                lset id 0 $_a
-            }
-            lset id 1 $q1
-            if {$out eq {}} {
-                lset id 2 $b
-            } elseif {$out ne [lindex $b 0]} {
-                continue
-            } else {
-                lset id 2 $_b
-            }
-            my T addNewIDs $id
-        }
-    }
-
-    method Translate id {
-        lassign $id a q0 b
-        set tuples1 [my T get $q0 {}]
-        set tuples2 [my T get $q0 [lindex $a 0]]
-        set tuples [concat $tuples1 $tuples2]
-        set _a [lrange $a 1 end]
-        set id [list]
-        foreach tuple $tuples {
-            lassign $tuple - inp q1 out
-            if {$inp eq {}} {
-                lset id 0 $a
-            } else {
-                lset id 0 $_a
-            }
-            lset id 1 $q1
-            if {$out ne {}} {
-                lset id 2 [list {*}$b [lindex $out 0]]
-            } else {
-                lset id 2 $b
-            }
-            my T addNewIDs $id
-        }
-    }
-
-    method Reconstruct id {
-        lassign $id a q0 b
-        set tuples [my T getEdges $q0]
-        foreach tuple $tuples {
-            log::log d \$tuple=$tuple 
-            lassign $tuple inp q1 out
-            if {$inp ne {}} {
-                lset id 0 [list {*}$a [lindex $inp 0]]
-            } else {
-                lset id 0 $a
-            }
-            lset id 1 $q1
-            if {$out eq {}} {
-                lset id 2 $b
-            } elseif {$out ne [lindex $b 0]} {
-                continue
-            } else {
-                lset id 2 [lrange $b 1 end]
-            }
-            my T addNewIDs $id
-        }
-    }
-
-    method Generate id {
-        lassign $id a q0 b
-        set tuples [my T getEdges $q0]
-        foreach tuple $tuples {
-            log::log d \$tuple=$tuple 
-            lassign $tuple inp q1 out
-            if {$inp ne {}} {
-                set _a [list {*}$a [lindex $inp 0]]
-            } else {
-                set _a $a
-            }
-            if {$out ne {}} {
-                set _b [list {*}$b [lindex $out 0]]
-            } else {
-                set _b $b
-            }
-            my T addNewIDs [list $_a $q1 $_b]
-        }
-    }
-
     method recognize {a b} {
         #: Are we in a final state when all input symbols in a and b are consumed?
         set a [list {*}$a]
         set b [list {*}$b]
         set ids [lmap s [my S get] {list $a $s $b}]
-        set results [my T iterate $ids [namespace code [list my Recognize]]]
+        set results [my T iterate $ids recognize]
         set results [lselect result {[lindex $result 1] in [my F get]} $results]
         foreach result $results {
             lassign $result a q b
@@ -166,7 +168,7 @@ oo::class create ::automata::FST {
         #: What symbols have been added to b when all input symbols in a are consumed?
         set a [list {*}$a]
         set ids [lmap s [my S get] {list $a $s {}}]
-        set results [my T iterate $ids [namespace code [list my Translate]]]
+        set results [my T iterate $ids translate]
         set results [lselect result {[lindex $result 1] in [my F get]} $results]
         return [lmap result [lselect result {[llength [lindex $result 0]] == 0} $results] {
             lindex $result 2
@@ -177,7 +179,7 @@ oo::class create ::automata::FST {
         #: What symbols have been added to a when all input symbols in b are consumed?
         set b [list {*}$b]
         set ids [lmap s [my S get] {list {} $s $b}]
-        set results [my T iterate $ids [namespace code [list my Reconstruct]]]
+        set results [my T iterate $ids reconstruct]
         set results [lselect result {[lindex $result 1] in [my F get]} $results]
         return [lmap result [lselect result {[llength [lindex $result 2]] == 0} $results] {
             lindex $result 0
@@ -187,7 +189,7 @@ oo::class create ::automata::FST {
     method generate steps {
         #: If we take N steps into the transition sequence (or sequence powerset), what to we get in a and b?
         set ids [lmap s [my S get] {list {} $s {}}]
-        set results [my T iterate -steps $steps $ids [namespace code [list my Generate]]]
+        set results [my T iterate -steps $steps $ids generate]
         set results [lselect result {[lindex $result 1] in [my F get]} $results]
         return $results
     }

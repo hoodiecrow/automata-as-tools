@@ -29,6 +29,21 @@ oo::class create ::automata::FSM {
 #: * *F* is a set of symbols which is a subset of *Q*. These are the accepting final states.
         ::automata::STE create T [self namespace] {Q A}
 #: * *T* is the transition relation, an instance of the `STE` class.
+
+        #: Inject the makeMoves method into T.
+        oo::objdefine T method makeMoves id {
+            lassign $id a q0
+            set tuples [my get $q0 {}]
+            set q1s [lmap tuple $tuples {lindex $tuple 2}]
+            my addNewIDs {*}[lmap q1 $q1s {list $a $q1}]
+            set tuples [my get $q0 [lindex $a 0]]
+            set q1s [lmap tuple $tuples {lindex $tuple 2}]
+            if {[llength $q1s] > 0} {
+                set a [lrange $a 1 end]
+            }
+            my addNewIDs {*}[lmap q1 $q1s {list $a $q1}]
+        }
+
     }
 
     method print {} {
@@ -60,24 +75,11 @@ oo::class create ::automata::FSM {
     #: The ID of an FSM is (w, q) = remaining input and current state.
     #: Every element in ids represents a separate machine, all working in parallel.
 
-    method Accept id {
-        lassign $id a q0
-        set tuples [my T get $q0 {}]
-        set q1s [lmap tuple $tuples {lindex $tuple 2}]
-        my T addNewIDs {*}[lmap q1 $q1s {list $a $q1}]
-        set tuples [my T get $q0 [lindex $a 0]]
-        set q1s [lmap tuple $tuples {lindex $tuple 2}]
-        if {[llength $q1s] > 0} {
-            set a [lrange $a 1 end]
-        }
-        my T addNewIDs {*}[lmap q1 $q1s {list $a $q1}]
-    }
-
     method accept a {
         #: Are we in a final state when all input symbols are consumed?
         set a [list {*}$a]
         set ids [lmap s [my S get] {list $a $s}]
-        set results [my T iterate $ids [namespace code [list my Accept]]]
+        set results [my T iterate $ids makeMoves]
         set results [lselect result {[lindex $result 1] in [my F get]} $results]
         foreach result $results {
             lassign $result a
@@ -92,7 +94,7 @@ oo::class create ::automata::FSM {
         #: What state are we in when all input symbols are consumed?
         set a [list {*}$a]
         set ids [lmap s [my S get] {list $a $s}]
-        set results [my T iterate $ids [namespace code [list my Accept]]]
+        set results [my T iterate $ids makeMoves]
         set results [lselect result {[lindex $result 1] in [my F get]} $results]
         if {[llength $a] == 0} {
             return [lmap result $results {lindex $result 1}]

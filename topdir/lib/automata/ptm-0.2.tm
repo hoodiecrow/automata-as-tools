@@ -29,6 +29,49 @@ oo::class create ::automata::PTM {
         #: * *F* holds the address where the program halts.
         ::automata::STE create T [self namespace] {Q A}
         #: * *T* is the transition relation, an instance of the `STE` class.
+
+        #: Inject the Blank and process methods into T.
+        oo::objdefine T method Blank {} [format {
+            return [eval %s]
+        } [list [namespace which b] get]]
+
+        oo::objdefine T method process id {
+            lassign $id t q0 h
+            set tuples [my get $q0 [lindex $t $h]]
+            foreach tuple $tuples {
+                lassign $tuple - inp q1 out
+                lassign $out osym move
+                set _tape $t
+                if {$osym eq "E"} {
+                    lset _tape $h [my Blank]
+                } elseif {$osym eq "N"} {
+                    ;
+                } else {
+                    lset _tape $h $osym
+                }
+                switch $move {
+                    R {
+                        incr h
+                        if {$h >= [expr {[llength $_tape] - 1}]} {
+                            lappend _tape [my Blank]
+                        }
+                    }
+                    L {
+                        if {$h < 1} {
+                            set _tape [linsert $_tape 0 [my Blank]]
+                        } else {
+                            incr h -1
+                        }
+                    }
+                    N {}
+                    default {
+                        error \$move=$move
+                    }
+                }
+                my addNewIDs [list $_tape $q1 $h]
+            }
+        }
+
     }
 
     method print {} {
@@ -100,48 +143,11 @@ oo::class create ::automata::PTM {
 
     #: The ID of a PTM is (t, q, h) = current tape, current state, and current head.
 
-    method Process id {
-        lassign $id t q0 h
-        set tuples [my T get $q0 [lindex $t $h]]
-        foreach tuple $tuples {
-            lassign $tuple - inp q1 out
-            lassign $out osym move
-            set _tape $t
-            if {$osym eq "E"} {
-                lset _tape $h [my b get]
-            } elseif {$osym eq "N"} {
-                ;
-            } else {
-                lset _tape $h $osym
-            }
-            switch $move {
-                R {
-                    incr h
-                    if {$h >= [expr {[llength $_tape] - 1}]} {
-                        lappend _tape [my b get]
-                    }
-                }
-                L {
-                    if {$h < 1} {
-                        set _tape [linsert $_tape 0 [my b get]]
-                    } else {
-                        incr h -1
-                    }
-                }
-                N {}
-                default {
-                    error \$move=$move
-                }
-            }
-            my T addNewIDs [list $_tape $q1 $h]
-        }
-    }
-    
     method run {tape {tapeIndex 0}} {
         #: Run the code on this tape, return tape.
         set tape [list {*}$tape]
         set ids [list [list $tape [my S get] $tapeIndex]]
-        set results [my T iterate $ids [namespace code [list my Process]]]
+        set results [my T iterate $ids process]
         set results [lselect result {[lindex $result 1] in [my F get]} $results]
     }
 
