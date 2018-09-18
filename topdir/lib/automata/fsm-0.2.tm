@@ -48,22 +48,11 @@ oo::class create ::automata::FSM {
 
     }
 
-    method SplitInput varName {
-        upvar 1 $varName input
-        set input [lmap inputSymbol [split $input ,] {
-            set inputSymbol [string trim $inputSymbol]
-            if {$inputSymbol eq $epsilon} {
-                set inputSymbol {}
-            }
-            set inputSymbol
-        }]
-    }
-
     method compile tokens {
         #: 'source' form is three tokens: from, input, next.
         #: input can contain one or more input symbols, separated by comma.
         foreach {from input next} $tokens {
-            my SplitInput input
+            splitItems input
             my T set $from $input $next
         }
     }

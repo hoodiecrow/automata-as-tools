@@ -44,7 +44,7 @@ oo::class create ::automata::BTM {
         #: edge is split by / into input and tape-action
         #: tape-action is split by ; into print and move
         foreach {from edge next} $tokens {
-            regexp {([\w,]*)\s*/\s*(\w*);(\w*)} $edge -> input print move
+            regexp {([\w,]*)\s*/\s*(\w*)\s*;\s*(\w*)} $edge -> input print move
             splitItems input
             if {$print eq {}} {
                 set print N
