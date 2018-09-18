@@ -2,10 +2,12 @@
 
 package require -exact automata::ste 0.2
 package require automata::component
+package require automata::printer
 
 namespace eval automata {}
 
 oo::class create ::automata::PTM {
+    mixin ::automata::Printer
     variable data instructions
 
     #: A Post-Turing Machine is essentially a TM. The transition matrix is set
@@ -72,12 +74,6 @@ oo::class create ::automata::PTM {
             }
         }
 
-    }
-
-    method print {} {
-        #: Print the machine description by printing its components.
-        variable complist
-        puts [join [lmap c $complist {my $c print}] \n]
     }
 
     method compile tokens {

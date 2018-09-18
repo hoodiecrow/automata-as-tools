@@ -2,10 +2,12 @@
 
 package require -exact automata::ste 0.2
 package require automata::component
+package require automata::printer
 
 namespace eval automata {}
 
 oo::class create ::automata::BTM {
+    mixin ::automata::Printer
     variable data
 
     #: A Basic Turing Machine recognizes a recursively enumerable language.
@@ -69,12 +71,6 @@ oo::class create ::automata::BTM {
             }
         }
 
-    }
-
-    method print {} {
-        #: Print the machine description by printing its components.
-        variable complist
-        puts [join [lmap c $complist {my $c print}] \n]
     }
 
     method compile tokens {

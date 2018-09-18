@@ -2,10 +2,12 @@
 
 package require -exact automata::ste 0.2
 package require automata::component
+package require automata::printer
 
 namespace eval automata {}
 
 oo::class create ::automata::FST {
+    mixin ::automata::Printer
     variable data epsilon
 
 #: A Finite State Transducer recognizes or encodes a regular relation.
@@ -126,12 +128,6 @@ oo::class create ::automata::FST {
             }
         }
 
-    }
-
-    method print {} {
-        #: Print the machine description by printing its components.
-        variable complist
-        puts [join [lmap c $complist {my $c print}] \n]
     }
 
     method compile tokens {

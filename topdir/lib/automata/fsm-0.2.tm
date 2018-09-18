@@ -3,10 +3,12 @@
 
 package require -exact automata::ste 0.2
 package require automata::component
+package require automata::printer
 
 namespace eval automata {}
 
 oo::class create ::automata::FSM {
+    mixin ::automata::Printer
     variable data epsilon
 
 #: A Finite State Machine recognizes a regular language. It can be asked to accept or classify a list of input symbols.
@@ -44,12 +46,6 @@ oo::class create ::automata::FSM {
             my addNewIDs {*}[lmap q1 $q1s {list $a $q1}]
         }
 
-    }
-
-    method print {} {
-        #: Print the machine description by printing its components.
-        variable complist
-        puts [join [lmap c $complist {my $c print}] \n]
     }
 
     method SplitInput varName {
