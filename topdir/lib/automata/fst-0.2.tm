@@ -58,11 +58,9 @@ oo::class create ::automata::FST {
         set a [list {*}$a]
         set b [list {*}$b]
         set ids [lmap s [my S get] {list $a $s $b}]
-        set results [my T iterate $ids recognize]
-        set results [lselect result {[lindex $result 1] in [my F get]} $results]
-        foreach result $results {
+        foreach result [my T iterate $ids recognize] {
             lassign $result a q b
-            if {[llength $a] == 0 && [llength $b] == 0} {
+            if {[llength $a] == 0 && $q in [my F get] && [llength $b] == 0} {
                 return 1
             }
         }
@@ -73,30 +71,35 @@ oo::class create ::automata::FST {
         #: What symbols have been added to b when all input symbols in a are consumed?
         set a [list {*}$a]
         set ids [lmap s [my S get] {list $a $s {}}]
-        set results [my T iterate $ids translate]
-        set results [lselect result {[lindex $result 1] in [my F get]} $results]
-        return [lmap result [lselect result {[llength [lindex $result 0]] == 0} $results] {
-            lindex $result 2
-        }]
+        lmap result [my T iterate $ids translate] {
+            lassign $result a q b
+            if {[llength $a] == 0 && $q in [my F get]} {
+                set b
+            } else {
+                continue
+            }
+        }
     }
 
     method reconstruct b {
         #: What symbols have been added to a when all input symbols in b are consumed?
         set b [list {*}$b]
         set ids [lmap s [my S get] {list {} $s $b}]
-        set results [my T iterate $ids reconstruct]
-        set results [lselect result {[lindex $result 1] in [my F get]} $results]
-        return [lmap result [lselect result {[llength [lindex $result 2]] == 0} $results] {
-            lindex $result 0
-        }]
+        lmap result [my T iterate $ids reconstruct] {
+            lassign $result a q b
+            if {$q in [my F get] && [llength $b] == 0} {
+                set a
+            } else {
+                continue
+            }
+        }
     }
 
     method generate steps {
         #: If we take N steps into the transition sequence (or sequence powerset), what to we get in a and b?
         set ids [lmap s [my S get] {list {} $s {}}]
         set results [my T iterate -steps $steps $ids generate]
-        set results [lselect result {[lindex $result 1] in [my F get]} $results]
-        return $results
+        return [lselect result {[lindex $result 1] in [my F get]} $results]
     }
 
 #: * `A`, `B`, `Q`, `S`, `F`, `T` : public methods to give access to the components.
