@@ -9,7 +9,7 @@ namespace eval automata {}
 
 oo::class create ::automata::PTM {
     mixin ::automata::Printer
-    variable data instructions
+    variable instructions
 
     #: A Post-Turing Machine is essentially a TM. The transition matrix is set
     #: by compiling a program.  The tape uses a binary symbol set (here, {0,

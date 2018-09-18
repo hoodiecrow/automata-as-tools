@@ -9,7 +9,6 @@ namespace eval automata {}
 
 oo::class create ::automata::BTM {
     mixin ::automata::Printer
-    variable data
 
     #: A Basic Turing Machine recognizes a recursively enumerable language.
 

@@ -8,7 +8,7 @@ namespace eval automata {}
 
 oo::class create ::automata::PDA {
     mixin ::automata::Printer
-    variable data epsilon
+    variable epsilon
 
     #: A Pushdown Automaton recognizes a context-free language.
 

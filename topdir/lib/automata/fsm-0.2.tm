@@ -9,7 +9,7 @@ namespace eval automata {}
 
 oo::class create ::automata::FSM {
     mixin ::automata::Printer
-    variable data epsilon
+    variable epsilon
 
 #: A Finite State Machine recognizes a regular language. It can be asked to accept or classify a list of input symbols.
 

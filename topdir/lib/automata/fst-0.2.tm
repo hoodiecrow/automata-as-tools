@@ -9,7 +9,7 @@ namespace eval automata {}
 
 oo::class create ::automata::FST {
     mixin ::automata::Printer
-    variable data epsilon
+    variable epsilon
 
 #: A Finite State Transducer recognizes or encodes a regular relation.
 

@@ -1,0 +1,31 @@
+package require tcltest
+namespace import ::tcltest::*
+
+::tcltest::configure {*}$argv
+
+::tcltest::loadTestedCommands
+
+package require automata::cm
+
+test cm-1.0 {} -setup {
+    ::automaton::CM create M
+} -body {
+    M compile {
+        a:  JZ:2:b
+            DEC:2
+            INC:3
+            INC:1
+            JZ:0:a
+        b:  JZ:1:z
+            DEC:1
+            INC:2
+            JZ:0:b
+        z:  H
+    }
+    M run {0 0 2 0 0} 1
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {}
+
+cleanupTests ; return ; # ---------------------------------
