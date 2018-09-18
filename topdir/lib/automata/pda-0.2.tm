@@ -32,7 +32,7 @@ oo::class create ::automata::PDA {
         #: * *S* is a symbol which is a member of the set of state symbols. Processing will start at this symbol.
         ::automata::Component create F -label "Final symbol(s)" -in [namespace which Q]
         #: * *F* is a set of symbols which is a subset of *Q*. These are the accepting final states.
-        ::automata::STE create T [self namespace] {Q A B}
+        ::automata::STE create T {Q A B}
         #: * *T* is the transition relation, an instance of the `STE` class.
 
         #: Inject the makeMoves method into T.
@@ -85,7 +85,7 @@ oo::class create ::automata::PDA {
         set ids [lmap s [my S get] {list $a $s [list [my Z get]]}]
         foreach result [my T iterate $ids makeMoves] {
             lassign $result a q b
-            if {[llength $a] == 0 && $q in [my F get] && [llength $b] == 1} {
+            if {[llength $a] == 0 && [my F contains $q] && [llength $b] == 1} {
                 return 1
             }
         }
@@ -98,7 +98,7 @@ oo::class create ::automata::PDA {
         set ids [lmap s [my S get] {list $a $s [list [my Z get]]}]
         lmap result [my T iterate $ids makeMoves] {
             lassign $result a q b
-            if {[llength $a] == 0 && $q in [my F get] && [llength $b] == 1} {
+            if {[llength $a] == 0 && [my F contains $q] && [llength $b] == 1} {
                 set q
             } else {
                 continue

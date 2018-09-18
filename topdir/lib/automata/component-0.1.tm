@@ -126,6 +126,11 @@ oo::class create ::automata::Component {
         return 0
     }
 
+    method contains value {
+        #: Tests for *value* being a member of the component's value.
+        expr {$value in $data}
+    }
+
     #: 
     #: ## TODO
     #:

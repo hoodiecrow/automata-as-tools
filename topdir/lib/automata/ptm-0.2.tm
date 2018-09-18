@@ -30,7 +30,7 @@ oo::class create ::automata::PTM {
         #: * *S* holds first instruction address.
         ::automata::Component create F -label "Program end" -in [namespace which Q] -scalar
         #: * *F* holds the address where the program halts.
-        ::automata::STE create T [self namespace] {Q A}
+        ::automata::STE create T {Q A}
         #: * *T* is the transition relation, an instance of the `STE` class.
 
         #: Inject the Blank method and Processor class into T.
@@ -109,7 +109,7 @@ oo::class create ::automata::PTM {
         set tape [list {*}$tape]
         set ids [list [list $tape [my S get] $tapeIndex]]
         set results [my T iterate $ids process]
-        set results [lselect result {[lindex $result 1] in [my F get]} $results]
+        set results [lselect result {[my F contains [lindex $result 1]]} $results]
     }
 
 #: * `A`, `b`, `Q`, `S`, `F`, `T` : public methods to give access to the components.

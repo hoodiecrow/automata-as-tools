@@ -15,8 +15,7 @@ oo::class create ::automata::STE {
     constructor args {
         #: Use arguments to set the namespace of the machine tuple, and the
         #: names of the components affected by defining a transition.
-        lassign $args ns components
-        # TODO 
+        lassign $args components
         set ns [namespace qualifiers [self]]
         set name [namespace tail [self]]
         lappend $ns\::complist $name
@@ -159,8 +158,8 @@ oo::class create ::automata::STE {
     }
 
     method iterate args {
-        #: Start a walk through the transition matrix.
         log::log d [info level 0] 
+        #: Start a walk through the transition matrix.
         if {[lindex $args 0] eq "-steps"} {
             #: The option `-steps steps` is recognized: if given it limits the
             #: number of steps the walk will comprise.
@@ -213,10 +212,7 @@ oo::class create ::automata::STE {
             my $me $id
         }
         # Two base cases: 1) no more ids, or 2) steps completed.
-        if {
-            [llength $newids] == 0 ||
-            ($steps ne {} && [incr steps -1] < 0)
-        } then {
+        if {[llength $newids] == 0 || ($steps ne {} && [incr steps -1] < 0)} {
             return [lsort -unique [lsort -index 1 $ids]]
         } else {
             # Recursive case.

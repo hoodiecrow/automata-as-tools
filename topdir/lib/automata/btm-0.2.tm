@@ -27,7 +27,7 @@ oo::class create ::automata::BTM {
         #: * *S* is a symbol which is a member of the set of state symbols. The processor will be preloaded with this symbol.
         ::automata::Component create F -label "Final symbol(s)" -in [namespace which Q]
         #: * *F* is a set of symbols which is a subset of *Q*. These are the accepting final states.
-        ::automata::STE create T [self namespace] {Q B A}
+        ::automata::STE create T {Q B A}
         #: * *T* is the transition relation, an instance of the `STE` class.
 
         #: Inject the Blank method and Processor class into T.
@@ -63,7 +63,7 @@ oo::class create ::automata::BTM {
         set tape [list {*}$tape]
         set ids [list [list $tape [my S get] $tapeIndex]]
         set results [my T iterate $ids process]
-        set results [lselect result {[lindex $result 1] in [my F get]} $results]
+        return [lselect result {[my F contains [lindex $result 1]]} $results]
     }
 
 #: * `A`, `B`, `b`, `Q`, `S`, `F`, `T` : public methods to give access to the components.

@@ -20,19 +20,19 @@ oo::class create ::automata::FST {
             #: -epsilon c when the input symbol for an edge is this character, it is treated as an epsilon move. Default is ε.
             set args [lassign $args - epsilon]
         }
-#: This machine is defined by the tuple `<A, B, Q, S, F, T>`:
+        #: This machine is defined by the tuple `<A, B, Q, S, F, T>`:
         ::automata::Component create A -label "Input alphabet" -exclude {}
-#: * *A* is the input alphabet (does not accept the empty string as symbol).
+        #: * *A* is the input alphabet (does not accept the empty string as symbol).
         ::automata::Component create B -label "Output alphabet" -exclude {}
-#: * *B* is the output alphabet (does not accept the empty string as symbol).
+        #: * *B* is the output alphabet (does not accept the empty string as symbol).
         ::automata::Component create Q -label "State symbols"
-#: * *Q* is the set of state symbols.
+        #: * *Q* is the set of state symbols.
         ::automata::Component create S -label "Start symbol(s)" -in [namespace which Q]
-#: * *S* is a symbol which is a member of the set of state symbols (for a deterministic FST) or a set of symbols which is a subset of the state symbols (for a nondeterministic FST). Processing will start at this/these symbols.
+        #: * *S* is a symbol which is a member of the set of state symbols (for a deterministic FST) or a set of symbols which is a subset of the state symbols (for a nondeterministic FST). Processing will start at this/these symbols.
         ::automata::Component create F -label "Final symbol(s)" -in [namespace which Q]
-#: * *F* is a set of symbols which is a subset of *Q*. These are the accepting final states.
-        ::automata::STE create T [self namespace] {Q A B}
-#: * *T* is the transition relation, an instance of the `STE` class.
+        #: * *F* is a set of symbols which is a subset of *Q*. These are the accepting final states.
+        ::automata::STE create T {Q A B}
+        #: * *T* is the transition relation, an instance of the `STE` class.
 
         #: Inject the processing methods into T.
         oo::objdefine T mixin -append ::automata::Transducer
@@ -60,7 +60,7 @@ oo::class create ::automata::FST {
         set ids [lmap s [my S get] {list $a $s $b}]
         foreach result [my T iterate $ids recognize] {
             lassign $result a q b
-            if {[llength $a] == 0 && $q in [my F get] && [llength $b] == 0} {
+            if {[llength $a] == 0 && [my F contains $q] && [llength $b] == 0} {
                 return 1
             }
         }
@@ -73,7 +73,7 @@ oo::class create ::automata::FST {
         set ids [lmap s [my S get] {list $a $s {}}]
         lmap result [my T iterate $ids translate] {
             lassign $result a q b
-            if {[llength $a] == 0 && $q in [my F get]} {
+            if {[llength $a] == 0 && [my F contains $q]} {
                 set b
             } else {
                 continue

@@ -20,17 +20,17 @@ oo::class create ::automata::FSM {
             #: -epsilon c when the input symbol for an edge is this character, it is treated as an epsilon move. Default is ε.
             set args [lassign $args - epsilon]
         }
-#: This machine is defined by the tuple `<A, Q, S, F, T>`:
+        #: This machine is defined by the tuple `<A, Q, S, F, T>`:
         ::automata::Component create A -label "Input alphabet" -exclude {}
-#: * *A* is the input alphabet (does not accept the empty string as symbol).
+        #: * *A* is the input alphabet (does not accept the empty string as symbol).
         ::automata::Component create Q -label "State symbols"
-#: * *Q* is the set of state symbols.
+        #: * *Q* is the set of state symbols.
         ::automata::Component create S -label "Start symbol(s)" -in [namespace which Q]
-#: * *S* is a symbol which is a member of the set of state symbols (for a deterministic FSM) or a set of symbols which is a subset of the state symbols (for a nondeterministic FSM). Processing will start at this/these symbols.
+        #: * *S* is a symbol which is a member of the set of state symbols (for a deterministic FSM) or a set of symbols which is a subset of the state symbols (for a nondeterministic FSM). Processing will start at this/these symbols.
         ::automata::Component create F -label "Final symbol(s)" -in [namespace which Q]
-#: * *F* is a set of symbols which is a subset of *Q*. These are the accepting final states.
-        ::automata::STE create T [self namespace] {Q A}
-#: * *T* is the transition relation, an instance of the `STE` class.
+        #: * *F* is a set of symbols which is a subset of *Q*. These are the accepting final states.
+        ::automata::STE create T {Q A}
+        #: * *T* is the transition relation, an instance of the `STE` class.
 
         #: Inject the makeMoves method into T.
         oo::objdefine T method makeMoves id {
@@ -66,7 +66,7 @@ oo::class create ::automata::FSM {
         set ids [lmap s [my S get] {list $a $s}]
         foreach result [my T iterate $ids makeMoves] {
             lassign $result a q
-            if {[llength $a] == 0 && $q in [my F get]} {
+            if {[llength $a] == 0 && [my F contains $q]} {
                 return 1
             }
         }
@@ -79,7 +79,7 @@ oo::class create ::automata::FSM {
         set ids [lmap s [my S get] {list $a $s}]
         lmap result [my T iterate $ids makeMoves] {
             lassign $result a q
-            if {[llength $a] == 0 && $q in [my F get]} {
+            if {[llength $a] == 0 && [my F contains $q]} {
                 set q
             } else {
                 continue
