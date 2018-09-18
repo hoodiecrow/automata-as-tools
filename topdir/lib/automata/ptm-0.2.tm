@@ -3,6 +3,7 @@
 package require -exact automata::ste 0.2
 package require automata::component
 package require automata::printer
+package require automata::processor
 
 namespace eval automata {}
 
@@ -32,47 +33,11 @@ oo::class create ::automata::PTM {
         ::automata::STE create T [self namespace] {Q A}
         #: * *T* is the transition relation, an instance of the `STE` class.
 
-        #: Inject the Blank and process methods into T.
+        #: Inject the Blank method and Processor class into T.
         oo::objdefine T method Blank {} [format {
             return [eval %s]
         } [list [namespace which b] get]]
-
-        oo::objdefine T method process id {
-            lassign $id t q0 h
-            set tuples [my get $q0 [lindex $t $h]]
-            foreach tuple $tuples {
-                lassign $tuple - inp q1 out
-                lassign $out osym move
-                set _tape $t
-                if {$osym eq "E"} {
-                    lset _tape $h [my Blank]
-                } elseif {$osym eq "N"} {
-                    ;
-                } else {
-                    lset _tape $h $osym
-                }
-                switch $move {
-                    R {
-                        incr h
-                        if {$h >= [expr {[llength $_tape] - 1}]} {
-                            lappend _tape [my Blank]
-                        }
-                    }
-                    L {
-                        if {$h < 1} {
-                            set _tape [linsert $_tape 0 [my Blank]]
-                        } else {
-                            incr h -1
-                        }
-                    }
-                    N {}
-                    default {
-                        error \$move=$move
-                    }
-                }
-                my addNewIDs [list $_tape $q1 $h]
-            }
-        }
+        oo::objdefine T mixin -append ::automata::Processor
 
     }
 
@@ -94,7 +59,7 @@ oo::class create ::automata::PTM {
                     T set $i [A get] $next [lindex [A get] end] N
                 }
                 E {
-                    T set $i [A get] $next $op N
+                    T set $i [A get] $next [b get] N
                 }
                 L - R {
                     T set $i [A get] $next N $op

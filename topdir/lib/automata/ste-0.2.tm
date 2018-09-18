@@ -179,6 +179,23 @@ oo::class create ::automata::STE {
         return $results
     }
 
+    method tapeMoveR {varName1 varName2} {
+        upvar 1 $varName1 t $varName2 h
+        incr h
+        if {$h >= [expr {[llength $t] - 1}]} {
+            lappend t [my Blank]
+        }
+    }
+
+    method tapeMoveL {varName1 varName2} {
+        upvar 1 $varName1 t $varName2 h
+        if {$h < 1} {
+            set t [linsert $t 0 [my Blank]]
+        } else {
+            incr h -1
+        }
+    }
+
     method addNewIDs args {
         log::log d [info level 0] 
         lappend newids {*}$args
