@@ -64,11 +64,9 @@ oo::class create ::automata::FSM {
         #: Are we in a final state when all input symbols are consumed?
         set a [list {*}$a]
         set ids [lmap s [my S get] {list $a $s}]
-        set results [my T iterate $ids makeMoves]
-        set results [lselect result {[lindex $result 1] in [my F get]} $results]
-        foreach result $results {
-            lassign $result a
-            if {[llength $a] == 0} {
+        foreach result [my T iterate $ids makeMoves] {
+            lassign $result a q
+            if {[llength $a] == 0 && $q in [my F get]} {
                 return 1
             }
         }
@@ -79,13 +77,15 @@ oo::class create ::automata::FSM {
         #: What state are we in when all input symbols are consumed?
         set a [list {*}$a]
         set ids [lmap s [my S get] {list $a $s}]
-        set results [my T iterate $ids makeMoves]
-        set results [lselect result {[lindex $result 1] in [my F get]} $results]
-        if {[llength $a] == 0} {
-            return [lmap result $results {lindex $result 1}]
-        } else {
-            return {}
+        lmap result [my T iterate $ids makeMoves] {
+            lassign $result a q
+            if {[llength $a] == 0 && $q in [my F get]} {
+                set q
+            } else {
+                continue
+            }
         }
+        return {}
     }
 
 #: * `A`, `Q`, `S`, `F`, `T` : public methods to give access to the components.

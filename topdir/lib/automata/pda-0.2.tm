@@ -19,31 +19,31 @@ oo::class create ::automata::PDA {
             #: -epsilon c when the input symbol for an edge is this character, it is treated as an epsilon move. Default is ε.
             set args [lassign $args - epsilon]
         }
-#: This machine is defined by the tuple `<A, B, Q, Z, S, F, T>`:
+        #: This machine is defined by the tuple `<A, B, Q, Z, S, F, T>`:
         ::automata::Component create A -label "Input alphabet" -exclude {}
-#: * *A* is the input alphabet (does not accept the empty string as symbol).
+        #: * *A* is the input alphabet (does not accept the empty string as symbol).
         ::automata::Component create B -label "Stack alphabet" -exclude {}
-#: * *B* is the stack alphabet (does not accept the empty string as symbol).
+        #: * *B* is the stack alphabet (does not accept the empty string as symbol).
         ::automata::Component create Q -label "State symbols"
-#: * *Q* is the set of state symbols.
+        #: * *Q* is the set of state symbols.
         ::automata::Component create Z -label "Stack bottom" -in [namespace which B] -scalar
-#: * *Z* is a symbol which is a member of the set of stack symbols. The stack will contain this symbol when starting.
+        #: * *Z* is a symbol which is a member of the set of stack symbols. The stack will contain this symbol when starting.
         ::automata::Component create S -label "Start symbol(s)" -in [namespace which Q]
-#: * *S* is a symbol which is a member of the set of state symbols. Processing will start at this symbol.
+        #: * *S* is a symbol which is a member of the set of state symbols. Processing will start at this symbol.
         ::automata::Component create F -label "Final symbol(s)" -in [namespace which Q]
-#: * *F* is a set of symbols which is a subset of *Q*. These are the accepting final states.
+        #: * *F* is a set of symbols which is a subset of *Q*. These are the accepting final states.
         ::automata::STE create T [self namespace] {Q A B}
-#: * *T* is the transition relation, an instance of the `STE` class.
+        #: * *T* is the transition relation, an instance of the `STE` class.
 
         #: Inject the makeMoves method into T.
         oo::objdefine T method makeMoves id {
             lassign $id a q0 b
+            set _a [lassign $a A]
+            set _b [lassign $b B]
             set tuples1 [my get $q0 {}]
-            set tuples2 [my get $q0 [lindex $a 0]]
-            set tuples [concat $tuples1 $tuples2]
-            set _a [lrange $a 1 end]
+            set tuples2 [my get $q0 $A]
             set id [list]
-            foreach tuple $tuples {
+            foreach tuple [concat $tuples1 $tuples2] {
                 lassign $tuple - inp q1 out
                 set o [lassign $out osym]
                 if {$inp eq {}} {
@@ -52,10 +52,10 @@ oo::class create ::automata::PDA {
                     lset id 0 $_a
                 }
                 lset id 1 $q1
-                if {$osym ne [lindex $b 0]} {
+                if {$osym ne $B} {
                     continue
                 } else {
-                    lset id 2 [lreplace $b 0 0 {*}$o]
+                    lset id 2 [concat $o $_b]
                 }
                 my addNewIDs $id
             }
@@ -83,11 +83,9 @@ oo::class create ::automata::PDA {
         #: Are we in a final state when all input symbols are consumed and the stack has only one item?
         set a [list {*}$a]
         set ids [lmap s [my S get] {list $a $s [list [my Z get]]}]
-        set results [my T iterate $ids makeMoves]
-        set results [lselect result {[lindex $result 1] in [my F get]} $results]
-        foreach result $results {
+        foreach result [my T iterate $ids makeMoves] {
             lassign $result a q b
-            if {[llength $a] == 0 && [llength $b] == 1} {
+            if {[llength $a] == 0 && $q in [my F get] && [llength $b] == 1} {
                 return 1
             }
         }
@@ -98,13 +96,15 @@ oo::class create ::automata::PDA {
         #: What state are we in when all input symbols are consumed and the stack has only one item?
         set a [list {*}$a]
         set ids [lmap s [my S get] {list $a $s [list [my Z get]]}]
-        set results [my T iterate $ids makeMoves]
-        set results [lselect result {[lindex $result 1] in [my F get]} $results]
-        if {[llength $a] == 0} {
-            return [lmap result $results {lindex $result 1}]
-        } else {
-            return {}
+        lmap result [my T iterate $ids makeMoves] {
+            lassign $result a q b
+            if {[llength $a] == 0 && $q in [my F get] && [llength $b] == 1} {
+                set q
+            } else {
+                continue
+            }
         }
+        return {}
     }
 
 #: * `A`, `B`, `Q`, `Z`, `S`, `F`, `T` : public methods to give access to the components.

@@ -4,13 +4,12 @@ oo::class create ::automata::Transducer {
 
     method recognize id {
         lassign $id a q0 b
+        set _a [lassign $a A]
+        set _b [lassign $b B]
         set tuples1 [my get $q0 {}]
-        set tuples2 [my get $q0 [lindex $a 0]]
-        set tuples [concat $tuples1 $tuples2]
-        set _a [lrange $a 1 end]
-        set _b [lrange $b 1 end]
+        set tuples2 [my get $q0 $A]
         set id [list]
-        foreach tuple $tuples {
+        foreach tuple [concat $tuples1 $tuples2] {
             lassign $tuple - inp q1 out
             if {$inp eq {}} {
                 lset id 0 $a
@@ -20,7 +19,7 @@ oo::class create ::automata::Transducer {
             lset id 1 $q1
             if {$out eq {}} {
                 lset id 2 $b
-            } elseif {$out ne [lindex $b 0]} {
+            } elseif {$out ne $B} {
                 continue
             } else {
                 lset id 2 $_b
@@ -31,12 +30,11 @@ oo::class create ::automata::Transducer {
 
     method translate id {
         lassign $id a q0 b
+        set _a [lassign $a A]
         set tuples1 [my get $q0 {}]
-        set tuples2 [my get $q0 [lindex $a 0]]
-        set tuples [concat $tuples1 $tuples2]
-        set _a [lrange $a 1 end]
+        set tuples2 [my get $q0 $A]
         set id [list]
-        foreach tuple $tuples {
+        foreach tuple [concat $tuples1 $tuples2] {
             lassign $tuple - inp q1 out
             if {$inp eq {}} {
                 lset id 0 $a
@@ -55,9 +53,9 @@ oo::class create ::automata::Transducer {
 
     method reconstruct id {
         lassign $id a q0 b
-        set tuples [my getEdges $q0]
-        foreach tuple $tuples {
-            log::log d \$tuple=$tuple 
+        set _b [lassign $b B]
+        set id [list]
+        foreach tuple [my getEdges $q0] {
             lassign $tuple inp q1 out
             if {$inp ne {}} {
                 lset id 0 [list {*}$a [lindex $inp 0]]
@@ -67,10 +65,10 @@ oo::class create ::automata::Transducer {
             lset id 1 $q1
             if {$out eq {}} {
                 lset id 2 $b
-            } elseif {$out ne [lindex $b 0]} {
+            } elseif {$out ne $B} {
                 continue
             } else {
-                lset id 2 [lrange $b 1 end]
+                lset id 2 $_b
             }
             my addNewIDs $id
         }
@@ -78,21 +76,21 @@ oo::class create ::automata::Transducer {
 
     method generate id {
         lassign $id a q0 b
-        set tuples [my getEdges $q0]
-        foreach tuple $tuples {
-            log::log d \$tuple=$tuple 
+        set id [list]
+        foreach tuple [my getEdges $q0] {
             lassign $tuple inp q1 out
             if {$inp ne {}} {
-                set _a [list {*}$a [lindex $inp 0]]
+                lset id 0 [list {*}$a [lindex $inp 0]]
             } else {
-                set _a $a
+                lset id 0 $a
             }
+            lset id 1 $q1
             if {$out ne {}} {
-                set _b [list {*}$b [lindex $out 0]]
+                lset id 2 [list {*}$b [lindex $out 0]]
             } else {
-                set _b $b
+                lset id 2 $b
             }
-            my addNewIDs [list $_a $q1 $_b]
+            my addNewIDs $id
         }
     }
 
