@@ -196,7 +196,6 @@ oo::class create ::automata::STE {
     }
 
     method addNewIDs args {
-        log::log d [info level 0] 
         lappend newids {*}$args
     }
 

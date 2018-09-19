@@ -12,6 +12,7 @@ Mostly done, I think:
 * Post-Turing machine
 * Counter machine
 * Stack machine
+* Karel robot
 
 Doing
 
@@ -20,7 +21,6 @@ Doing
 
 Prospective
 
-* Karel robot
 * SECD machine
 * Queue automaton
 * Counter automaton

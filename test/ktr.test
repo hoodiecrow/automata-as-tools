@@ -1,0 +1,82 @@
+package require tcltest
+namespace import ::tcltest::*
+
+::tcltest::configure {*}$argv
+
+::tcltest::loadTestedCommands
+
+package require automata::ktr
+
+test ktr-1.0 {} -setup {
+    ::automata::KTR create M
+} -body {
+    M compile {
+        turnright:  A:turnleft A:turnleft A:turnleft RET
+        a:          T:next-to-a-beeper
+                    JNZ:end
+                    T:right-is-clear
+                    JZ:b
+                    GOSUB:turnright
+                    J:c
+        b:          T:front-is-clear
+                    JNZ:c
+                    A:turnleft
+                    J:b
+        c:          A:move
+                    J:a
+        end:        A:turnoff
+    }
+    M run {3 3} {1 1 1 0} {3 2 1} {2 1 2 2} 4
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {{3 3} {3 2 3 0} 16 {} {3 2 1} {2 1 2 2}}
+
+test ktr-1.1 {print 1.0} -setup {
+    ::automata::KTR create M
+} -body {
+    M compile {
+        turnright:  A:turnleft A:turnleft A:turnleft RET
+        a:          T:next-to-a-beeper
+                    JNZ:end
+                    T:right-is-clear
+                    JZ:b
+                    GOSUB:turnright
+                    J:c
+        b:          T:front-is-clear
+                    JNZ:c
+                    A:turnleft
+                    J:b
+        c:          A:move
+                    J:a
+        end:        A:turnoff
+    }
+    M print
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -output {Operations used A = {A, GOSUB, J, JNZ, JZ, RET, T}
+State symbols   Q = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
+Program start   S = 0
+Transitions
+q0    inp   q1    out
+0     A     0     turnleft
+1     A     0     turnleft
+2     A     0     turnleft
+3     RET   0     
+4     T     0     next-to-a-beeper
+5     JNZ   16    
+6     T     0     right-is-clear
+7     JZ    10    
+8     GOSUB 0     
+9     J     14    
+10    T     0     front-is-clear
+11    JNZ   14    
+12    A     0     turnleft
+13    J     10    
+14    A     0     move
+15    J     4     
+16    A     0     turnoff
+}
+
+cleanupTests ; return ; # ---------------------------------
