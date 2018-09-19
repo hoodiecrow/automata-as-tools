@@ -60,11 +60,11 @@ oo::class create ::automata::Component {
         #: Print the component's name, label, and value.
         set _data [lmap v $data {if {$v eq {}} {lindex ε} {set v}}]
         if {[string match *(s) $label] && $scalar} {
-            return [format {%s %-15s: %s} [namespace tail [self]] [string range $label 0 end-3] $_data]
+            return [format {%-15s %s = %s}   [string range $label 0 end-3] [namespace tail [self]] $_data]
         } elseif {$scalar} {
-            return [format {%s %-15s: %s} [namespace tail [self]] $label $_data]
-        } else {
-            return [format {%s %-15s: {%s}} [namespace tail [self]] $label [join $_data ", "]]
+            return [format {%-15s %s = %s}   $label [namespace tail [self]] $_data]
+        } else {                                                            
+            return [format {%-15s %s = {%s}} $label [namespace tail [self]] [join [lsort -dict $_data] ", "]]
         }
     }
 

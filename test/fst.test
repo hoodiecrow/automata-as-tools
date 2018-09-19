@@ -334,19 +334,19 @@ test dfst-2.4 {edge detector, print} -setup $t -body {
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -output {A Input alphabet : {0, 1}
-B Output alphabet: {0, 1}
-Q State symbols  : {s0, s1, si}
-S Start symbol(s): {si}
-F Final symbol(s): {s0, s1}
+} -output {Input alphabet  A = {0, 1}
+Output alphabet B = {0, 1}
+State symbols   Q = {s0, s1, si}
+Start symbol(s) S = {si}
+Final symbol(s) F = {s0, s1}
 Transitions
-q0  inp q1  out
-si  0   s0  0
-si  1   s1  0
-s0  0   s0  0
-s0  1   s1  1
-s1  0   s0  1
-s1  1   s1  0
+q0    inp   q1    out
+si    0     s0    0
+si    1     s1    0
+s0    0     s0    0
+s0    1     s1    1
+s1    0     s0    1
+s1    1     s1    0
 }
 
 cleanupTests ; return ; # ---------------------------------

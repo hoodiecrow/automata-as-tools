@@ -99,7 +99,7 @@ oo::class create ::automata::PTM {
             incr i
         }
         my Q clear
-        my Q set [my T fixJumps $labels]
+        my Q set {*}[my T fixJumps $labels]
     }
 
     #: The ID of a PTM is (t, q, h) = current tape, current state, and current head.

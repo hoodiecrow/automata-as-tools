@@ -7,25 +7,61 @@ namespace import ::tcltest::*
 
 package require automata::cm
 
-test cm-1.0 {} -setup {
-    ::automaton::CM create M
+test cm-1.0 {Implement a CPY operation} -setup {
+    ::automata::CM create M
 } -body {
     M compile {
-        a:  JZ:2:b
+        a:  JZ:2,b
             DEC:2
             INC:3
             INC:1
-            JZ:0:a
-        b:  JZ:1:z
+            JZ:0,a
+        b:  JZ:1,z
             DEC:1
             INC:2
-            JZ:0:b
-        z:  H
+            JZ:0,b
+        z:  HALT
     }
     M run {0 0 2 0 0} 1
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {}
+} -result {{0 0 2 2 0} 9}
+
+test cm-1.1 {print 1.0} -setup {
+    ::automata::CM create M
+} -body {
+    M compile {
+        a:  JZ:2,b
+            DEC:2
+            INC:3
+            INC:1
+            JZ:0,a
+        b:  JZ:1,z
+            DEC:1
+            INC:2
+            JZ:0,b
+        z:  HALT
+    }
+    M print
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -output {Operations used A = {DEC, HALT, INC, JZ}
+State symbols   Q = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+Program start   S = 0
+Transitions
+q0    inp   q1    out
+0     JZ    5     2
+1     DEC   0     2
+2     INC   0     3
+3     INC   0     1
+4     JZ    0     0
+5     JZ    9     1
+6     DEC   0     1
+7     INC   0     2
+8     JZ    5     0
+9     HALT  0     {}
+}
 
 cleanupTests ; return ; # ---------------------------------

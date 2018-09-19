@@ -28,13 +28,13 @@ oo::class create ::automata::STE {
     method print {} {
         #: Print the component's transitions.
         lappend res "Transitions"
-        lappend res [format {%-3s %-3s %-3s %s} q0 inp q1 out]
+        lappend res [format {%-5s %-5s %-5s %s} q0 inp q1 out]
         foreach t $data {
             lassign $t q0 inp q1 out
             if {$inp eq {}} {
                 set inp ε
             }
-            lappend res [format {%-3s %-3s %-3s %s} $q0 $inp $q1 $out]
+            lappend res [format {%-5s %-5s %-5s %s} $q0 $inp $q1 $out]
         }
         return [join $res \n]
     }
