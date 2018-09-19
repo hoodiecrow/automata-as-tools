@@ -11,16 +11,24 @@ oo::class create ::automata::FSM {
     mixin ::automata::Printer
     variable epsilon
 
-#: A Finite State Machine recognizes a regular language. It can be asked to accept or classify a list of input symbols.
+    #: A Finite State Machine recognizes a regular language. It can be asked to
+    #: accept or classify a list of input symbols.
+    #:
+    #: The ID of an FSM is (w, q) = remaining input and current state.
+    #:
+    #: Every element in ids represents a separate machine, all working in parallel.
 
     constructor args {
         set epsilon ε
         #: Recognized options:
+        #:
         if {[lindex $args 0] eq "-epsilon"} {
             #: -epsilon c when the input symbol for an edge is this character, it is treated as an epsilon move. Default is ε.
+            #:
             set args [lassign $args - epsilon]
         }
         #: This machine is defined by the tuple `<A, Q, S, F, T>`:
+        #:
         ::automata::Component create A -label "Input alphabet" -exclude {}
         #: * *A* is the input alphabet (does not accept the empty string as symbol).
         ::automata::Component create Q -label "State symbols"
@@ -31,7 +39,7 @@ oo::class create ::automata::FSM {
         #: * *F* is a set of symbols which is a subset of *Q*. These are the accepting final states.
         ::automata::STE create T {Q A}
         #: * *T* is the transition relation, an instance of the `STE` class.
-
+        #: 
         #: Inject the makeMoves method into T.
         oo::objdefine T method makeMoves id {
             lassign $id a q0
@@ -51,14 +59,12 @@ oo::class create ::automata::FSM {
     method compile tokens {
         #: 'source' form is three tokens: from, input, next.
         #: input can contain one or more input symbols, separated by comma.
+        #:
         foreach {from input next} $tokens {
             splitItems input
             my T set $from $input $next
         }
     }
-
-    #: The ID of an FSM is (w, q) = remaining input and current state.
-    #: Every element in ids represents a separate machine, all working in parallel.
 
     method accept a {
         #: Are we in a final state when all input symbols are consumed?

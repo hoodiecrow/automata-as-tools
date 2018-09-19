@@ -11,16 +11,22 @@ oo::class create ::automata::FST {
     mixin ::automata::Printer
     variable epsilon
 
-#: A Finite State Transducer recognizes or encodes a regular relation.
+    #: A Finite State Transducer recognizes or encodes a regular relation.
+    #:
+    #: The ID of an FST is (a, q, b) = current input, current state, and current output.
 
     constructor args {
         set epsilon ε
         #: Recognized options:
+        #:
         if {[lindex $args 0] eq "-epsilon"} {
-            #: -epsilon c when the input symbol for an edge is this character, it is treated as an epsilon move. Default is ε.
+            #: -epsilon c when the input symbol for an edge is this character,
+            #: it is treated as an epsilon move. Default is ε.
+            #:
             set args [lassign $args - epsilon]
         }
         #: This machine is defined by the tuple `<A, B, Q, S, F, T>`:
+        #:
         ::automata::Component create A -label "Input alphabet" -exclude {}
         #: * *A* is the input alphabet (does not accept the empty string as symbol).
         ::automata::Component create B -label "Output alphabet" -exclude {}
@@ -33,7 +39,7 @@ oo::class create ::automata::FST {
         #: * *F* is a set of symbols which is a subset of *Q*. These are the accepting final states.
         ::automata::STE create T {Q A B}
         #: * *T* is the transition relation, an instance of the `STE` class.
-
+        #: 
         #: Inject the processing methods into T.
         oo::objdefine T mixin -append ::automata::Transducer
 
@@ -43,6 +49,7 @@ oo::class create ::automata::FST {
         #: 'source' form is three tokens: from, edge, next.
         #: edge is split by / into input and output
         #: input can contain one or more input symbols, separated by comma.
+        #:
         foreach {from edge next} $tokens {
             regexp {([\w,]*)\s*/\s*([\w,]*)} $edge -> input output
             splitItems input
@@ -50,8 +57,6 @@ oo::class create ::automata::FST {
             my T set $from $input $next {*}$output
         }
     }
-
-    #: The ID of an FST is (a, q, b) = current input, current state, and current output.
 
     method recognize {a b} {
         #: Are we in a final state when all input symbols in a and b are consumed?

@@ -13,6 +13,9 @@ foreach file $files {
         {pda-.*\.tm$} { set target PDA.md }
         {btm-.*\.tm$} { set target BTM.md }
         {ptm-.*\.tm$} { set target PTM.md }
+        {cm-.*\.tm$}  { set target CM.md }
+        {sm-.*\.tm$}  { set target SM.md }
+        {ktr-.*\.tm$} { set target KTR.md }
         default {
             continue
         }
@@ -20,13 +23,13 @@ foreach file $files {
     set f [open [file join ~/code automata-as-tools.wiki $target] w]
     set nomethods 1
     ::fileutil::foreachLine line $file {
-        if {[regexp {^\s*#: (.*)} $line -> m]} {
-            puts $f $m
-        } elseif {[regexp {\s*oo::class create (\S+)} $line -> name]} {
+        if {[regexp {^\s*#:(.*)} $line -> m]} {
+            puts $f [string trimleft $m]
+        } elseif {[regexp {^\s*oo::class create (\S+)} $line -> name]} {
             puts $f "\n## Name\n\n`$name` (class)\n"
-        } elseif {[regexp {\s*constructor} $line]} {
+        } elseif {[regexp {^\s*constructor} $line]} {
             puts $f "\n## Creation\n"
-        } elseif {[regexp {\s*method\s+([[:lower:]]\S*)\s+(.*)\s+\S$} $line -> name arglist]} {
+        } elseif {[regexp {^\s*method\s+([[:lower:]]\S*)\s+(.*)\s+\S$} $line -> name arglist]} {
             if {$nomethods} {
                 set nomethods 0
                 puts $f "\n## Behavior\n"

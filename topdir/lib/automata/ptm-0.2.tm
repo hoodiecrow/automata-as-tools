@@ -14,9 +14,12 @@ oo::class create ::automata::PTM {
     #: A Post-Turing Machine is essentially a TM. The transition matrix is set
     #: by compiling a program.  The tape uses a binary symbol set (here, {0,
     #: 1}).
+    #:
+    #: The ID of a PTM is (t, q, h) = current tape, current state, and current head.
 
     constructor args {
         #: This machine is defined by the tuple `<A, b, Q, S, F, T>`:
+        #:
         ::automata::Component create A -label "Tape alphabet" -exclude {}
         A set 0 1
         #: * *A* is the tape alphabet (does not accept the empty string as symbol).
@@ -32,17 +35,19 @@ oo::class create ::automata::PTM {
         #: * *F* holds the address where the program halts.
         ::automata::STE create T {Q A}
         #: * *T* is the transition relation, an instance of the `STE` class.
-
+        #: 
         #: Inject the Blank method and Processor class into T.
         oo::objdefine T method Blank {} [format {
             return [eval %s]
         } [list [namespace which b] get]]
+
         oo::objdefine T mixin -append ::automata::Processor
 
     }
 
     method compile tokens {
         #: Create a transition matrix from a sequence of operation tokens.
+        #:
         set i 1
         set labels {}
         set instructions [list {}]
@@ -101,8 +106,6 @@ oo::class create ::automata::PTM {
         my Q clear
         my Q set {*}[my T fixJumps $labels]
     }
-
-    #: The ID of a PTM is (t, q, h) = current tape, current state, and current head.
 
     method run {tape {tapeIndex 0}} {
         #: Run the code on this tape, return tape.

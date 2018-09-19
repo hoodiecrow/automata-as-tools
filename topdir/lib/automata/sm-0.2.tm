@@ -7,10 +7,12 @@ package require automata::processor
 
 namespace eval automata {}
 
-#: A simple sort of virtual Stack Machine.
-
 oo::class create ::automata::SM {
     mixin ::automata::Printer
+
+    #: A simple sort of virtual Stack Machine.
+    #: 
+    #: The ID of a SM is (s, q) = current stack, current state.
 
     constructor args {
         #: This machine is defined by the tuple `<A, Q, S, T>`:
@@ -23,7 +25,7 @@ oo::class create ::automata::SM {
         #: * *S* holds first instruction address.
         ::automata::STE create T {Q A}
         #: * *T* is the transition relation, an instance of the `STE` class.
-
+        #: 
         #: Inject the ExecStack method into T.
         oo::objdefine T method ExecStack id {
             lassign $id stack q0
@@ -108,8 +110,6 @@ oo::class create ::automata::SM {
         my Q clear
         my Q set {*}[my T fixJumps $labels]
     }
-
-    #: The ID of a SM is (s, q) = current stack, current state.
 
     method run {stack {s {}}} {
         #: Run the code with the given register settings, starting from s.

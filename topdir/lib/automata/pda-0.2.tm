@@ -11,15 +11,20 @@ oo::class create ::automata::PDA {
     variable epsilon
 
     #: A Pushdown Automaton recognizes a context-free language.
+    #:
+    #: The ID of a PDA is (w, q, s) = remaining input, current state, and current stack.
 
     constructor args {
         set epsilon ε
         #: Recognized options:
+        #:
         if {[lindex $args 0] eq "-epsilon"} {
             #: -epsilon c when the input symbol for an edge is this character, it is treated as an epsilon move. Default is ε.
+            #:
             set args [lassign $args - epsilon]
         }
         #: This machine is defined by the tuple `<A, B, Q, Z, S, F, T>`:
+        #:
         ::automata::Component create A -label "Input alphabet" -exclude {}
         #: * *A* is the input alphabet (does not accept the empty string as symbol).
         ::automata::Component create B -label "Stack alphabet" -exclude {}
@@ -34,7 +39,7 @@ oo::class create ::automata::PDA {
         #: * *F* is a set of symbols which is a subset of *Q*. These are the accepting final states.
         ::automata::STE create T {Q A B}
         #: * *T* is the transition relation, an instance of the `STE` class.
-
+        #: 
         #: Inject the makeMoves method into T.
         oo::objdefine T method makeMoves id {
             lassign $id a q0 b
@@ -76,8 +81,6 @@ oo::class create ::automata::PDA {
             my T set $from $input $next $stackInput {*}$stackPush
         }
     }
-
-    #: The ID of a PDA is (w, q, s) = remaining input, current state, and current stack.
 
     method accept a {
         #: Are we in a final state when all input symbols are consumed and the stack has only one item?

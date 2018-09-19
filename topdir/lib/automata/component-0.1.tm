@@ -4,6 +4,7 @@ oo::class create ::automata::Component {
     #: This class is used for most of the values that make up the
     #: machine-defining tuples. The value itself can be a scalar or a set (set
     #: is default).
+    #:
     constructor args {
         set scalar 0
         set superset {}
@@ -29,7 +30,9 @@ oo::class create ::automata::Component {
                     set args [lassign $args - superset]
                 }
                 -exclude {
-                    #: * `-exclude syms` : the set or scalar will not accept the listed symbols (if given an empty list, reject empty symbols)
+                    #: * `-exclude syms` : the set or scalar will not accept
+                    #: the listed symbols (if given an empty list, reject empty
+                    #: symbols)
                     set args [lassign $args - exclude]
                     if {[llength $exclude] == 0} {
                         set exclude [list {}]
@@ -40,7 +43,8 @@ oo::class create ::automata::Component {
                 }
             }
         }
-        #: 
+
+        #:
         #: If any further arguments are given, the first of those will be set
         #: as a scalar component's value, or all of them as a set component's
         #: value.
@@ -57,7 +61,7 @@ oo::class create ::automata::Component {
     }
 
     method print {} {
-        #: Print the component's name, label, and value.
+        #: Print the component's label, name, and value.
         set _data [lmap v $data {if {$v eq {}} {lindex ε} {set v}}]
         if {[string match *(s) $label] && $scalar} {
             return [format {%-15s %s = %s}   [string range $label 0 end-3] [namespace tail [self]] $_data]

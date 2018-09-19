@@ -10,6 +10,10 @@ namespace eval automata {}
 oo::class create ::automata::CM {
     mixin ::automata::Printer
 
+    #: A Counter Machine is the simplest form of Register Machine.
+    #:
+    #: The ID of a CM is (r, s) = current registers, current state.
+
     constructor args {
         #: This machine is defined by the tuple `<A, Q, S, T>`:
         ::automata::Component create A -label "Operations used" -exclude {}
@@ -21,7 +25,7 @@ oo::class create ::automata::CM {
         #: * *S* holds first instruction address.
         ::automata::STE create T {Q A}
         #: * *T* is the transition relation, an instance of the `STE` class.
-
+        #: 
         #: Inject the ExecCounter method into T.
         oo::objdefine T method ExecCounter id {
             lassign $id regs q0
@@ -73,6 +77,7 @@ oo::class create ::automata::CM {
 
     method compile tokens {
         #: Convert source code to transition configuration.
+        #:
         set i 0
         set labels {}
         foreach token $tokens {
@@ -90,8 +95,6 @@ oo::class create ::automata::CM {
         my Q clear
         my Q set {*}[my T fixJumps $labels]
     }
-
-    #: The ID of a CM is (r, s) = current registers, current state.
 
     method run {regs {s {}}} {
         #: Run the code with the given register settings, starting from s.

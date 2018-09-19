@@ -11,6 +11,8 @@ oo::class create ::automata::BTM {
     mixin ::automata::Printer
 
     #: A Basic Turing Machine recognizes a recursively enumerable language.
+    #:
+    #: The ID of a BTM is (t, q, h) = current tape, current state, and current head.
 
     constructor args {
         #: This machine is defined by the tuple `<A, B, b, Q, S, F, T>`:
@@ -28,7 +30,7 @@ oo::class create ::automata::BTM {
         #: * *F* is a set of symbols which is a subset of *Q*. These are the accepting final states.
         ::automata::STE create T {Q B A}
         #: * *T* is the transition relation, an instance of the `STE` class.
-
+        #: 
         #: Inject the Blank method and Processor class into T.
         oo::objdefine T method Blank {} [format {
             return [eval %s]
@@ -54,8 +56,6 @@ oo::class create ::automata::BTM {
             my T set $from $input $next $print $move
         }
     }
-
-    #: The ID of a BTM is (t, q, h) = current tape, current state, and current head.
 
     method run {tape {tapeIndex 0}} {
         #: Run this tape from this position, return tape, current position, and ending state.

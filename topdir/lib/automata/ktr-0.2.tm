@@ -11,8 +11,14 @@ namespace eval automata {}
 oo::class create ::automata::KTR {
     mixin ::automata::Printer
 
+    #: This is a very limited Karel the Robot that can only walk around, not
+    #: interact with beepers.
+    #:
+    #: The ID of a KTR is (o, r, s, t, b, a) = world, robot, state, teststate, beepers, walls
+
     constructor args {
         #: This machine is defined by the tuple `<A, Q, S, T>`:
+        #:
         ::automata::Component create A -label "Operations used" -exclude {}
         #: * *A* is the set of operations used.
         ::automata::Component create Q -label "State symbols"
@@ -22,7 +28,7 @@ oo::class create ::automata::KTR {
         #: * *S* holds first instruction address.
         ::automata::STE create T {Q A}
         #: * *T* is the transition relation, an instance of the `STE` class.
-
+        #: 
         #: Inject the Robot class into T.
         oo::objdefine T mixin -append ::automata::Robot
 
@@ -30,6 +36,7 @@ oo::class create ::automata::KTR {
 
     method compile tokens {
         #: Convert source code to transition configuration.
+        #:
         set i 0
         set labels {}
         foreach token $tokens {
@@ -51,8 +58,6 @@ oo::class create ::automata::KTR {
         my Q clear
         my Q set {*}[my T fixJumps $labels]
     }
-
-    #: The ID of a KTR is (o, r, s, t, b, a) = world, robot, state, teststate, beepers, walls
 
     method run {world robot beepers walls {s {}}} {
         #: Run the code with the given register settings, starting from s.
