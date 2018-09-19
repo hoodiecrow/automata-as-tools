@@ -1,0 +1,55 @@
+package require tcltest
+namespace import ::tcltest::*
+
+::tcltest::configure {*}$argv
+
+::tcltest::loadTestedCommands
+
+package require automata::sm
+
+test sm-1.0 {Implement a CPY operation} -setup {
+    ::automata::SM create M
+} -body {
+    M compile {
+        PUSH:2
+        PUSH:3
+        ADD
+        PUSH:4
+        MUL
+        HALT
+    }
+    M run {}
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {20 5}
+
+test sm-1.1 {print 1.0} -setup {
+    ::automata::SM create M
+} -body {
+    M compile {
+        PUSH:2
+        PUSH:3
+        ADD
+        PUSH:4
+        MUL
+        HALT
+    }
+    M print
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -output {Operations used A = {ADD, HALT, MUL, PUSH}
+State symbols   Q = {0, 1, 2, 3, 4, 5}
+Program start   S = 0
+Transitions
+q0    inp   q1    out
+0     PUSH  0     2
+1     PUSH  0     3
+2     ADD   0     {}
+3     PUSH  0     4
+4     MUL   0     {}
+5     HALT  0     {}
+}
+
+cleanupTests ; return ; # ---------------------------------

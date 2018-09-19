@@ -22,7 +22,7 @@ test cm-1.0 {Implement a CPY operation} -setup {
             JZ:0,b
         z:  HALT
     }
-    M run {0 0 2 0 0} 1
+    M run {0 0 2 0 0}
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1

@@ -10,13 +10,13 @@ Mostly done, I think:
 * Push-down automaton
 * (Basic) Turing machine
 * Post-Turing machine
+* Counter machine
+* Stack machine
 
 Doing
 
 * Wang B-machine
 * Register machine
-* Stack machine
-* Counter machine
 
 Prospective
 
