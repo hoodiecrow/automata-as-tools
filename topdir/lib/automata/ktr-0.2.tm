@@ -19,13 +19,10 @@ oo::class create ::automata::KTR {
     constructor args {
         #: This machine is defined by the tuple `<A, Q, S, T>`:
         #:
-        ::automata::Component create A -label "Operations used" -exclude {}
-        #: * *A* is the set of operations used.
-        ::automata::Component create Q -label "State symbols"
-        #: * *Q* is the set of state symbols (in this machine, this means instruction addresses).
+        ::automata::Component create A -label "Operations used" -exclude {{}}
+        ::automata::Component create Q -label "State symbols" -domain N
         ::automata::Component create S -label "Program start" -in [namespace which Q] -scalar
         S set 0
-        #: * *S* holds first instruction address.
         ::automata::STE create T {Q A}
         #: * *T* is the transition relation, an instance of the `STE` class.
         #: 

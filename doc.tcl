@@ -23,33 +23,106 @@ foreach file $files {
     set f [open [file join ~/code automata-as-tools.wiki $target] w]
     set nomethods 1
     ::fileutil::foreachLine line $file {
-        if {[regexp {^\s*#:(.*)} $line -> m]} {
-            puts $f [string trimleft $m]
-        } elseif {[regexp {^\s*oo::class create (\S+)} $line -> name]} {
-            puts $f "\n## Name\n\n`$name` (class)\n"
-        } elseif {[regexp {^\s*constructor} $line]} {
-            puts $f "\n## Creation\n"
-        } elseif {[regexp {^\s*method\s+([[:lower:]]\S*)\s+(.*)\s+\S$} $line -> name arglist]} {
-            if {$nomethods} {
-                set nomethods 0
-                puts $f "\n## Behavior\n"
+        switch -regexp -matchvar m $line {
+            {^\s*#:(.*)} {
+                puts $f [string trimleft [lindex $m 1]]
             }
-            set arglist {*}$arglist
-            set _arglist {}
-            if {[lindex $arglist end] eq "args"} {
-                set arglist [lrange $arglist 0 end-1]
-                set suffix " ?arg...?"
-            } else {
-                set suffix {}
+            {^\s*oo::class create (\S+)} {
+                puts $f "\n## Name\n\n`[lindex $m 1]` (class)\n"
             }
-            foreach arg $arglist {
-                if {[llength $arg] == 1} {
-                    append _arglist " $arg"
-                } else {
-                    append _arglist " ?[lindex $arg 0]?"
+            {^\s*constructor} {
+                puts $f "\n## Creation\n"
+            }
+            {^\s*method\s+([[:lower:]]\S*)\s+(.*)\s+\S$} {
+                lassign $m - name arglist
+                if {$nomethods} {
+                    set nomethods 0
+                    puts $f "\n## Behavior\n"
                 }
+                set arglist {*}$arglist
+                set _arglist {}
+                if {[lindex $arglist end] eq "args"} {
+                    set arglist [lrange $arglist 0 end-1]
+                    set suffix " ?arg...?"
+                } else {
+                    set suffix {}
+                }
+                foreach arg $arglist {
+                    if {[llength $arg] == 1} {
+                        append _arglist " $arg"
+                    } else {
+                        append _arglist " ?[lindex $arg 0]?"
+                    }
+                }
+                puts $f "\n* `$name$_arglist$suffix`\n"
             }
-            puts $f "\n* `$name$_arglist$suffix`\n"
+            {Component create\s+(\w+)\s+(.*)} {
+                lassign $m - name optlist
+                set label {}
+                set isscalar 0
+                set cmd {}
+                set domain {}
+                set exclude {}
+                set optlist [regsub {\[namespace which (\w+)\]} $optlist {\1}]
+                while {[llength $optlist]} {
+                    switch [lindex $optlist 0] {
+                        -label {
+                            set optlist [lassign $optlist - label]
+                        }
+                        -scalar {
+                            set optlist [lassign $optlist -]
+                            set isscalar 1
+                        }
+                        -in {
+                            set optlist [lassign $optlist - cmd]
+                        }
+                        -domain {
+                            set optlist [lassign $optlist - domain]
+                        }
+                        -exclude {
+                            set optlist [lassign $optlist - exclude]
+                        }
+                        default {
+                            break
+                        }
+                    }
+                    set s "* *$name* is the "
+                    if {!$isscalar} {
+                        append s "set of "
+                    }
+                    append s [string tolower $label] " "
+                    if {[llength $exclude]} {
+                        append s "(excluding "
+                        foreach sym $exclude {
+                            if {$sym eq {}} {
+                                append s "the empty string, "
+                            } else {
+                                append s "$sym, "
+                            }
+                        }
+                        set s [string replace $s end-1 end-1 )]
+                    }
+                    if {$cmd ne {}} {
+                        if {$isscalar} {
+                            append s "(∈ $cmd)"
+                        } else {
+                            append s "(⊆ $cmd)"
+                        }
+                    }
+                    switch $domain {
+                        N { append s "(⊂ ℕ : 0, 1, 2, ...)" }
+                        Z { append s "(⊂ ℤ : ..., −2, −1, 0, 1, 2, ...)" }
+                        R { append s "(⊂ ℝ : real numbers)" }
+                        default {
+                            ;
+                        }
+                    }
+                }
+                puts $f [string trimright $s].
+            }
+            default {
+                ;
+            }
         }
     }
     close $f

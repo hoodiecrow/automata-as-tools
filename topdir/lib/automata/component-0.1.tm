@@ -1,5 +1,5 @@
 oo::class create ::automata::Component {
-    variable data label scalar superset exclude
+    variable data label scalar superset domain exclude
 
     #: This class is used for most of the values that make up the
     #: machine-defining tuples. The value itself can be a scalar or a set (set
@@ -8,10 +8,10 @@ oo::class create ::automata::Component {
     constructor args {
         set scalar 0
         set superset {}
+        set domain {}
         set exclude {}
         while {[llength $args] > 0} {
             #: The following options are recognized by the constructor:
-            #: 
             switch [lindex $args 0] {
                 -label {
                     #: * `-label str` : stores a description string.
@@ -29,14 +29,17 @@ oo::class create ::automata::Component {
                     #: argument to the component's `set` method.
                     set args [lassign $args - superset]
                 }
+                -domain {
+                    #: * `-domain d` : adds a domain test. Currently supports
+                    #: the domains N (non-negative integers), Z (integers), R
+                    #: (double precision floating point numbers).
+                    set args [lassign $args - domain]
+                }
                 -exclude {
                     #: * `-exclude syms` : the set or scalar will not accept
                     #: the listed symbols (if given an empty list, reject empty
                     #: symbols)
                     set args [lassign $args - exclude]
-                    if {[llength $exclude] == 0} {
-                        set exclude [list {}]
-                    }
                 }
                 default {
                     break
@@ -88,6 +91,11 @@ oo::class create ::automata::Component {
         foreach value $args {
             if {$value in $exclude} {
                 continue
+            }
+            switch $domain {
+                N { if {![string is digit -strict $value]} { continue } }
+                Z { if {![string is entier -strict $value]} { continue } }
+                R { if {![string is double -strict $value]} { continue } }
             }
             if {$superset ne {}} {
                 $superset set $value

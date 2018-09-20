@@ -16,62 +16,15 @@ oo::class create ::automata::CM {
 
     constructor args {
         #: This machine is defined by the tuple `<A, Q, S, T>`:
-        ::automata::Component create A -label "Operations used" -exclude {}
-        #: * *A* is the set of operations used.
-        ::automata::Component create Q -label "State symbols"
-        #: * *Q* is the set of state symbols (in this machine, this means instruction addresses).
+        ::automata::Component create A -label "Operations used" -exclude {{}}
+        ::automata::Component create Q -label "Instructions" -domain N
         ::automata::Component create S -label "Program start" -in [namespace which Q] -scalar
         S set 0
-        #: * *S* holds first instruction address.
         ::automata::STE create T {Q A}
         #: * *T* is the transition relation, an instance of the `STE` class.
         #: 
-        #: Inject the ExecCounter method into T.
-        oo::objdefine T method ExecCounter id {
-            lassign $id regs q0
-            lassign [lindex [my get $q0 *] 0] - op addr reg
-            switch $op {
-                INC {
-                    lset regs $reg [expr {[lindex $regs $reg] + 1}]
-                    set q1 [expr {$q0 + 1}]
-                }
-                DEC {
-                    lset regs $reg [expr {[lindex $regs $reg] - 1}]
-                    set q1 [expr {$q0 + 1}]
-                }
-                JZ {
-                    if {[lindex $regs $reg] eq 0} {
-                        set q1 $addr
-                    } else {
-                        set q1 [expr {$q0 + 1}]
-                    }
-                }
-                JE {
-                    lassign [split $reg ,] r0 r1
-                    if {[lindex $regs $r0] eq [lindex $regs $r1]} {
-                        set q1 $addr
-                    } else {
-                        set q1 [expr {$q0 + 1}]
-                    }
-                }
-                CLR {
-                    lset regs $reg 0
-                    set q1 [expr {$q0 + 1}]
-                }
-                CPY {
-                    lassign [split $reg ,] r0 r1
-                    lset regs $r1 [lindex $regs $r0]
-                    set q1 [expr {$q0 + 1}]
-                }
-                HALT {
-                    return
-                }
-                default {
-                    error \$op=$op
-                }
-            }
-            my addNewIDs [list $regs $q1]
-        }
+        #: Inject the Processor class into T.
+        oo::objdefine T mixin -append ::automata::Processor
 
     }
 

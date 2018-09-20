@@ -29,28 +29,32 @@ oo::class create ::automata::FSM {
         }
         #: This machine is defined by the tuple `<A, Q, S, F, T>`:
         #:
-        ::automata::Component create A -label "Input alphabet" -exclude {}
-        #: * *A* is the input alphabet (does not accept the empty string as symbol).
+        ::automata::Component create A -label "Input symbols" -exclude {{}}
         ::automata::Component create Q -label "State symbols"
-        #: * *Q* is the set of state symbols.
-        ::automata::Component create S -label "Start symbol(s)" -in [namespace which Q]
-        #: * *S* is a symbol which is a member of the set of state symbols (for a deterministic FSM) or a set of symbols which is a subset of the state symbols (for a nondeterministic FSM). Processing will start at this/these symbols.
-        ::automata::Component create F -label "Final symbol(s)" -in [namespace which Q]
-        #: * *F* is a set of symbols which is a subset of *Q*. These are the accepting final states.
+        ::automata::Component create S -label "Start symbols" -in [namespace which Q]
+        ::automata::Component create F -label "Final symbols" -in [namespace which Q]
         ::automata::STE create T {Q A}
         #: * *T* is the transition relation, an instance of the `STE` class.
         #: 
         #: Inject the makeMoves method into T.
         oo::objdefine T method makeMoves id {
+            # unpack ID
             lassign $id a q0
+            # get epsilons
             set tuples [my get $q0 {}]
             set q1s [lmap tuple $tuples {lindex $tuple 2}]
+            # q1 from tuple
+            # build new IDs
             my addNewIDs {*}[lmap q1 $q1s {list $a $q1}]
+            # get moves
             set tuples [my get $q0 [lindex $a 0]]
             set q1s [lmap tuple $tuples {lindex $tuple 2}]
+            # q1 from tuple
+            # consume input token
             if {[llength $q1s] > 0} {
                 set a [lrange $a 1 end]
             }
+            # build new IDs
             my addNewIDs {*}[lmap q1 $q1s {list $a $q1}]
         }
 

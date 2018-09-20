@@ -27,16 +27,11 @@ oo::class create ::automata::FST {
         }
         #: This machine is defined by the tuple `<A, B, Q, S, F, T>`:
         #:
-        ::automata::Component create A -label "Input alphabet" -exclude {}
-        #: * *A* is the input alphabet (does not accept the empty string as symbol).
-        ::automata::Component create B -label "Output alphabet" -exclude {}
-        #: * *B* is the output alphabet (does not accept the empty string as symbol).
+        ::automata::Component create A -label "Input symbols" -exclude {{}}
+        ::automata::Component create B -label "Output symbols" -exclude {{}}
         ::automata::Component create Q -label "State symbols"
-        #: * *Q* is the set of state symbols.
-        ::automata::Component create S -label "Start symbol(s)" -in [namespace which Q]
-        #: * *S* is a symbol which is a member of the set of state symbols (for a deterministic FST) or a set of symbols which is a subset of the state symbols (for a nondeterministic FST). Processing will start at this/these symbols.
-        ::automata::Component create F -label "Final symbol(s)" -in [namespace which Q]
-        #: * *F* is a set of symbols which is a subset of *Q*. These are the accepting final states.
+        ::automata::Component create S -label "Start symbols" -in [namespace which Q]
+        ::automata::Component create F -label "Final symbols" -in [namespace which Q]
         ::automata::STE create T {Q A B}
         #: * *T* is the transition relation, an instance of the `STE` class.
         #: 

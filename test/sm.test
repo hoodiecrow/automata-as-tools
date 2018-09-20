@@ -40,8 +40,8 @@ test sm-1.1 {print 1.0} -setup {
     M destroy
     log::lvSuppressLE i 1
 } -output {Operations used A = {ADD, HALT, MUL, PUSH}
-State symbols   Q = {0, 1, 2, 3, 4, 5}
-Program start   S = 0
+Instructions    Q = {0, 1, 2, 3, 4, 5}
+Start address   S = 0
 Transitions
 q0    inp   q1    out
 0     PUSH  0     2

@@ -25,41 +25,43 @@ oo::class create ::automata::PDA {
         }
         #: This machine is defined by the tuple `<A, B, Q, Z, S, F, T>`:
         #:
-        ::automata::Component create A -label "Input alphabet" -exclude {}
-        #: * *A* is the input alphabet (does not accept the empty string as symbol).
-        ::automata::Component create B -label "Stack alphabet" -exclude {}
-        #: * *B* is the stack alphabet (does not accept the empty string as symbol).
+        ::automata::Component create A -label "Input symbols" -exclude {{}}
+        ::automata::Component create B -label "Stack symbols" -exclude {{}}
         ::automata::Component create Q -label "State symbols"
-        #: * *Q* is the set of state symbols.
         ::automata::Component create Z -label "Stack bottom" -in [namespace which B] -scalar
-        #: * *Z* is a symbol which is a member of the set of stack symbols. The stack will contain this symbol when starting.
-        ::automata::Component create S -label "Start symbol(s)" -in [namespace which Q]
-        #: * *S* is a symbol which is a member of the set of state symbols. Processing will start at this symbol.
-        ::automata::Component create F -label "Final symbol(s)" -in [namespace which Q]
-        #: * *F* is a set of symbols which is a subset of *Q*. These are the accepting final states.
+        ::automata::Component create S -label "Start symbol" -in [namespace which Q] -scalar
+        ::automata::Component create F -label "Final symbols" -in [namespace which Q]
         ::automata::STE create T {Q A B}
         #: * *T* is the transition relation, an instance of the `STE` class.
         #: 
         #: Inject the makeMoves method into T.
         oo::objdefine T method makeMoves id {
+            # unpack ID
             lassign $id a q0 b
             set _a [lassign $a A]
             set _b [lassign $b B]
+            # get epsilons
             set tuples1 [my get $q0 {}]
+            # get moves
             set tuples2 [my get $q0 $A]
             set id [list]
+            # build new IDs
             foreach tuple [concat $tuples1 $tuples2] {
+                # q1 from tuple
                 lassign $tuple - inp q1 out
                 set o [lassign $out osym]
                 if {$inp eq {}} {
                     lset id 0 $a
                 } else {
+                    # consume input token
                     lset id 0 $_a
                 }
                 lset id 1 $q1
                 if {$osym ne $B} {
+                    # reject invalid transition
                     continue
                 } else {
+                    # push stack
                     lset id 2 [concat $o $_b]
                 }
                 my addNewIDs $id

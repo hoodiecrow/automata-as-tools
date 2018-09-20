@@ -46,10 +46,12 @@ oo::class create ::automata::Robot {
 
     method exec id {
         log::log d [info level 0] 
+        # unpack ID
         lassign $id world robot q t beepers walls
         lassign $world w h
         lassign $robot x y f b
         lassign $q q0
+        # get move
         lassign [lindex [my get $q0 *] 0] - op addr label
         log::log d "\$op=$op \$label=$label"
         switch $op {
@@ -73,6 +75,7 @@ oo::class create ::automata::Robot {
                         error \$label=$label
                     }
                 }
+                # q1 <- succ(q0)
                 lset q 0 [incr q0]
                 set t {}
             }
@@ -113,12 +116,15 @@ oo::class create ::automata::Robot {
                         error "label = $label"
                     }
                 }
+                # q1 <- succ(q0)
                 lset q 0 [incr q0]
             }
             JZ {
                 if {$t eq 0} {
+                    # q1 <- addr
                     set q1 $addr
                 } else {
+                    # q1 <- succ(q0)
                     set q1 [expr {$q0 + 1}]
                 }
                 lset q 0 $q1
@@ -126,24 +132,31 @@ oo::class create ::automata::Robot {
             }
             JNZ {
                 if {$t ne 0} {
+                    # q1 <- addr
                     set q1 $addr
                 } else {
+                    # q1 <- succ(q0)
                     set q1 [expr {$q0 + 1}]
                 }
                 lset q 0 $q1
                 set t {}
             }
             J {
+                # q1 <- addr
                 set q1 $addr
                 lset q 0 $q1
                 set t {}
             }
             RET {
+                # q1 << stack
                 set q [lassign $q q1]
                 set t {}
             }
             GOSUB {
+                # q1 <- succ(q0)
+                # q1 >> stack
                 lset q 0 [incr q0]
+                # q1 <- addr
                 set q1 $addr
                 set q [linsert $q 0 $q1]
                 set t {}
@@ -152,6 +165,7 @@ oo::class create ::automata::Robot {
                 error \$op=$op
             }
         }
+        # build new ID
         lappend _ids $world
         lappend _ids [list $x $y $f $b]
         lappend _ids $q

@@ -43,12 +43,12 @@ test btm-1.1 {3 state, 2 symbol busy beaver print} -setup {} -body {
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -output {Tape alphabet   A = {0, 1}
-Init alphabet   B = {0, 1}
+} -output {Tape symbols    A = {0, 1}
+Init symbols    B = {0, 1}
 Blank symbol    b = 0
 State symbols   Q = {A, B, C, H}
 Start symbol    S = A
-Final symbol(s) F = {H}
+Final symbols   F = {H}
 Transitions
 q0    inp   q1    out
 A     0     B     1 R
