@@ -1,6 +1,7 @@
 namespace eval automata {}
 
 oo::class create ::automata::Processor {
+    variable ns
 
     method tapeMoveR {varName1 varName2} {
         upvar 1 $varName1 t $varName2 h
@@ -62,80 +63,47 @@ oo::class create ::automata::Processor {
         lassign [lindex [my get $q0 *] 0] - op addr val
         switch $op {
             INC {
-                # update stack
                 lset stack 0 [my ALU INC [lindex $stack 0]]
-                # q1 <- succ(q0)
-                set q1 [expr {$q0 + 1}]
+                set q1 [my Q succ $q0]
             }
             DEC {
-                # update stack
                 lset stack 0 [my ALU DEC [lindex $stack 0]]
-                # q1 <- succ(q0)
-                set q1 [expr {$q0 + 1}]
+                set q1 [my Q succ $q0]
             }
             JZ {
-                # check current
                 set v [my ALU == [lindex $stack 0] 0]
-                if {$v} {
-                    # q1 <- addr
-                    set q1 $addr
-                } else {
-                    # q1 <- succ(q0)
-                    set q1 [expr {$q0 + 1}]
-                }
+                set q1 [if {$v} {set addr} {my Q succ $q0}]
             }
             JE {
-                # compare top two
                 set v [my ALU == {*}[lrange $stack 0 1]]
-                if {$v} {
-                    # q1 <- addr
-                    set q1 $addr
-                } else {
-                    # q1 <- succ(q0)
-                    set q1 [expr {$q0 + 1}]
-                }
+                set q1 [if {$v} {set addr} {my Q succ $q0}]
             }
-            J {
-                # q1 <- addr
-                set q1 $addr
-            }
+            J { set q1 $addr }
             CLR {
-                # clear stack
                 set stack {}
-                # q1 <- succ(q0)
-                set q1 [expr {$q0 + 1}]
+                set q1 [my Q succ $q0]
             }
             DUP {
-                # copy top
                 set stack [linsert $stack 0 [lindex $stack 0]]
-                # q1 <- succ(q0)
-                set q1 [expr {$q0 + 1}]
+                set q1 [my Q succ $q0]
             }
             DUP2 {
-                # copy two top
                 set stack [linsert $stack 0 [lrange $stack 0 1]]
-                # q1 <- succ(q0)
-                set q1 [expr {$q0 + 1}]
+                set q1 [my Q succ $q0]
             }
             PUSH {
-                # push element
                 set stack [linsert $stack 0 $val]
-                # q1 <- succ(q0)
-                set q1 [expr {$q0 + 1}]
+                set q1 [my Q succ $q0]
             }
             ADD {
-                # add top two
                 set v [my ALU + {*}[lrange $stack 0 1]]
                 set stack [lreplace $stack 0 1 $v]
-                # q1 <- succ(q0)
-                set q1 [expr {$q0 + 1}]
+                set q1 [my Q succ $q0]
             }
             MUL {
-                # multiply top two
                 set v [my ALU * {*}[lrange $stack 0 1]]
                 set stack [lreplace $stack 0 1 $v]
-                # q1 <- succ(q0)
-                set q1 [expr {$q0 + 1}]
+                set q1 [my Q succ $q0]
             }
             HALT {
                 return
@@ -155,68 +123,42 @@ oo::class create ::automata::Processor {
         lassign [lindex [my get $q0 *] 0] - op addr reg
         switch $op {
             INC {
-                # update reg
                 lset regs $reg [my ALU INC [lindex $regs $reg]]
-                # q1 <- succ(q0)
-                set q1 [expr {$q0 + 1}]
+                set q1 [my Q succ $q0]
             }
             DEC {
-                # update reg
                 lset regs $reg [my ALU DEC [lindex $regs $reg]]
-                # q1 <- succ(q0)
-                set q1 [expr {$q0 + 1}]
+                set q1 [my Q succ $q0]
             }
             JZ {
-                # check current
                 set v [my ALU == [lindex $regs $reg] 0]
-                if {$v} {
-                    # q1 <- addr
-                    set q1 $addr
-                } else {
-                    # q1 <- succ(q0)
-                    set q1 [expr {$q0 + 1}]
-                }
+                set q1 [if {$v} {set addr} {my Q succ $q0}]
             }
             JE {
                 lassign [split $reg ,] r0 r1
-                # compare regs
                 set v [my ALU == [lindex $regs $r0] [lindex $regs $r1]]
-                if {$v} {
-                    # q1 <- addr
-                    set q1 $addr
-                } else {
-                    # q1 <- succ(q0)
-                    set q1 [expr {$q0 + 1}]
-                }
+                set q1 [if {$v} {set addr} {my Q succ $q0}]
             }
             CLR {
-                # clear reg
                 lset regs $reg 0
-                # q1 <- succ(q0)
-                set q1 [expr {$q0 + 1}]
+                set q1 [my Q succ $q0]
             }
             CPY {
                 lassign [split $reg ,] r0 r1
-                # copy regs
                 lset regs $r1 [lindex $regs $r0]
-                # q1 <- succ(q0)
-                set q1 [expr {$q0 + 1}]
+                set q1 [my Q succ $q0]
             }
             ADD {
-                # add two
                 lassign [split $reg ,] r0 r1 r2
                 set v [my ALU + [lindex $regs $r0] [lindex $regs $r1]]
                 lset regs $r2 $v
-                # q1 <- succ(q0)
-                set q1 [expr {$q0 + 1}]
+                set q1 [my Q succ $q0]
             }
             MUL {
-                # multiply two
                 lassign [split $reg ,] r0 r1 r2
                 set v [my ALU * [lindex $regs $r0] [lindex $regs $r1]]
                 lset regs $r2 $v
-                # q1 <- succ(q0)
-                set q1 [expr {$q0 + 1}]
+                set q1 [my Q succ $q0]
             }
             HALT {
                 return

@@ -21,6 +21,7 @@ oo::class create ::automata::STE {
         lappend $ns\::complist $name
         oo::objdefine [uplevel 1 {self}] forward $name $name
         oo::objdefine [uplevel 1 {self}] export $name
+        oo::objdefine [self] forward Q $ns\::Q
     }
 
     method Dump {} {set data}

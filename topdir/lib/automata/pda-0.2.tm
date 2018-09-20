@@ -41,31 +41,28 @@ oo::class create ::automata::PDA {
             set _a [lassign $a A]
             set _b [lassign $b B]
             # get epsilons
-            set tuples1 [my get $q0 {}]
+            set tuples [my get $q0 {}]
             # get moves
-            set tuples2 [my get $q0 $A]
-            set id [list]
+            lappend tuples {*}[my get $q0 $A]
             # build new IDs
-            foreach tuple [concat $tuples1 $tuples2] {
+            my addNewIDs {*}[lmap tuple $tuples {
                 # q1 from tuple
-                lassign $tuple - inp q1 out
-                set o [lassign $out osym]
+                lassign $tuple - inp q1 o
+                set _o [lassign $o O]
                 if {$inp eq {}} {
-                    lset id 0 $a
+                    set tuple [lreplace $tuple 0 1 $a]
                 } else {
                     # consume input token
-                    lset id 0 $_a
+                    set tuple [lreplace $tuple 0 1 $_a]
                 }
-                lset id 1 $q1
-                if {$osym ne $B} {
+                if {$O ne $B} {
                     # reject invalid transition
                     continue
                 } else {
                     # push stack
-                    lset id 2 [concat $o $_b]
+                    lset tuple 2 [concat $_o $_b]
                 }
-                my addNewIDs $id
-            }
+            }]
         }
 
     }

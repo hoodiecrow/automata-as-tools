@@ -40,22 +40,19 @@ oo::class create ::automata::FSM {
         oo::objdefine T method makeMoves id {
             # unpack ID
             lassign $id a q0
+            set _a [lassign $a A]
             # get epsilons
             set tuples [my get $q0 {}]
-            set q1s [lmap tuple $tuples {lindex $tuple 2}]
-            # q1 from tuple
             # build new IDs
-            my addNewIDs {*}[lmap q1 $q1s {list $a $q1}]
+            my addNewIDs {*}[lmap tuple $tuples {
+                list $a [lindex $tuple 2]
+            }]
             # get moves
-            set tuples [my get $q0 [lindex $a 0]]
-            set q1s [lmap tuple $tuples {lindex $tuple 2}]
-            # q1 from tuple
-            # consume input token
-            if {[llength $q1s] > 0} {
-                set a [lrange $a 1 end]
-            }
+            set tuples [my get $q0 $A]
             # build new IDs
-            my addNewIDs {*}[lmap q1 $q1s {list $a $q1}]
+            my addNewIDs {*}[lmap tuple $tuples {
+                list $_a [lindex $tuple 2]
+            }]
         }
 
     }

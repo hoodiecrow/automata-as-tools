@@ -8,32 +8,28 @@ oo::class create ::automata::Transducer {
         set _a [lassign $a A]
         set _b [lassign $b B]
         # get epsilons
-        set tuples1 [my get $q0 {}]
+        set tuples [my get $q0 {}]
         # get moves
-        set tuples2 [my get $q0 $A]
-        set id [list]
-        # build new IDs
-        foreach tuple [concat $tuples1 $tuples2] {
+        lappend tuples {*}[my get $q0 $A]
+        my addNewIDs {*}[lmap tuple $tuples {
             # q1 from tuple
             lassign $tuple - inp q1 out
             if {$inp eq {}} {
-                lset id 0 $a
+                set tuple [lreplace $tuple 0 1 $a]
             } else {
                 # consume input token
-                lset id 0 $_a
+                set tuple [lreplace $tuple 0 1 $_a]
             }
-            lset id 1 $q1
             if {$out eq {}} {
-                lset id 2 $b
+                lset tuple 2 $b
             } elseif {$out ne $B} {
                 # reject invalid transition
                 continue
             } else {
                 # consume output token
-                lset id 2 $_b
+                lset tuple 2 $_b
             }
-            my addNewIDs $id
-        }
+        }]
     }
 
     method translate id {
@@ -41,83 +37,75 @@ oo::class create ::automata::Transducer {
         lassign $id a q0 b
         set _a [lassign $a A]
         # get epsilons
-        set tuples1 [my get $q0 {}]
+        set tuples [my get $q0 {}]
         # get moves
-        set tuples2 [my get $q0 $A]
-        set id [list]
-        # build new IDs
-        foreach tuple [concat $tuples1 $tuples2] {
+        lappend tuples {*}[my get $q0 $A]
+        my addNewIDs {*}[lmap tuple $tuples {
             # q1 from tuple
             lassign $tuple - inp q1 out
             if {$inp eq {}} {
-                lset id 0 $a
+                set tuple [lreplace $tuple 0 1 $a]
             } else {
                 # consume input token
-                lset id 0 $_a
+                set tuple [lreplace $tuple 0 1 $_a]
             }
-            lset id 1 $q1
-            if {$out ne {}} {
-                # emit output token
-                lset id 2 [list {*}$b [lindex $out 0]]
+            if {$out eq {}} {
+                lset tuple 2 $b
             } else {
-                lset id 2 $b
+                # emit output token
+                lset tuple 2 [linsert $b end [lindex $out 0]]
             }
-            my addNewIDs $id
-        }
+        }]
     }
 
     method reconstruct id {
         # unpack ID
         lassign $id a q0 b
         set _b [lassign $b B]
-        set id [list]
-        # get edges, build new IDs
-        foreach tuple [my getEdges $q0] {
+        # get moves
+        set tuples [my get $q0 *]
+        my addNewIDs {*}[lmap tuple $tuples {
             # q1 from tuple
-            lassign $tuple inp q1 out
-            if {$inp ne {}} {
-                # emit input token
-                lset id 0 [list {*}$a [lindex $inp 0]]
+            lassign $tuple - inp q1 out
+            if {$inp eq {}} {
+                set tuple [lreplace $tuple 0 1 $a]
             } else {
-                lset id 0 $a
+                # emit input token
+                set tuple [lreplace $tuple 0 1 [linsert $a end [lindex $inp 0]]]
             }
-            lset id 1 $q1
             if {$out eq {}} {
-                lset id 2 $b
+                lset tuple 2 $b
             } elseif {$out ne $B} {
                 # reject invalid transition
                 continue
             } else {
                 # consume output token
-                lset id 2 $_b
+                lset tuple 2 $_b
             }
-            my addNewIDs $id
-        }
+        }]
     }
 
     method generate id {
         # unpack ID
         lassign $id a q0 b
-        set id [list]
-        # get edges, build new IDs
-        foreach tuple [my getEdges $q0] {
+        # get moves
+        set tuples [my get $q0 *]
+        my addNewIDs {*}[lmap tuple $tuples {
             # q1 from tuple
-            lassign $tuple inp q1 out
-            if {$inp ne {}} {
+            lassign $tuple - inp q1 out
+            if {$inp eq {}} {
+                set tuple [lreplace $tuple 0 1 $a]
+            } else {
                 # emit input token
-                lset id 0 [list {*}$a [lindex $inp 0]]
-            } else {
-                lset id 0 $a
+                set tuple [lreplace $tuple 0 1 [linsert $a end [lindex $inp 0]]]
             }
-            lset id 1 $q1
-            if {$out ne {}} {
+            if {$out eq {}} {
+                lset tuple 2 $b
+            } else {
                 # emit output token
-                lset id 2 [list {*}$b [lindex $out 0]]
-            } else {
-                lset id 2 $b
+                lset tuple 2 [linsert $b end [lindex $out 0]]
             }
-            my addNewIDs $id
-        }
+        }]
     }
 
 }

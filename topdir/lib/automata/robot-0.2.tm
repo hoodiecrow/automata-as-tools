@@ -75,8 +75,7 @@ oo::class create ::automata::Robot {
                         error \$label=$label
                     }
                 }
-                # q1 <- succ(q0)
-                lset q 0 [incr q0]
+                lset q 0 [my Q succ $q0]
                 set t {}
             }
             T {
@@ -116,49 +115,29 @@ oo::class create ::automata::Robot {
                         error "label = $label"
                     }
                 }
-                # q1 <- succ(q0)
-                lset q 0 [incr q0]
+                lset q 0 [my Q succ $q0]
             }
             JZ {
-                if {$t eq 0} {
-                    # q1 <- addr
-                    set q1 $addr
-                } else {
-                    # q1 <- succ(q0)
-                    set q1 [expr {$q0 + 1}]
-                }
-                lset q 0 $q1
+                set v [expr {$t eq 0}]
+                lset q 0 [if {$v} {set addr} {my Q succ $q0}]
                 set t {}
             }
             JNZ {
-                if {$t ne 0} {
-                    # q1 <- addr
-                    set q1 $addr
-                } else {
-                    # q1 <- succ(q0)
-                    set q1 [expr {$q0 + 1}]
-                }
-                lset q 0 $q1
+                set v [expr {$t ne 0}]
+                lset q 0 [if {$v} {set addr} {my Q succ $q0}]
                 set t {}
             }
             J {
-                # q1 <- addr
-                set q1 $addr
-                lset q 0 $q1
+                lset q 0 $addr
                 set t {}
             }
             RET {
-                # q1 << stack
-                set q [lassign $q q1]
+                set q [lrange $q 1 end]
                 set t {}
             }
             GOSUB {
-                # q1 <- succ(q0)
-                # q1 >> stack
-                lset q 0 [incr q0]
-                # q1 <- addr
-                set q1 $addr
-                set q [linsert $q 0 $q1]
+                lset q 0 [my Q succ $q0]
+                set q [linsert $q 0 $addr]
                 set t {}
             }
             default {

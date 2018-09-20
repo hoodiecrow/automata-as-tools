@@ -107,7 +107,20 @@ oo::class create ::automata::Component {
                 lappend data $value
             }
         }
-        set data [lsort -unique $data]
+        set data [lsort -dict -unique $data]
+    }
+
+    method succ a {
+        #: Given a value, find the next value in the component.
+        set idx [lsearch $data $a]
+        if {$idx < 0} {
+            return -code error [format {can't find value}]
+        }
+        incr idx
+        if {$idx >= [llength $data]} {
+            return -code error [format {no successor to %s} $a]
+        }
+        return [lindex $data $idx]
     }
 
     method forall {varName cond} {
