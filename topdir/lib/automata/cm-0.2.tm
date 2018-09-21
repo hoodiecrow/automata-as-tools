@@ -12,11 +12,11 @@ oo::class create ::automata::CM {
 
     #: A Counter Machine is the simplest form of Register Machine.
     #:
-    #: The ID of a CM is (r, s) = current registers, current state.
+    #: The ID of a CM is (r, s, f) = current registers, current state, lookahead flag.
 
     constructor args {
         #: This machine is defined by the tuple `<A, Q, S, T>`:
-        ::automata::Component create A -label "Operations used" -exclude {{}}
+        ::automata::Component create A -label "Flag symbols" -domain B
         ::automata::Component create Q -label "Instructions" -domain N
         ::automata::Component create S -label "Program start" -in [namespace which Q] -scalar
         S set 0
@@ -38,11 +38,18 @@ oo::class create ::automata::CM {
                 dict set labels [string trimright $token :] $i
                 continue
             }
-            regexp {([[:upper:]]+):?(\d*),?(\w*)$} $token -> op reg offset
+            regexp {([[:upper:]]+):?([,\d]*),?([-+]?\w*)$} $token -> op regs offset
             if {$offset eq {}} {
                 set offset 0
             }
-            T set $i $op $offset $reg
+            set next [expr {$i + 1}]
+            set regs [split $regs ,]
+            if {$op eq "JZ"} {
+                T set $i 0 $offset $op {*}$regs
+                T set $i 1 $next $op {*}$regs
+            } else {
+                T set $i [A set] $next $op {*}$regs
+            }
             incr i
         }
         my Q clear
@@ -54,7 +61,9 @@ oo::class create ::automata::CM {
         if {$s ne {}} {
             my S set $s
         }
-        set ids [list [list $regs [my S get]]]
+        set r [lindex [my T get [my S get] *] 0 3 1]
+        set f [expr {[lindex $regs $r] != 0}]
+        set ids [list [list $regs [my S get] $f]]
         set results [my T iterate $ids ExecCounter]
         lindex $results 0
     }

@@ -12,13 +12,11 @@ oo::class create ::automata::SM {
 
     #: A simple sort of virtual Stack Machine.
     #: 
-    #: The ID of a SM is (s, q, z) = current stack, current state, zero flag (0, 1, {}).
+    #: The ID of a SM is (s, q) = current stack, current state.
 
     constructor args {
         #: This machine is defined by the tuple `<A, Q, S, T>`:
-        ::automata::Component create A -label "Flag symbols" -exclude {{}}
-        ::automata::Component create B -label "Flag values"
-        B set 0 1 {}
+        ::automata::Component create A -label "Flag symbols" -domain B
         ::automata::Component create Q -label "Instructions"
         ::automata::Component create S -label "Start address" -in [namespace which Q] -scalar
         S set 0
@@ -39,17 +37,15 @@ oo::class create ::automata::SM {
                 dict set labels [string trimright $token :] $i
                 continue
             }
-            regexp {([[:upper:]]+):?(\d*),?(\w*)$} $token -> op val offset
-            if {$offset eq {}} {
-                set offset 0
-            }
+            regexp {([[:upper:]]+):?(\w*)$} $token -> op val
             set next [expr {$i + 1}]
             if {$op eq "JZ"} {
-                T set $i 0 $next $op $val
-                T set $i 1 $offset $op $val
-                T set $i {} $next $op $val
+                T set $i 0 $val $op
+                T set $i 1 $next $op
+            } elseif {$op eq "J"} {
+                T set $i [A set] $val $op
             } else {
-                T set $i [B set] $next $op $val
+                T set $i [A set] $next $op $val
             }
             incr i
         }

@@ -60,7 +60,7 @@ oo::class create ::automata::STE {
     }
 
     method set {q0 syms q1 args} {
-        log::log d [info level 0] 
+        log::log i [info level 0] 
         #: Define a transition. `q0`, `syms`, and `q1` are the origin state, a
         #: list of transition input symbols, and the target state,
         #: respectively. `args` is zero or more symbols that are used for
@@ -159,7 +159,6 @@ oo::class create ::automata::STE {
     }
 
     method iterate args {
-        log::log d [info level 0] 
         #: Start a walk through the transition matrix.
         if {[lindex $args 0] eq "-steps"} {
             #: The option `-steps steps` is recognized: if given it limits the
@@ -184,7 +183,7 @@ oo::class create ::automata::STE {
     }
 
     method Inner {ids me} {
-        log::log d [info level 0] 
+        log::log i [info level 0] 
         # ids  = moves into the point(s) where we are now
         # me = a callback method that queries the transition matrix and builds
         # new ids for the continuation of the transition walk.

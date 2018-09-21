@@ -31,8 +31,8 @@ oo::class create ::automata::Component {
                 }
                 -domain {
                     #: * `-domain d` : adds a domain test. Currently supports
-                    #: the domains N (non-negative integers), Z (integers), R
-                    #: (double precision floating point numbers).
+                    #: the domains B (0, 1), N (non-negative integers), Z
+                    #: (integers), R (double precision floating point numbers).
                     set args [lassign $args - domain]
                 }
                 -exclude {
@@ -55,6 +55,9 @@ oo::class create ::automata::Component {
             lassign $args data
         } else {
             set data $args
+        }
+        if {$domain eq "B"} {
+            my set 0 1
         }
         set ns [namespace qualifiers [self]]
         set name [namespace tail [self]]
@@ -93,6 +96,7 @@ oo::class create ::automata::Component {
                 continue
             }
             switch $domain {
+                B { if {$value ni {0 1}} { continue } }
                 N { if {![string is digit -strict $value]} { continue } }
                 Z { if {![string is entier -strict $value]} { continue } }
                 R { if {![string is double -strict $value]} { continue } }

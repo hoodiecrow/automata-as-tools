@@ -46,62 +46,58 @@ oo::class create ::automata::Processor {
     }
 
     method ALU {op args} {
-        log::log d [info level 0] 
         switch $op {
             INC { set res [expr {[lindex $args 0] + 1}] }
             DEC { set res [expr {[lindex $args 0] - 1}] }
-            ADD { set res [::tcl::mathop::+ {*}$args] }
-            MUL { set res [::tcl::mathop::* {*}$args] }
             default {
+                if {[string is upper -strict $op]} {
+                    set op [dict get {
+                        EQ  eq
+                        EQL ==
+                        ADD +
+                        MUL *
+                    } $op]
+                }
                 set res [::tcl::mathop::$op {*}$args]
             }
         }
         if {$res < 0} {
             return -code error [format {result less than 0}]
         }
-        return [list $res [expr {$res == 0}]]
+        return $res
     }
 
     method ExecStack id {
         # unpack ID
         lassign $id stack q0
+        set inp [expr {[lindex $stack 0] != 0}]
         # get move
-        lassign [lindex [my get $q0 *] 0] - z addr ov
+        lassign [lindex [my get $q0 $inp] 0] - - q1 ov
         lassign $ov op val
         switch $op {
             INC - DEC {
-                lassign [my ALU $op [lindex $stack 0]] v z
+                set v [my ALU $op [lindex $stack 0]]
                 lset stack 0 $v
-                set q1 [my Q succ $q0]
             }
-            JZ {
-                set q1 [if {$z} {set addr} {my Q succ $q0}]
-                set z {}
-            }
+            JZ - J {}
             CLR {
                 set stack {}
-                set z {}
-                set q1 [my Q succ $q0]
             }
             DUP {
                 set stack [linsert $stack 0 [lindex $stack 0]]
-                lassign [my ALU == [lindex $stack 0] 0] v z
-                set q1 [my Q succ $q0]
             }
             DUP2 {
                 set stack [linsert $stack 0 [lrange $stack 0 1]]
-                lassign [my ALU == [lindex $stack 0] 0] v z
-                set q1 [my Q succ $q0]
             }
             PUSH {
                 set stack [linsert $stack 0 $val]
-                lassign [my ALU == [lindex $stack 0] 0] v z
-                set q1 [my Q succ $q0]
             }
-            ADD - MUL {
-                lassign [my ALU $op {*}[lrange $stack 0 1]] v z
+            POP {
+                set stack [lrange $stack 1 end]
+            }
+            EQ - EQL - ADD - MUL {
+                set v [my ALU $op {*}[lrange $stack 0 1]]
                 set stack [lreplace $stack 0 1 $v]
-                set q1 [my Q succ $q0]
             }
             HALT {
                 return
@@ -111,50 +107,33 @@ oo::class create ::automata::Processor {
             }
         }
         # build new ID
-        my addNewIDs [list $stack $q1 $z]
+        my addNewIDs [list $stack $q1]
     }
 
     method ExecCounter id {
         # unpack ID
-        lassign $id regs q0
+        lassign $id regs q0 flag
         # get move
-        lassign [lindex [my get $q0 *] 0] - op addr reg
+        lassign [lindex [my get $q0 $flag] 0] - - q1 or
+        set rs [lassign $or op]
+        lassign $rs r
         switch $op {
             INC - DEC {
-                lassign [my ALU $op [lindex $regs $reg]] v z
-                lset stack 0 $v
-                set q1 [my Q succ $q0]
+                set v [my ALU $op [lindex $regs $r]]
+                lset regs $r $v
             }
-            JZ {
-                # TODO 
-                set v [my ALU == [lindex $regs $reg] 0]
-                set q1 [if {$v} {set addr} {my Q succ $q0}]
-            }
-            JE {
-                lassign [split $reg ,] r0 r1
-                set v [my ALU == [lindex $regs $r0] [lindex $regs $r1]]
-                set q1 [if {$v} {set addr} {my Q succ $q0}]
-            }
+            JZ {}
             CLR {
-                lset regs $reg 0
-                set q1 [my Q succ $q0]
+                lset regs $r 0
             }
             CPY {
-                lassign [split $reg ,] r0 r1
+                lassign $rs r0 r1
                 lset regs $r1 [lindex $regs $r0]
-                set q1 [my Q succ $q0]
             }
-            ADD {
-                lassign [split $reg ,] r0 r1 r2
-                set v [my ALU + [lindex $regs $r0] [lindex $regs $r1]]
+            EQ - EQL - ADD - MUL {
+                lassign $rs r0 r1 r2
+                set v [my ALU $op [lindex $regs $r0] [lindex $regs $r1]]
                 lset regs $r2 $v
-                set q1 [my Q succ $q0]
-            }
-            MUL {
-                lassign [split $reg ,] r0 r1 r2
-                set v [my ALU * [lindex $regs $r0] [lindex $regs $r1]]
-                lset regs $r2 $v
-                set q1 [my Q succ $q0]
             }
             HALT {
                 return
@@ -164,7 +143,9 @@ oo::class create ::automata::Processor {
             }
         }
         # build new ID
-        my addNewIDs [list $regs $q1]
+        set r [lindex [my get $q1 *] 0 3 1]
+        set f [expr {[lindex $regs $r] != 0}]
+        my addNewIDs [list $regs $q1 $f]
     }
 
 }
