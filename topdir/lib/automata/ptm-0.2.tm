@@ -3,7 +3,7 @@
 package require -exact automata::ste 0.2
 package require automata::component
 package require automata::printer
-package require automata::processor
+package require automata::operator
 
 namespace eval automata {}
 
@@ -30,12 +30,12 @@ oo::class create ::automata::PTM {
         ::automata::Component create F -label "End points" -in [namespace which Q]
         ::automata::STE create T {Q A}
         #: 
-        #: Inject the Blank method and Processor class into T.
+        #: Inject the Blank method and Operator class into T.
         oo::objdefine T method Blank {} [format {
             return [eval %s]
         } [list [namespace which b] get]]
 
-        oo::objdefine T mixin -append ::automata::Processor
+        oo::objdefine T mixin -append ::automata::Operator
 
     }
 
