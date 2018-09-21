@@ -4,6 +4,7 @@
 package require -exact automata::ste 0.2
 package require automata::component
 package require automata::printer
+package require automata::machine
 
 namespace eval automata {}
 
@@ -36,24 +37,8 @@ oo::class create ::automata::FSM {
         ::automata::STE create T {Q A}
         #: * *T* is the transition relation, an instance of the `STE` class.
         #: 
-        #: Inject the makeMoves method into T.
-        oo::objdefine T method makeMoves id {
-            # unpack ID
-            lassign $id a q0
-            set _a [lassign $a A]
-            # get epsilons
-            set tuples [my get $q0 {}]
-            # build new IDs
-            my addNewIDs {*}[lmap tuple $tuples {
-                list $a [lindex $tuple 2]
-            }]
-            # get moves
-            set tuples [my get $q0 $A]
-            # build new IDs
-            my addNewIDs {*}[lmap tuple $tuples {
-                list $_a [lindex $tuple 2]
-            }]
-        }
+        #: Inject the Machine class into T.
+        oo::objdefine T mixin -append ::automata::Machine
 
     }
 
@@ -71,7 +56,7 @@ oo::class create ::automata::FSM {
         #: Are we in a final state when all input symbols are consumed?
         set a [list {*}$a]
         set ids [lmap s [my S get] {list $a $s}]
-        foreach result [my T iterate $ids makeMoves] {
+        foreach result [my T iterate $ids consumeOne] {
             lassign $result a q
             if {[llength $a] == 0 && [my F contains $q]} {
                 return 1
@@ -84,7 +69,7 @@ oo::class create ::automata::FSM {
         #: What state are we in when all input symbols are consumed?
         set a [list {*}$a]
         set ids [lmap s [my S get] {list $a $s}]
-        lmap result [my T iterate $ids makeMoves] {
+        lmap result [my T iterate $ids consumeOne] {
             lassign $result a q
             if {[llength $a] == 0 && [my F contains $q]} {
                 set q

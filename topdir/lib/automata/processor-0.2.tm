@@ -29,7 +29,7 @@ oo::class create ::automata::Processor {
         if {[llength $tuples] == 0} {
             return
         } elseif {[llength $tuples] > 1} {
-            return -code error [format {non-determinism detected: (%s)} $tuples]
+            return -code error [format {non-determinism detected: {%s}} $tuples]
         }
         lassign $tuples tuple
         # q1 from tuple

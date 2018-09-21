@@ -3,6 +3,7 @@
 package require -exact automata::ste 0.2
 package require automata::component
 package require automata::printer
+package require automata::machine
 
 namespace eval automata {}
 
@@ -34,36 +35,8 @@ oo::class create ::automata::PDA {
         ::automata::STE create T {Q A B}
         #: * *T* is the transition relation, an instance of the `STE` class.
         #: 
-        #: Inject the makeMoves method into T.
-        oo::objdefine T method makeMoves id {
-            # unpack ID
-            lassign $id a q0 b
-            set _a [lassign $a A]
-            set _b [lassign $b B]
-            # get epsilons
-            set tuples [my get $q0 {}]
-            # get moves
-            lappend tuples {*}[my get $q0 $A]
-            # build new IDs
-            my addNewIDs {*}[lmap tuple $tuples {
-                # q1 from tuple
-                lassign $tuple - inp q1 o
-                set _o [lassign $o O]
-                if {$inp eq {}} {
-                    set tuple [lreplace $tuple 0 1 $a]
-                } else {
-                    # consume input token
-                    set tuple [lreplace $tuple 0 1 $_a]
-                }
-                if {$O ne $B} {
-                    # reject invalid transition
-                    continue
-                } else {
-                    # push stack
-                    lset tuple 2 [concat $_o $_b]
-                }
-            }]
-        }
+        #: Inject the Machine class into T.
+        oo::objdefine T mixin -append ::automata::Machine
 
     }
 

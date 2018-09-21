@@ -1,6 +1,24 @@
 namespace eval automata {}
 
-oo::class create ::automata::Transducer {
+oo::class create ::automata::Machine {
+
+    method consumeOne id {
+        # unpack ID
+        lassign $id a q0
+        set _a [lassign $a A]
+        # get epsilons
+        set tuples [my get $q0 {}]
+        # build new IDs
+        my addNewIDs {*}[lmap tuple $tuples {
+            list $a [lindex $tuple 2]
+        }]
+        # get moves
+        set tuples [my get $q0 $A]
+        # build new IDs
+        my addNewIDs {*}[lmap tuple $tuples {
+            list $_a [lindex $tuple 2]
+        }]
+    }
 
     method recognize id {
         # unpack ID
@@ -104,6 +122,36 @@ oo::class create ::automata::Transducer {
             } else {
                 # emit output token
                 lset tuple 2 [linsert $b end [lindex $out 0]]
+            }
+        }]
+    }
+
+    method makeMoves id {
+        # unpack ID
+        lassign $id a q0 b
+        set _a [lassign $a A]
+        set _b [lassign $b B]
+        # get epsilons
+        set tuples [my get $q0 {}]
+        # get moves
+        lappend tuples {*}[my get $q0 $A]
+        # build new IDs
+        my addNewIDs {*}[lmap tuple $tuples {
+            # q1 from tuple
+            lassign $tuple - inp q1 o
+            set _o [lassign $o O]
+            if {$inp eq {}} {
+                set tuple [lreplace $tuple 0 1 $a]
+            } else {
+                # consume input token
+                set tuple [lreplace $tuple 0 1 $_a]
+            }
+            if {$O ne $B} {
+                # reject invalid transition
+                continue
+            } else {
+                # push stack
+                lset tuple 2 [concat $_o $_b]
             }
         }]
     }

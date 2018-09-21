@@ -3,7 +3,7 @@
 package require -exact automata::ste 0.2
 package require automata::component
 package require automata::printer
-package require automata::transducer
+package require automata::machine
 
 namespace eval automata {}
 
@@ -36,7 +36,7 @@ oo::class create ::automata::FST {
         #: * *T* is the transition relation, an instance of the `STE` class.
         #: 
         #: Inject the processing methods into T.
-        oo::objdefine T mixin -append ::automata::Transducer
+        oo::objdefine T mixin -append ::automata::Machine
 
     }
 

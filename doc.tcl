@@ -110,7 +110,7 @@ foreach file $files {
                         }
                     }
                     switch $domain {
-                        B { append s "(⊂ {0, 1})" }
+                        B { append s "(= {0, 1})" }
                         N { append s "(⊂ ℕ : 0, 1, 2, ...)" }
                         Z { append s "(⊂ ℤ : ..., −2, −1, 0, 1, 2, ...)" }
                         R { append s "(⊂ ℝ : real numbers)" }
