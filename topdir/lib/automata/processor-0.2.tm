@@ -48,60 +48,58 @@ oo::class create ::automata::Processor {
     method ALU {op args} {
         log::log d [info level 0] 
         switch $op {
-            INC { expr {[lindex $args 0] + 1} }
-            DEC { expr {[lindex $args 0] - 1} }
+            INC { set res [expr {[lindex $args 0] + 1}] }
+            DEC { set res [expr {[lindex $args 0] - 1}] }
+            ADD { set res [::tcl::mathop::+ {*}$args] }
+            MUL { set res [::tcl::mathop::* {*}$args] }
             default {
-                ::tcl::mathop::$op {*}$args
+                set res [::tcl::mathop::$op {*}$args]
             }
         }
+        if {$res < 0} {
+            return -code error [format {result less than 0}]
+        }
+        return [list $res [expr {$res == 0}]]
     }
 
     method ExecStack id {
         # unpack ID
         lassign $id stack q0
         # get move
-        lassign [lindex [my get $q0 *] 0] - op addr val
+        lassign [lindex [my get $q0 *] 0] - z addr ov
+        lassign $ov op val
         switch $op {
-            INC {
-                lset stack 0 [my ALU INC [lindex $stack 0]]
-                set q1 [my Q succ $q0]
-            }
-            DEC {
-                lset stack 0 [my ALU DEC [lindex $stack 0]]
+            INC - DEC {
+                lassign [my ALU $op [lindex $stack 0]] v z
+                lset stack 0 $v
                 set q1 [my Q succ $q0]
             }
             JZ {
-                set v [my ALU == [lindex $stack 0] 0]
-                set q1 [if {$v} {set addr} {my Q succ $q0}]
+                set q1 [if {$z} {set addr} {my Q succ $q0}]
+                set z {}
             }
-            JE {
-                set v [my ALU == {*}[lrange $stack 0 1]]
-                set q1 [if {$v} {set addr} {my Q succ $q0}]
-            }
-            J { set q1 $addr }
             CLR {
                 set stack {}
+                set z {}
                 set q1 [my Q succ $q0]
             }
             DUP {
                 set stack [linsert $stack 0 [lindex $stack 0]]
+                lassign [my ALU == [lindex $stack 0] 0] v z
                 set q1 [my Q succ $q0]
             }
             DUP2 {
                 set stack [linsert $stack 0 [lrange $stack 0 1]]
+                lassign [my ALU == [lindex $stack 0] 0] v z
                 set q1 [my Q succ $q0]
             }
             PUSH {
                 set stack [linsert $stack 0 $val]
+                lassign [my ALU == [lindex $stack 0] 0] v z
                 set q1 [my Q succ $q0]
             }
-            ADD {
-                set v [my ALU + {*}[lrange $stack 0 1]]
-                set stack [lreplace $stack 0 1 $v]
-                set q1 [my Q succ $q0]
-            }
-            MUL {
-                set v [my ALU * {*}[lrange $stack 0 1]]
+            ADD - MUL {
+                lassign [my ALU $op {*}[lrange $stack 0 1]] v z
                 set stack [lreplace $stack 0 1 $v]
                 set q1 [my Q succ $q0]
             }
@@ -113,7 +111,7 @@ oo::class create ::automata::Processor {
             }
         }
         # build new ID
-        my addNewIDs [list $stack $q1]
+        my addNewIDs [list $stack $q1 $z]
     }
 
     method ExecCounter id {
@@ -122,15 +120,13 @@ oo::class create ::automata::Processor {
         # get move
         lassign [lindex [my get $q0 *] 0] - op addr reg
         switch $op {
-            INC {
-                lset regs $reg [my ALU INC [lindex $regs $reg]]
-                set q1 [my Q succ $q0]
-            }
-            DEC {
-                lset regs $reg [my ALU DEC [lindex $regs $reg]]
+            INC - DEC {
+                lassign [my ALU $op [lindex $regs $reg]] v z
+                lset stack 0 $v
                 set q1 [my Q succ $q0]
             }
             JZ {
+                # TODO 
                 set v [my ALU == [lindex $regs $reg] 0]
                 set q1 [if {$v} {set addr} {my Q succ $q0}]
             }
