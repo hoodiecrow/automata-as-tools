@@ -1,6 +1,9 @@
 namespace eval automata {}
 
 oo::class create ::automata::Processor {
+    #: In the Processor, data is in a direct-accessed sequence.
+    #: For the Stack machine, accesses are relative to the stack top (#0).
+    #: For the Counter machine, accesses are by absolute index.
 
     method ALU {op data args} {
         switch $op {
@@ -28,28 +31,29 @@ oo::class create ::automata::Processor {
 
     method ExecStack id {
         # unpack ID
-        lassign $id data q0
-        set inp [expr {[lindex $data 0] != 0}]
+        lassign $id data q0 flag
+        set _tail [lassign $data TOP]
         # get move
-        lassign [lindex [my get $q0 $inp] 0] - - q1 ov
-        lassign $ov op val
+        lassign [lindex [my get $q0 $flag] 0] - - q1 ov
+        lassign $ov op val r0 r1
         switch $op {
             INC - DEC {
-                lset data 0 [my ALU $op $data 0]
+                #lset data 0 [my ALU $op $data 0]
+                lset data $r0 [my ALU $op $data $r0]
             }
             JZ - J {}
             PUSH {
-                set data [linsert $data 0 $val]
+                set data [linsert $data $r0 $val]
             }
             POP {
-                set data [lrange $data 1 end]
+                set data [lreplace $data $r0 $r0]
             }
             DUP {
-                set data [linsert $data 0 [lindex $data 0]]
+                set data [linsert $data $r0 $TOP]
             }
             EQ - EQL - ADD - MUL {
-                set v [my ALU $op $data 0 1]
-                set data [lreplace $data 0 1 $v]
+                set v [my ALU $op $data $r0 $r1]
+                set data [lreplace $data $r0 $r1 $v]
             }
             HALT {
                 return
@@ -59,7 +63,8 @@ oo::class create ::automata::Processor {
             }
         }
         # build new ID
-        my addNewIDs [list $data $q1]
+        set flag [expr {[lindex $data 0] != 0}]
+        my addNewIDs [list $data $q1 $flag]
     }
 
     method ExecCounter id {
@@ -67,9 +72,7 @@ oo::class create ::automata::Processor {
         lassign $id data q0 flag
         # get move
         lassign [lindex [my get $q0 $flag] 0] - - q1 or
-        set rs [lassign $or op]
-        lassign $rs r
-        lassign $rs r0 r1 r2
+        lassign $or op r0 r1 r2
         switch $op {
             INC - DEC {
                 lset data $r0 [my ALU $op $data $r0]

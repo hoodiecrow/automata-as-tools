@@ -12,7 +12,7 @@ oo::class create ::automata::SM {
 
     #: A simple sort of virtual Stack Machine.
     #: 
-    #: The ID of a SM is (s, q) = current stack, current state.
+    #: The ID of a SM is (s, q, f) = current stack, current state, lookahead flag.
 
     constructor args {
         #: This machine is defined by the tuple `<A, Q, S, T>`:
@@ -40,12 +40,12 @@ oo::class create ::automata::SM {
             regexp {([[:upper:]]+):?(\w*)$} $token -> op val
             set next [expr {$i + 1}]
             if {$op eq "JZ"} {
-                T set $i 0 $val $op
-                T set $i 1 $next $op
+                T set $i 0 $val $op - 0 1
+                T set $i 1 $next $op - 0 1
             } elseif {$op eq "J"} {
-                T set $i [A set] $val $op
+                T set $i [A set] $val $op - 0 1
             } else {
-                T set $i [A set] $next $op $val
+                T set $i [A set] $next $op $val 0 1
             }
             incr i
         }
@@ -58,7 +58,7 @@ oo::class create ::automata::SM {
         if {$s ne {}} {
             my S set $s
         }
-        set ids [list [list $stack [my S get] [expr {[lindex $stack 0] == 0}]]]
+        set ids [list [list $stack [my S get] [expr {[lindex $stack 0] != 0}]]]
         set results [my T iterate $ids ExecStack]
         lindex $results 0
     }
