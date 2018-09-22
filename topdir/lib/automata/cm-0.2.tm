@@ -61,7 +61,7 @@ oo::class create ::automata::CM {
         if {$s ne {}} {
             my S set $s
         }
-        set r [lindex [my T get [my S get] *] 0 3 1]
+        set r [lindex [my T get [my S get] *] 0 4]
         set f [expr {[lindex $regs $r] != 0}]
         set ids [list [list $regs [my S get] $f]]
         set results [my T iterate $ids ExecCounter]

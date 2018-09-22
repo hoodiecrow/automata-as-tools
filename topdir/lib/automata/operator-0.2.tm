@@ -57,8 +57,8 @@ oo::class create ::automata::Operator {
         set tuples [my get $q0 [lindex $t $h]]
         # should always be 0 or 1 tuples
         return [lmap tuple $tuples {
-            my Print t $h [lindex $tuple 3 0]
-            my Move t h [lindex $tuple 3 1]
+            my Print t $h [lindex $tuple 3]
+            my Move t h [lindex $tuple 4]
             # build new ID
             list $t [lindex $tuple 2] $h
         }]

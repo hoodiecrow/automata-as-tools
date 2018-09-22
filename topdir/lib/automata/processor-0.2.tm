@@ -35,8 +35,7 @@ oo::class create ::automata::Processor {
         lassign $id data q0 flag
         set _tail [lassign $data TOP]
         # get move
-        lassign [lindex [my get $q0 $flag] 0] - - q1 ov
-        lassign $ov op val r0 r1
+        lassign [lindex [my get $q0 $flag] 0] - - q1 op val r0 r1
         switch $op {
             INC - DEC - CLR {
                 lset data $r0 [my ALU $op $data $r0]
@@ -71,8 +70,7 @@ oo::class create ::automata::Processor {
         # unpack ID
         lassign $id data q0 flag
         # get move
-        lassign [lindex [my get $q0 $flag] 0] - - q1 or
-        lassign $or op r0 r1 r2
+        lassign [lindex [my get $q0 $flag] 0] - - q1 op r0 r1 r2
         switch $op {
             INC - DEC - CLR {
                 lset data $r0 [my ALU $op $data $r0]
@@ -93,7 +91,7 @@ oo::class create ::automata::Processor {
             }
         }
         # build new ID
-        set r [lindex [my get $q1 *] 0 3 1]
+        set r [lindex [my get $q1 *] 0 4]
         set f [expr {[lindex $data $r] != 0}]
         return [list [list $data $q1 $f]]
     }

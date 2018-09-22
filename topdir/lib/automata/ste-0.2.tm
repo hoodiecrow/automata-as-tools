@@ -31,7 +31,7 @@ oo::class create ::automata::STE {
         lappend res "Transitions"
         lappend res [format {%-5s %-5s %-5s %s} q0 inp q1 out]
         foreach t $data {
-            lassign $t q0 inp q1 out
+            set out [lassign $t q0 inp q1]
             if {$inp eq {}} {
                 set inp ε
             }
@@ -76,7 +76,7 @@ oo::class create ::automata::STE {
                     $ns\::[lindex $components 2] set {*}$args
                 }
             }
-            lappend data [list $q0 $sym $q1 $args]
+            lappend data [list $q0 $sym $q1 {*}$args]
         }
     }
 

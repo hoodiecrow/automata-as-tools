@@ -139,8 +139,7 @@ oo::class create ::automata::Machine {
         # build new IDs
         return [lmap tuple $tuples {
             # q1 from tuple
-            lassign $tuple - inp q1 o
-            set _o [lassign $o O]
+            set _o [lassign $tuple - inp q1 O]
             if {$inp eq {}} {
                 set tuple [lreplace $tuple 0 1 $a]
             } else {
