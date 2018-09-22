@@ -2,10 +2,10 @@ namespace eval automata {}
 
 oo::class create ::automata::Processor {
 
-    method ALU {op args} {
+    method ALU {op data args} {
         switch $op {
-            INC { set res [expr {[lindex $args 0] + 1}] }
-            DEC { set res [expr {[lindex $args 0] - 1}] }
+            INC { set res [expr {[lindex $data {*}$args] + 1}] }
+            DEC { set res [expr {[lindex $data {*}$args] - 1}] }
             default {
                 if {[string is upper -strict $op]} {
                     set op [dict get {
@@ -15,7 +15,9 @@ oo::class create ::automata::Processor {
                         MUL *
                     } $op]
                 }
-                set res [::tcl::mathop::$op {*}$args]
+                set res [::tcl::mathop::$op {*}[lmap arg $args {
+                    lindex $data $arg
+                }]]
             }
         }
         if {$res < 0} {
@@ -26,35 +28,28 @@ oo::class create ::automata::Processor {
 
     method ExecStack id {
         # unpack ID
-        lassign $id stack q0
-        set inp [expr {[lindex $stack 0] != 0}]
+        lassign $id data q0
+        set inp [expr {[lindex $data 0] != 0}]
         # get move
         lassign [lindex [my get $q0 $inp] 0] - - q1 ov
         lassign $ov op val
         switch $op {
             INC - DEC {
-                set v [my ALU $op [lindex $stack 0]]
-                lset stack 0 $v
+                lset data 0 [my ALU $op $data 0]
             }
             JZ - J {}
-            CLR {
-                set stack {}
-            }
-            DUP {
-                set stack [linsert $stack 0 [lindex $stack 0]]
-            }
-            DUP2 {
-                set stack [linsert $stack 0 [lrange $stack 0 1]]
-            }
             PUSH {
-                set stack [linsert $stack 0 $val]
+                set data [linsert $data 0 $val]
             }
             POP {
-                set stack [lrange $stack 1 end]
+                set data [lrange $data 1 end]
+            }
+            DUP {
+                set data [linsert $data 0 [lindex $data 0]]
             }
             EQ - EQL - ADD - MUL {
-                set v [my ALU $op {*}[lrange $stack 0 1]]
-                set stack [lreplace $stack 0 1 $v]
+                set v [my ALU $op $data 0 1]
+                set data [lreplace $data 0 1 $v]
             }
             HALT {
                 return
@@ -64,33 +59,31 @@ oo::class create ::automata::Processor {
             }
         }
         # build new ID
-        my addNewIDs [list $stack $q1]
+        my addNewIDs [list $data $q1]
     }
 
     method ExecCounter id {
         # unpack ID
-        lassign $id regs q0 flag
+        lassign $id data q0 flag
         # get move
         lassign [lindex [my get $q0 $flag] 0] - - q1 or
         set rs [lassign $or op]
         lassign $rs r
+        lassign $rs r0 r1 r2
         switch $op {
             INC - DEC {
-                set v [my ALU $op [lindex $regs $r]]
-                lset regs $r $v
+                lset data $r0 [my ALU $op $data $r0]
             }
             JZ {}
             CLR {
-                lset regs $r 0
+                lset data $r0 0
             }
             CPY {
-                lassign $rs r0 r1
-                lset regs $r1 [lindex $regs $r0]
+                lset data $r1 [lindex $data $r0]
             }
             EQ - EQL - ADD - MUL {
-                lassign $rs r0 r1 r2
-                set v [my ALU $op [lindex $regs $r0] [lindex $regs $r1]]
-                lset regs $r2 $v
+                set v [my ALU $op $data $r0 $r1]
+                lset data $r2 $v
             }
             HALT {
                 return
@@ -101,8 +94,8 @@ oo::class create ::automata::Processor {
         }
         # build new ID
         set r [lindex [my get $q1 *] 0 3 1]
-        set f [expr {[lindex $regs $r] != 0}]
-        my addNewIDs [list $regs $q1 $f]
+        set f [expr {[lindex $data $r] != 0}]
+        my addNewIDs [list $data $q1 $f]
     }
 
 }
