@@ -13,6 +13,15 @@ oo::class create ::automata::SM {
     #: A simple sort of virtual Stack Machine.
     #: 
     #: The ID of a SM is (s, q, f) = current stack, current state, lookahead flag.
+    #:
+    #: The operations of the programming language are:
+    #: 
+    #: INC, DEC:r : increment/decrement contents of register r
+    #: CLR:r      : set contents of register r to 0
+    #: CPY:r0 r1  : copy contents of register r0 to r1
+    #: op:r0 r1 r2: (op = EQ, EQL, ADD, MUL) perform ALU op on r0 and r1 and stores the result in r2
+    #: JZ:r,label : jump to label if contents of register r = 0
+    #: HALT       : stop the program
 
     constructor args {
         #: This machine is defined by the tuple `<A, Q, S, T>`:

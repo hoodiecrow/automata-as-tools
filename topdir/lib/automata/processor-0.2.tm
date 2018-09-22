@@ -9,6 +9,7 @@ oo::class create ::automata::Processor {
         switch $op {
             INC { set res [expr {[lindex $data {*}$args] + 1}] }
             DEC { set res [expr {[lindex $data {*}$args] - 1}] }
+            CLR { set res 0 }
             default {
                 if {[string is upper -strict $op]} {
                     set op [dict get {
@@ -37,8 +38,7 @@ oo::class create ::automata::Processor {
         lassign [lindex [my get $q0 $flag] 0] - - q1 ov
         lassign $ov op val r0 r1
         switch $op {
-            INC - DEC {
-                #lset data 0 [my ALU $op $data 0]
+            INC - DEC - CLR {
                 lset data $r0 [my ALU $op $data $r0]
             }
             JZ - J {}
@@ -74,13 +74,10 @@ oo::class create ::automata::Processor {
         lassign [lindex [my get $q0 $flag] 0] - - q1 or
         lassign $or op r0 r1 r2
         switch $op {
-            INC - DEC {
+            INC - DEC - CLR {
                 lset data $r0 [my ALU $op $data $r0]
             }
             JZ {}
-            CLR {
-                lset data $r0 0
-            }
             CPY {
                 lset data $r1 [lindex $data $r0]
             }
