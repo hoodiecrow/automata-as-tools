@@ -20,13 +20,11 @@ oo::class create ::automata::PTM {
     constructor args {
         #: This machine is defined by the tuple `<A, b, Q, S, F, T>`:
         #:
-        ::automata::Component create A -label "Tape symbols" -exclude {{}}
-        A set 0 1
+        ::automata::Component create A -label "Tape symbols" -domain B
         ::automata::Component create b -label "Blank symbol" -scalar -in [namespace which A]
         b set 0
         ::automata::Component create Q -label "Instructions" -domain N
         ::automata::Component create S -label "Program start" -in [namespace which Q] -scalar
-        S set 1
         ::automata::Component create F -label "End points" -in [namespace which Q]
         ::automata::STE create T {Q A}
         #: 
@@ -53,22 +51,14 @@ oo::class create ::automata::PTM {
             lassign [split $token :] op offset
             set next $i
             incr next
+            # movement directions are switched
             switch $op {
-                P {
-                    T set $i [A get] $next [lindex [A get] end] N
-                }
-                E {
-                    T set $i [A get] $next [b get] N
-                }
-                L - R {
-                    T set $i [A get] $next N $op
-                }
-                N {
-                    T set $i [A get] $next N N
-                }
-                J {
-                    T set $i [A get] $offset N N
-                }
+                P { T set $i [A get] $next [lindex [A get] end] N }
+                E { T set $i [A get] $next [b get] N }
+                L { T set $i [A get] $next N R }
+                R { T set $i [A get] $next N L }
+                N { T set $i [A get] $next N N }
+                J { T set $i [A get] $offset N N }
                 H {
                     F set $next
                     T set $i [A get] $next N N
@@ -99,6 +89,7 @@ oo::class create ::automata::PTM {
         }
         my Q clear
         my Q set {*}[my T fixJumps $labels]
+        my S set [lindex $labels 1]
     }
 
     method run {tape {tapeIndex 0}} {

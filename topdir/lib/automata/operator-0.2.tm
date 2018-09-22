@@ -1,48 +1,67 @@
 namespace eval automata {}
 
 oo::class create ::automata::Operator {
+    #: In the Processor, data is in a sequential-accessed sequence that can
+    #: grow if new elements are added at the ends.
+    #:
+    #: The operations supported are:
+    #:
+    #: Print
+    #:  <symbol> print symbol (including blank)
+    #:  N        do not print
+    #:
+    #: Move
+    #:  L        move tape one cell to the left
+    #:  R        move tape one cell to the right
+    #:  N        do not move tape
+    #:
+    #: In the Post-Turing machine, the head is moved instead, so the compiler
+    #: emits R for L and L for R.
+    #:
+    #: The method Blank from the main class is used.
+
     variable ns
 
-    method tapeMoveR {varName1 varName2} {
-        upvar 1 $varName1 t $varName2 h
-        incr h
-        if {$h >= [expr {[llength $t] - 1}]} {
-            lappend t [my Blank]
+    method Print {varName h s} {
+        upvar 1 $varName t
+        if {$s ne "N"} {
+            lset t $h $s
         }
+        return
     }
 
-    method tapeMoveL {varName1 varName2} {
+    method Move {varName1 varName2 dir} {
         upvar 1 $varName1 t $varName2 h
-        if {$h < 1} {
-            set t [linsert $t 0 [my Blank]]
-        } else {
-            incr h -1
+        switch $dir {
+            L {
+                incr h
+                if {$h >= [expr {[llength $t] - 1}]} {
+                    lappend t [my Blank]
+                }
+            }
+            R {
+                if {$h < 1} {
+                    set t [linsert $t 0 [my Blank]]
+                } else {
+                    incr h -1
+                }
+            }
+            N {}
         }
+        return
     }
-
-    forward tapeMoveN list
 
     method process id {
         # unpack ID
         lassign $id t q0 h
         set tuples [my get $q0 [lindex $t $h]]
-        if {[llength $tuples] == 0} {
-            return
-        } elseif {[llength $tuples] > 1} {
-            return -code error [format {non-determinism detected: {%s}} $tuples]
+        # should always be 0 or 1 tuples
+        foreach tuple $tuples {
+            my Print t $h [lindex $tuple 3 0]
+            my Move t h [lindex $tuple 3 1]
+            # build new ID
+            my addNewIDs [list $t [lindex $tuple 2] $h]
         }
-        lassign $tuples tuple
-        # q1 from tuple
-        lassign $tuple - inp q1 out
-        lassign $out osym move
-        # print to tape
-        if {$osym ne "N"} {
-            lset t $h $osym
-        }
-        # move tape/head
-        my tapeMove$move t h
-        # build new ID
-        my addNewIDs [list $t $q1 $h]
     }
 
 }
