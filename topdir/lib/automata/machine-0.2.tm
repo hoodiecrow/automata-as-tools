@@ -9,15 +9,16 @@ oo::class create ::automata::Machine {
         # get epsilons
         set tuples [my get $q0 {}]
         # build new IDs
-        my addNewIDs {*}[lmap tuple $tuples {
+        set ids [lmap tuple $tuples {
             list $a [lindex $tuple 2]
         }]
         # get moves
         set tuples [my get $q0 $A]
         # build new IDs
-        my addNewIDs {*}[lmap tuple $tuples {
+        lappend ids {*}[lmap tuple $tuples {
             list $_a [lindex $tuple 2]
         }]
+        return $ids
     }
 
     method recognize id {
@@ -29,7 +30,7 @@ oo::class create ::automata::Machine {
         set tuples [my get $q0 {}]
         # get moves
         lappend tuples {*}[my get $q0 $A]
-        my addNewIDs {*}[lmap tuple $tuples {
+        return [lmap tuple $tuples {
             # q1 from tuple
             lassign $tuple - inp q1 out
             if {$inp eq {}} {
@@ -58,7 +59,7 @@ oo::class create ::automata::Machine {
         set tuples [my get $q0 {}]
         # get moves
         lappend tuples {*}[my get $q0 $A]
-        my addNewIDs {*}[lmap tuple $tuples {
+        return [lmap tuple $tuples {
             # q1 from tuple
             lassign $tuple - inp q1 out
             if {$inp eq {}} {
@@ -82,7 +83,7 @@ oo::class create ::automata::Machine {
         set _b [lassign $b B]
         # get moves
         set tuples [my get $q0 *]
-        my addNewIDs {*}[lmap tuple $tuples {
+        return [lmap tuple $tuples {
             # q1 from tuple
             lassign $tuple - inp q1 out
             if {$inp eq {}} {
@@ -108,7 +109,7 @@ oo::class create ::automata::Machine {
         lassign $id a q0 b
         # get moves
         set tuples [my get $q0 *]
-        my addNewIDs {*}[lmap tuple $tuples {
+        return [lmap tuple $tuples {
             # q1 from tuple
             lassign $tuple - inp q1 out
             if {$inp eq {}} {
@@ -136,7 +137,7 @@ oo::class create ::automata::Machine {
         # get moves
         lappend tuples {*}[my get $q0 $A]
         # build new IDs
-        my addNewIDs {*}[lmap tuple $tuples {
+        return [lmap tuple $tuples {
             # q1 from tuple
             lassign $tuple - inp q1 o
             set _o [lassign $o O]

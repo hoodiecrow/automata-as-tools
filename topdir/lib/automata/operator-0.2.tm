@@ -56,12 +56,12 @@ oo::class create ::automata::Operator {
         lassign $id t q0 h
         set tuples [my get $q0 [lindex $t $h]]
         # should always be 0 or 1 tuples
-        foreach tuple $tuples {
+        return [lmap tuple $tuples {
             my Print t $h [lindex $tuple 3 0]
             my Move t h [lindex $tuple 3 1]
             # build new ID
-            my addNewIDs [list $t [lindex $tuple 2] $h]
-        }
+            list $t [lindex $tuple 2] $h
+        }]
     }
 
 }

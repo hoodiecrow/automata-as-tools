@@ -178,21 +178,15 @@ oo::class create ::automata::STE {
         return $results
     }
 
-    method addNewIDs args {
-        lappend newids {*}$args
-    }
-
     method Inner {ids me} {
         log::log i [info level 0] 
         # ids  = moves into the point(s) where we are now
         # me = a callback method that queries the transition matrix and builds
         # new ids for the continuation of the transition walk.
-        set newids [list]
-        # newids = moves from that point/those points
-        foreach id $ids {
+        set newids [concat {*}[lmap id $ids {
             # Create ids for possible moves.
             my $me $id
-        }
+        }]]
         # Two base cases: 1) no more ids, or 2) steps completed.
         if {[llength $newids] == 0 || ($steps ne {} && [incr steps -1] < 0)} {
             return [lsort -unique [lsort -index 1 $ids]]

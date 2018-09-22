@@ -151,7 +151,7 @@ oo::class create ::automata::Robot {
         lappend _ids $t
         lappend _ids $beepers
         lappend _ids $walls
-        my addNewIDs $_ids
+        return [list $_ids]
     }
 }
 

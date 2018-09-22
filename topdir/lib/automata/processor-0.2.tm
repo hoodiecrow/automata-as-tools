@@ -64,7 +64,7 @@ oo::class create ::automata::Processor {
         }
         # build new ID
         set flag [expr {[lindex $data 0] != 0}]
-        my addNewIDs [list $data $q1 $flag]
+        return [list [list $data $q1 $flag]]
     }
 
     method ExecCounter id {
@@ -95,7 +95,7 @@ oo::class create ::automata::Processor {
         # build new ID
         set r [lindex [my get $q1 *] 0 3 1]
         set f [expr {[lindex $data $r] != 0}]
-        my addNewIDs [list $data $q1 $f]
+        return [list [list $data $q1 $f]]
     }
 
 }
