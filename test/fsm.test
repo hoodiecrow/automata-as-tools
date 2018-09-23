@@ -13,23 +13,21 @@ set m {::automata::FSM create M}
 
 test dfa-1.0 {accept binary numbers that are multiples of 3} -setup $m -body {
     M compile {
-        s0 0 s0
-        s0 1 s1
-        s1 0 s2
-        s1 1 s0
-        s2 0 s1
-        s2 1 s2
+       <s0> 0 s0
+        s0  1 s1
+        s1  0 s2
+        s1  1 s0
+        s2  0 s1
+        s2  1 s2
     }
-    M S set s0
-    M F set s0
     set res {}
-    lappend res [M accept {1}]
-    lappend res [M accept {0 1}]
-    lappend res [M accept {1 1}]
-    lappend res [M accept {0 0 1}]
-    lappend res [M accept {1 0 1}]
-    lappend res [M accept {0 1 1}]
-    lappend res [M accept {1 1 1}]
+    lappend res [M run {1}]
+    lappend res [M run {0 1}]
+    lappend res [M run {1 1}]
+    lappend res [M run {0 0 1}]
+    lappend res [M run {1 0 1}]
+    lappend res [M run {0 1 1}]
+    lappend res [M run {1 1 1}]
     set res
 } -cleanup {
     M destroy
@@ -38,23 +36,19 @@ test dfa-1.0 {accept binary numbers that are multiples of 3} -setup $m -body {
 
 cleanupTests ; return ; # ---------------------------------
 test dfa-1.1 {find even number of ones/zeros} -setup $m -body {
-foreach {q0 sym q1} {
-    s1 0 s2
-    s1 1 s1
-    s2 0 s1
-    s2 1 s2
-} {
-    M T set $q0 $sym $q1
+M compile {
+   <s1> 0 s2
+    s1  1 s1
+    s2  0 s1
+    s2  1 s2
 }
-M S set s1
-M F set s1
     set res {}
-    lappend res [M accept {1 1}]
-    lappend res [M accept {1 0}]
-    lappend res [M accept {0 1}]
-    lappend res [M accept {0 0}]
-    lappend res [M accept {1 0 0 1 1 1}]
-    lappend res [M accept {1 0 0 1 1 0}]
+    lappend res [M run {1 1}]
+    lappend res [M run {1 0}]
+    lappend res [M run {0 1}]
+    lappend res [M run {0 0}]
+    lappend res [M run {1 0 0 1 1 1}]
+    lappend res [M run {1 0 0 1 1 0}]
     set res
 } -cleanup {
     M destroy
@@ -63,13 +57,11 @@ M F set s1
 
 test dfa-1.2 {find even number of ones/zeros: print the machine} -setup $m -body {
     M compile {
-        s1 0 s2
-        s1 1 s1
-        s2 0 s1
-        s2 1 s2
+       <s1> 0 s2
+        s1  1 s1
+        s2  0 s1
+        s2  1 s2
     }
-M S set s1
-M F set s1
     M print
 } -cleanup {
     M destroy
@@ -95,12 +87,12 @@ test nfa-1.0 {} -setup $m -body {
     M S set s0
     M F set s1
     set res {}
-    lappend res [M accept {1}]
-    lappend res [M accept {0}]
-    lappend res [M accept {1 1}]
-    lappend res [M accept {1 0}]
-    lappend res [M accept {0 1}]
-    lappend res [M accept {0 0}]
+    lappend res [M run {1}]
+    lappend res [M run {0}]
+    lappend res [M run {1 1}]
+    lappend res [M run {1 0}]
+    lappend res [M run {0 1}]
+    lappend res [M run {0 0}]
     set res
 } -cleanup {
     M destroy
@@ -124,12 +116,12 @@ test nfa-1.1 {find even number of ones/zeros} -setup $m -body {
     M F set s1
     M F set s3
     set res {}
-    lappend res [M accept {1 1}]
-    lappend res [M accept {1 0}]
-    lappend res [M accept {0 1}]
-    lappend res [M accept {0 0}]
-    lappend res [M accept {1 0 0 1 1 1}]
-    lappend res [M accept {1 0 0 1 1 0}]
+    lappend res [M run {1 1}]
+    lappend res [M run {1 0}]
+    lappend res [M run {0 1}]
+    lappend res [M run {0 0}]
+    lappend res [M run {1 0 0 1 1 1}]
+    lappend res [M run {1 0 0 1 1 0}]
     set res
 } -cleanup {
     M destroy

@@ -23,7 +23,7 @@ oo::class create ::automata::KTR {
         ::automata::Component create Q -label "State symbols" -domain N
         ::automata::Component create S -label "Program start" -in [namespace which Q] -scalar
         S set 0
-        ::automata::STE create T {Q A}
+        ::automata::STE create T {Q S F A}
         #: * *T* is the transition relation, an instance of the `STE` class.
         #: 
         #: Inject the Robot class into T.
@@ -57,7 +57,7 @@ oo::class create ::automata::KTR {
     }
 
     method run {world robot beepers walls {s {}}} {
-        #: Run the code with the given register settings, starting from s.
+        #: Run the code with the given configuration, starting from s.
         if {$s eq {}} {
             set s [my S get]
         }

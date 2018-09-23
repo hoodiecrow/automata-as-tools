@@ -23,7 +23,7 @@ test pda-1.0 {0^n1^n | n >= 0} -setup {
     M Z set Z
     M F set r
 } -body {
-    M accept {}
+    M run -accept {}
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
@@ -43,7 +43,7 @@ test pda-1.1 {} -setup {
     M Z set Z
     M F set r
 } -body {
-    M accept {0 0 0 0 1 1 1 1}
+    M run -accept {0 0 0 0 1 1 1 1}
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
@@ -64,10 +64,10 @@ test pda-1.2 {} -setup {
     M F set r
 } -body {
     set res {}
-    lappend res [M accept {0 0 0 0 1 1 1 1 1}]
-    lappend res [M accept {1 1 0}]
-    lappend res [M accept {0 1}]
-    lappend res [M accept {0 0 0 1 1 1}]
+    lappend res [M run -accept {0 0 0 0 1 1 1 1 1}]
+    lappend res [M run -accept {1 1 0}]
+    lappend res [M run -accept {0 1}]
+    lappend res [M run -accept {0 0 0 1 1 1}]
     set res
 } -cleanup {
     M destroy

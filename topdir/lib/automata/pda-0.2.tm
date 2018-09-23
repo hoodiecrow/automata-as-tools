@@ -32,7 +32,7 @@ oo::class create ::automata::PDA {
         ::automata::Component create Z -label "Stack bottom" -in [namespace which B] -scalar
         ::automata::Component create S -label "Start symbol" -in [namespace which Q] -scalar
         ::automata::Component create F -label "Final symbols" -in [namespace which Q]
-        ::automata::STE create T {Q A B}
+        ::automata::STE create T {Q S F A B}
         #: * *T* is the transition relation, an instance of the `STE` class.
         #: 
         #: Inject the Machine class into T.
@@ -54,8 +54,28 @@ oo::class create ::automata::PDA {
         }
     }
 
-    method accept a {
-        #: Are we in a final state when all input symbols are consumed and the stack has only one item?
+    method run args {
+        #: Run the machine:
+        set _args [lassign $args arg]
+        switch $arg {
+            -acceptor - -accept {
+                #: provide the flag `-acceptor` or `-accept` to accept input,
+                my Accept {*}$_args
+            }
+            -classifier - -classify {
+                #: and `-classifier` or `-classify` to classify input.
+                my Classify {*}$_args
+            }
+            default {
+                #: With no flags given, the machine accepts.
+                my Accept {*}$args
+            }
+        }
+        #: Also provide a list of input symbols.
+    }
+
+    method Accept a {
+        # Are we in a final state when all input symbols are consumed and the stack has only one item?
         set a [list {*}$a]
         set ids [lmap s [my S get] {list $a $s [list [my Z get]]}]
         foreach result [my T iterate $ids makeMoves] {
@@ -67,8 +87,8 @@ oo::class create ::automata::PDA {
         return 0
     }
 
-    method classify a {
-        #: What state are we in when all input symbols are consumed and the stack has only one item?
+    method Classify a {
+        # What state are we in when all input symbols are consumed and the stack has only one item?
         set a [list {*}$a]
         set ids [lmap s [my S get] {list $a $s [list [my Z get]]}]
         lmap result [my T iterate $ids makeMoves] {

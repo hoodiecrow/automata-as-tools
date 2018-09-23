@@ -63,7 +63,7 @@ oo::class create ::automata::SM {
     }
 
     method run {stack {s {}}} {
-        #: Run the code with the given register settings, starting from s.
+        #: Run the code with the given stack, starting from s.
         if {$s ne {}} {
             my S set $s
         }

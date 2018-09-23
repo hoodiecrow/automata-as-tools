@@ -26,7 +26,7 @@ oo::class create ::automata::PTM {
         ::automata::Component create Q -label "Instructions" -domain N
         ::automata::Component create S -label "Program start" -in [namespace which Q] -scalar
         ::automata::Component create F -label "End points" -in [namespace which Q]
-        ::automata::STE create T {Q A}
+        ::automata::STE create T {Q S F A}
         #: 
         #: Inject the Blank method and Operator class into T.
         oo::objdefine T method Blank {} [format {

@@ -22,7 +22,7 @@ oo::class create ::automata::BTM {
         ::automata::Component create Q -label "State symbols"
         ::automata::Component create S -label "Start symbol" -in [namespace which Q] -scalar
         ::automata::Component create F -label "Final symbols" -in [namespace which Q]
-        ::automata::STE create T {Q B A}
+        ::automata::STE create T {Q S F B A}
         #: * *T* is the transition relation, an instance of the `STE` class.
         #: 
         #: Inject the Blank method and Operator class into T.

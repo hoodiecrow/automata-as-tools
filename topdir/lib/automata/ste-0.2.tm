@@ -2,22 +2,31 @@
 namespace eval automata {}
 
 oo::class create ::automata::STE {
-    variable data steps newids ns components
+    variable data steps ns components
 
-    # "State Transition Engine"
-    #
-    # Handles the definition of transition relations and iteration through the
-    # transition matrix.
-    #
-    # Supports finite state automata and pushdown automata. Use TME for
-    # Turing-class machines.
+    #: "State Transition Engine"
+    #:
+    #: Handles the definition of transition relations and iteration through the
+    #: transition matrix.
+    #:
+    #: The STE is not complete: a plugin for the machine to be used is mixed
+    #: into this class when the machine is instantiated.
 
     constructor args {
-        #: Use arguments to set the namespace of the machine tuple, and the
-        #: names of the components affected by defining a transition.
+        #: Takes as argument a list of the set components for (in order) state
+        #: symbols, start states, final states, input symbols, output symbols.
+        #: The components can be omitted from the end forwards.
+        #:
         lassign $args components
-        set ns [namespace qualifiers [self]]
-        set name [namespace tail [self]]
+        lassign [apply {n {
+            list [namespace qualifiers $n] [namespace tail $n]
+        }} [self]] ns name
+        if no {
+            set ns [namespace qualifiers [self]]
+            set name [namespace tail [self]]
+        }
+        #: Adds itself to the component list (for printing) and as an exported
+        #: method in the owning instance.
         lappend $ns\::complist $name
         oo::objdefine [uplevel 1 {self}] forward $name $name
         oo::objdefine [uplevel 1 {self}] export $name
@@ -68,14 +77,39 @@ oo::class create ::automata::STE {
         #: *A*, and *B* set components.
         #: In most cases the list of input symbols will contain one symbol:
         #: passing a list is mostly for compiled transition matrices.
-        foreach sym $syms {
-            if {[llength $components] > 0} {
-                $ns\::[lindex $components 0] set $q0 $q1
-                $ns\::[lindex $components 1] set $sym
-                if {[llength $components] > 2 && [llength $args] > 0} {
-                    $ns\::[lindex $components 2] set {*}$args
+        lassign {} qss qfs
+        if no {
+            set syms [list {*}[string map {, { }} $syms]]
+        }
+        if {[llength $components] > 0} {
+            foreach q [list $q0 $q1] {
+                if {[regexp {<(\w+)} $q -> qs]} {
+                    lappend qss $qs
                 }
+                if {[regexp {(\w+)>} $q -> qf]} {
+                    lappend qfs $qf
+                }
+                $ns\::[lindex $components 0] set [regexp -inline {\w+} $q]
             }
+            lassign [regexp -all -inline {[-+]?\d+|\w+} [list $q0 $q1]] q0 q1
+        }
+        if {[llength $components] > 1} {
+            foreach q $qss {
+                $ns\::[lindex $components 1] set $q
+            }
+        }
+        if {[llength $components] > 2} {
+            foreach q $qfs {
+                $ns\::[lindex $components 2] set $q
+            }
+        }
+        if {[llength $components] > 3} {
+            $ns\::[lindex $components 3] set {*}$syms
+        }
+        if {[llength $components] > 4} {
+            $ns\::[lindex $components 4] set {*}$args
+        }
+        foreach sym $syms {
             lappend data [list $q0 $sym $q1 {*}$args]
         }
     }
