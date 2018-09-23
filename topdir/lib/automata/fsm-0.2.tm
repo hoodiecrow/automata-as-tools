@@ -12,13 +12,12 @@ oo::class create ::automata::FSM {
     mixin ::automata::Printer
     variable epsilon
 
-    #: A Finite State Machine recognizes a regular language. It can be asked to
-    #: accept (respond with 1 if the machine regognizes the input, otherwise 0)
-    #: or classify (respond with the final state) a list of input symbols.
+    #: A [[Finite State Machine|finitestatemachine]] recognizes a regular
+    #: language. It can be asked to accept (respond with 1 if the machine
+    #: recognizes the input, otherwise 0) or classify (respond with the final
+    #: state) a list of input symbols.
     #:
     #: The ID of an FSM is (w, q) = remaining input and current state.
-    #:
-    #: Every element in ids represents a separate machine, all working in parallel.
 
     constructor args {
         set epsilon ε
