@@ -3,9 +3,55 @@ Experiments with making tools based on different classes of automata/abstract ma
 
 *Actually, the tool-making part is less relevant at the moment, but I think it will resurface.*
 
+**Wikipedia:**
+
+> An abstract machine, also called an abstract computer, is a theoretical model
+> of a computer hardware or software system used in automata theory.
+> Abstraction of computing processes is used in both the computer science and
+> computer engineering disciplines and usually assumes a discrete time
+> paradigm.--https://en.wikipedia.org/wiki/Abstract_machine
+
+The automata I'm exploring here have different working principles and
+expressive powers, but in general they share the following:
+
+* They have a set of *states* that map out the path that the machine must follow to go from start to finish.
+* They have input, and in some cases, output.
+* They have a *transition relation* (T) that determines what the next machine configuration will be, based on state and inputs.
+* Those that have output have a set of operations to produce that output (and otherwise affect the configuration of the machine).
+
+The *Instantaneous Description* (ID) of a machine is the set of values that
+change between discrete points in execution time. E.g. if a machine with ID ({a
+b c} A) (here representing a set of input symbols a, b, and c and the state A)
+consumes one input symbol and moves to state B, the new ID is ({b c} B). In
+non-deterministic machines, a single ID might produce several new IDs, each of
+which progresses independently using the same inputs until they get stuck or
+reach a final state.
+
+The *configuration* of a machine is the ID plus the unchanging values that
+define the machine (e.g. set of input symbols, set of final states).
+
+### Input and output
+
+Input (and output) symbols are a part of the machine's ID. They are handled according to different protocols:
+
+* Ordered set: in at least an FSM, FST, or PDA, input is provided as an ordered
+  set of symbols where the foremost symbol is removed for each (non-epsilon)
+move.
+* Stack: a FIFO sequence of symbols. Input pops off the topmost symbol, output pushes one or more symbols on top of the stack.
+* Binary flag: the input value is one of two possible states, usually {0, 1}.
+* Tape: a theoretically endless sequence of cells that are either blank or contain one symbol, where the current input symbol is indicated by the tape head.
+* Register array: a finite set of numbered one-value cells.
+
+## Progress
+
+I am not a computer scientist. In my implementations, I may inadvertently, in
+the spirit of exploration, have tweaked definitions to fit them to my
+implementations. Do not take these implementations as references for the
+individual machines.
+
 Mostly done, I think:
 
-* Finite state machine
+* [[Finite state machine|finitestatemachine]]
 * Finite state transducer
 * Push-down automaton
 * (Basic) Turing machine
