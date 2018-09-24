@@ -98,6 +98,9 @@ oo::class create ::automata::Processor {
             CLR { lset data $r0 0 }
             CPY { lset data $r1 [lindex $data $r0] }
         }
+        if {[lindex $data $r0] < 0} {
+            return -code error [format {negative value in register %d} $r0]
+        }
         if {[lindex $data 0] ne 0} {
             return -code error [format {register 0 has been changed}]
         }
