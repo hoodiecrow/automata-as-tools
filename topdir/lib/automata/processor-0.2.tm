@@ -65,27 +65,6 @@ oo::class create ::automata::Processor {
 
     method ExecCounter id {
         # unpack ID
-        lassign $id data q0 flag
-        # get move
-        lassign [lindex [my get $q0 $flag] 0] - - q1 op r0 r1 r2
-        # instruction set, after Shepherdson and Sturgis (1963)
-        switch $op {
-            INC { lset data $r0 [expr {[lindex $data $r0] + 1}] }
-            DEC { lset data $r0 [expr {[lindex $data $r0] - 1}] }
-            CLR { lset data $r0 0 }
-            CPY { lset data $r1 [lindex $data $r0] }
-        }
-        if {[my F contains $q1]} {
-            return
-        }
-        # build new ID
-        set r [lindex [my get $q1 *] 0 4]
-        set f [expr {[lindex $data $r] != 0}]
-        return [list [list $data $q1 $f]]
-    }
-
-    method ExecCounter id {
-        # unpack ID
         lassign $id data q0
         # get move
         lassign [lindex [my get $q0 *] 0] - - - - r0 r1
