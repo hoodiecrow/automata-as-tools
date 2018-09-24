@@ -14,14 +14,15 @@ oo::class create ::automata::KTR {
     #: This is a very limited Karel the Robot that can only walk around, not
     #: interact with beepers.
     #:
-    #: The ID of a KTR is (o, r, i, t, b, a) = world, robot, instruction pointer, teststate, beepers, walls
+    #: The ID of a KTR is (o, r, i, t, b, a) = world, robot, instruction stack, teststate, beepers, walls
 
     constructor args {
         #: This machine is defined by the tuple `<A, Q, S, T>`:
         #:
-        ::automata::Component create A -label "Operations used" -exclude {{}}
+        ::automata::Component create A -label "Flag symbols" -domain B
         ::automata::Component create Q -label "State symbols" -domain N
         ::automata::Component create S -label "Program start" -in [namespace which Q] -scalar
+        ::automata::Component create F -label "Program end" -in [namespace which Q] -scalar
         S set 0
         ::automata::STE create T {Q S F A}
         #: * *T* is the transition relation, an instance of the `STE` class.
@@ -54,6 +55,61 @@ oo::class create ::automata::KTR {
         }
         my Q clear
         my Q set {*}[my T fixJumps $labels]
+    }
+
+    method compile tokens {
+        #: Convert source code to transition configuration.
+        #:
+        # address 0 is invalid
+        set i 1
+        set labels {}
+        foreach token $tokens {
+            if {[string match *: $token]} {
+                dict set labels [string trimright $token :] $i
+                continue
+            }
+            regexp {([[:upper:]]+):?(.*)$} $token -> op label
+            if {$label eq {}} {
+                set label 0
+            }
+            set next [expr {$i + 1}]
+            switch $op {
+                A {
+                    if {$label eq "turnoff"} {
+                        my F set $i
+                        T set $i [A get] 0
+                    } else {
+                        T set $i [A get] $next $op $label
+                    }
+                }
+                T {
+                    T set $i [A get] $next $op $label
+                }
+                JZ {
+                    T set $i 0 $next
+                    T set $i 1 $label
+                }
+                J {
+                    T set $i [A get] $label
+                }
+                RET {
+                    T set $i [A get] 0 $op
+                }
+                GOSUB {
+                    T set $i [A get] $label $op
+                }
+                NOP {
+                    T set $i [A get] $next
+                }
+                default {
+                    ;
+                }
+            }
+            incr i
+        }
+        my Q clear
+        my Q set {*}[my T fixJumps $labels]
+        my S set [lindex $labels 1]
     }
 
     method run {world robot beepers walls {s {}}} {

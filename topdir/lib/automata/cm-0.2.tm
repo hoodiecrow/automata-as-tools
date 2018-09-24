@@ -39,7 +39,7 @@ oo::class create ::automata::CM {
         ::automata::Component create Q -label "Instructions" -domain N
         ::automata::Component create S -label "Program start" -in [namespace which Q] -scalar
         ::automata::Component create F -label "Program end" -in [namespace which Q] -scalar
-        ::automata::STE create T {Q A}
+        ::automata::STE create T {Q S F A}
         #: * *T* is the transition relation, an instance of the `STE` class.
         #: 
         #: Inject the Processor class into T.

@@ -52,7 +52,14 @@ oo::class create ::automata::Robot {
         lassign $robot x y f b
         lassign $q q0
         # get move
-        lassign [lindex [my get $q0 *] 0] - op addr label
+        if {$t eq {}} {
+            set t 0
+        }
+        lassign [lindex [my get $q0 $t] 0] - - q1 op label
+        set t {}
+        log::log d \$q1=$q1 
+        lset q 0 $q1
+        log::log d \$q=$q 
         log::log d "\$op=$op \$label=$label"
         switch $op {
             A {
@@ -75,8 +82,6 @@ oo::class create ::automata::Robot {
                         error \$label=$label
                     }
                 }
-                lset q 0 [my Q succ $q0]
-                set t {}
             }
             T {
                 set _walls [concat $walls [list 0 $y [expr {$w + 1}] $y $x 0 $x [expr {$h + 1}]]]
@@ -115,34 +120,22 @@ oo::class create ::automata::Robot {
                         error "label = $label"
                     }
                 }
-                lset q 0 [my Q succ $q0]
-            }
-            JZ {
-                set v [expr {$t eq 0}]
-                lset q 0 [if {$v} {set addr} {my Q succ $q0}]
-                set t {}
-            }
-            JNZ {
-                set v [expr {$t ne 0}]
-                lset q 0 [if {$v} {set addr} {my Q succ $q0}]
-                set t {}
-            }
-            J {
-                lset q 0 $addr
-                set t {}
             }
             RET {
                 set q [lrange $q 1 end]
-                set t {}
             }
             GOSUB {
                 lset q 0 [my Q succ $q0]
-                set q [linsert $q 0 $addr]
+                set q [linsert $q 0 $q1]
                 set t {}
             }
+            {} {}
             default {
                 error \$op=$op
             }
+        }
+        if {[my F contains [lindex $q 0]]} {
+            return
         }
         # build new ID
         lappend _ids $world
