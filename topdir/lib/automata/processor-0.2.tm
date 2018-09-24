@@ -6,7 +6,6 @@ oo::class create ::automata::Processor {
     #: For the Counter machine, accesses are by absolute index.
 
     method ALU {op data args} {
-        log::log d [info level 0] 
         switch $op {
             INC { set res [expr {[lindex $data {*}$args] + 1}] }
             DEC { set res [expr {[lindex $data {*}$args] - 1}] }
@@ -56,7 +55,6 @@ oo::class create ::automata::Processor {
                 error \$op=$op,\ \$val=$val
             }
         }
-        log::log d \$data=$data 
         if {[my F contains $q1]} {
             return
         }
@@ -66,7 +64,6 @@ oo::class create ::automata::Processor {
     }
 
     method ExecCounter id {
-        log::log d [info level 0] 
         # unpack ID
         lassign $id data q0 flag
         # get move
@@ -85,6 +82,30 @@ oo::class create ::automata::Processor {
         set r [lindex [my get $q1 *] 0 4]
         set f [expr {[lindex $data $r] != 0}]
         return [list [list $data $q1 $f]]
+    }
+
+    method ExecCounter id {
+        # unpack ID
+        lassign $id data q0
+        # get move
+        lassign [lindex [my get $q0 *] 0] - - - - r0 r1
+        set f [expr {[lindex $data $r0] == [lindex $data $r1]}]
+        lassign [lindex [my get $q0 $f] 0] - - q1 op r0 r1 r2
+        # instruction set, after Shepherdson and Sturgis (1963)
+        switch $op {
+            INC { lset data $r0 [expr {[lindex $data $r0] + 1}] }
+            DEC { lset data $r0 [expr {[lindex $data $r0] - 1}] }
+            CLR { lset data $r0 0 }
+            CPY { lset data $r1 [lindex $data $r0] }
+        }
+        if {[lindex $data 0] ne 0} {
+            return -code error [format {register 0 has been changed}]
+        }
+        if {[my F contains $q1]} {
+            return
+        }
+        # build new ID
+        return [list [list $data $q1]]
     }
 
 }

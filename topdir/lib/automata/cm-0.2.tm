@@ -10,11 +10,30 @@ namespace eval automata {}
 oo::class create ::automata::CM {
     mixin ::automata::Printer
 
+    variable instructionSet
+
     #: A Counter Machine is the simplest form of Register Machine.
     #:
-    #: The ID of a CM is (r, s, f) = current registers, current state, lookahead flag.
+    #: The ID of a CM is (r, i) = current registers, current instruction pointer.
 
     constructor args {
+        set is 4
+        #: Specify which actual instruction set to use when instantiating machine.
+        #:
+        if {[lindex $args 0] eq "-instructionset"} {
+            #: -instructionset 1 : {INC, DEC, JZ}, (Minsky (1961, 1967), Lambek (1961))
+            #: -instructionset 2 : {CLR, INC, JE}, (Ershov (1958), Peter (1958) as interpreted by Shepherdson-Sturgis (1964); Minsky (1967); Schönhage (1980))
+            #: -instructionset 3 : {INC, CPY, JE}, (Elgot-Robinson (1964), Minsky (1967))
+            #: -instructionset 4 : {INC, DEC, CLR, CPY, J, JZ} (default: Shepherdson and Sturgis (1963))
+            #:
+            set args [lassign $args - is]
+        }
+        set instructionSet [dict get {
+            1 {INC DEC JZ}
+            2 {CLR INC JE}
+            3 {INC CPY JE}
+            4 {INC DEC CLR CPY J JZ}
+        } $is]
         #: This machine is defined by the tuple `<A, Q, S, T>`:
         ::automata::Component create A -label "Flag symbols" -domain B
         ::automata::Component create Q -label "Instructions" -domain N
@@ -44,7 +63,11 @@ oo::class create ::automata::CM {
             }
             set next [expr {$i + 1}]
             set regs [list {*}[string map {, { }} $regs]]
-            # instruction set, after Shepherdson and Sturgis (1963); adds NOP to have anything to jump to when jumping to end.
+            #: The basic instruction set is INC, DEC, CLR, CPY, J, JZ, JE, NOP.
+            #: The instruction NOP is added to all sets to have anything to jump to when jumping to end.
+            if {$op ne "NOP" && $op ni $instructionSet} {
+                return -code error [format {illegal instruction opcode "%s"} $op]
+            }
             switch $op {
                 INC - DEC - CLR - CPY {
                     T set $i [A get] $next $op {*}$regs
@@ -53,10 +76,14 @@ oo::class create ::automata::CM {
                     T set $i [A get] $offset
                 }
                 JZ {
-                    T set $i 0 $offset {} {*}$regs
-                    T set $i 1 $next {} {*}$regs
+                    T set $i 0 $next {} 0 [lindex $regs 0]
+                    T set $i 1 $offset {} 0 [lindex $regs 0]
                 }
-                NOP {
+                JE { # not in Shepherdson and Sturgis
+                    T set $i 0 $next {} {*}$regs
+                    T set $i 1 $offset {} {*}$regs
+                }
+                NOP { # not in Shepherdson and Sturgis
                     T set $i [A get] $next
                 }
                 default {
@@ -78,7 +105,10 @@ oo::class create ::automata::CM {
         }
         set r [lindex [my T get [my S get] *] 0 4]
         set f [expr {[lindex $regs $r] != 0}]
-        set ids [list [list $regs [my S get] $f]]
+        if no {
+            set ids [list [list $regs [my S get] $f]]
+        }
+        set ids [list [list $regs [my S get]]]
         set results [my T iterate $ids ExecCounter]
         lindex $results 0
     }
