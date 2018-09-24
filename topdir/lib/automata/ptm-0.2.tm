@@ -90,6 +90,7 @@ oo::class create ::automata::PTM {
         my Q clear
         my Q set {*}[my T fixJumps $labels]
         my S set [lindex $labels 1]
+        my F set $i
     }
 
     method run {tape {tapeIndex 0}} {

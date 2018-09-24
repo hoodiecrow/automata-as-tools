@@ -15,12 +15,12 @@ test cm-1.0 {Implement a CPY operation} -setup {
             DEC:2
             INC:3
             INC:1
-            JZ:0,a
+            J:a
         b:  JZ:1,z
             DEC:1
             INC:2
-            JZ:0,b
-        z:  HALT
+            J:b
+        z:  NOP
     }
     M run {0 0 2 0 0}
 } -cleanup {
@@ -36,12 +36,12 @@ test cm-1.1 {print 1.0} -setup {
             DEC:2
             INC:3
             INC:1
-            JZ:0,a
+            J:a
         b:  JZ:1,z
             DEC:1
             INC:2
-            JZ:0,b
-        z:  HALT
+            J:b
+        z:  NOP
     }
     M print
 } -cleanup {
@@ -50,40 +50,41 @@ test cm-1.1 {print 1.0} -setup {
 } -output {Flag symbols    A = {0, 1}
 Instructions    Q = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 Program start   S = 0
+Program end     F = 10
 Transitions
 q0    inp   q1    out
-0     0     5     JZ 2 {}
-0     1     1     JZ 2 {}
+0     0     5     {} 2
+0     1     1     {} 2
 1     0     2     DEC 2
 1     1     2     DEC 2
 2     0     3     INC 3
 2     1     3     INC 3
 3     0     4     INC 1
 3     1     4     INC 1
-4     0     0     JZ 0 {}
-4     1     5     JZ 0 {}
-5     0     9     JZ 1 {}
-5     1     6     JZ 1 {}
+4     0     0     
+4     1     0     
+5     0     9     {} 1
+5     1     6     {} 1
 6     0     7     DEC 1
 6     1     7     DEC 1
 7     0     8     INC 2
 7     1     8     INC 2
-8     0     5     JZ 0 {}
-8     1     9     JZ 0 {}
-9     0     10    HALT
-9     1     10    HALT
+8     0     5     
+8     1     5     
+9     0     10    
+9     1     10    
 }
 
-test cm-2.0 {Calculate r(2) + r(3) -> r(4)} -setup {
+test cm-2.0 {Calculate r(2) + r(3) -> r(4)} -constraints CM_ALU -setup {
     ::automata::CM create M
 } -body {
     M compile {
         a:  JZ:2,b
             ADD:2,3,4
-            JZ:0,z
+            J:z
         b:  JZ:3,z
             CPY:3,4
-        z:  HALT
+        z:  NOP
     }
     set res {}
     lappend res [M run {0 0 2 5 0}]
@@ -95,16 +96,16 @@ test cm-2.0 {Calculate r(2) + r(3) -> r(4)} -setup {
     log::lvSuppressLE i 1
 } -result {{{0 0 2 5 7} 5 1} {{0 0 0 5 5} 5 1} {{0 0 0 0 0} 5 1}}
 
-test cm-2.1 {Print 2.0} -setup {
+test cm-2.1 {Print 2.0} -constraints CM_ALU -setup {
     ::automata::CM create M
 } -body {
     M compile {
         a:  JZ:2,b
             ADD:2,3,4
-            JZ:0,z
+            J:z
         b:  JZ:3,z
             CPY:3,4
-        z:  HALT
+        z:  NOP
     }
     M print
 } -cleanup {
@@ -125,8 +126,8 @@ q0    inp   q1    out
 3     1     4     JZ 3 {}
 4     0     5     CPY 3 4
 4     1     5     CPY 3 4
-5     0     6     HALT
-5     1     6     HALT
+5     0     6     NOP
+5     1     6     NOP
 }
 
 cleanupTests ; return ; # ---------------------------------

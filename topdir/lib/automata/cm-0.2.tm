@@ -19,7 +19,7 @@ oo::class create ::automata::CM {
         ::automata::Component create A -label "Flag symbols" -domain B
         ::automata::Component create Q -label "Instructions" -domain N
         ::automata::Component create S -label "Program start" -in [namespace which Q] -scalar
-        S set 0
+        ::automata::Component create F -label "Program end" -in [namespace which Q] -scalar
         ::automata::STE create T {Q A}
         #: * *T* is the transition relation, an instance of the `STE` class.
         #: 
@@ -43,17 +43,32 @@ oo::class create ::automata::CM {
                 set offset 0
             }
             set next [expr {$i + 1}]
-            set regs [split $regs ,]
-            if {$op eq "JZ"} {
-                T set $i 0 $offset $op {*}$regs
-                T set $i 1 $next $op {*}$regs
-            } else {
-                T set $i [A set] $next $op {*}$regs
+            set regs [list {*}[string map {, { }} $regs]]
+            # instruction set, after Shepherdson and Sturgis (1963); adds NOP to have anything to jump to when jumping to end.
+            switch $op {
+                INC - DEC - CLR - CPY {
+                    T set $i [A set] $next $op {*}$regs
+                }
+                J {
+                    T set $i [A set] $offset
+                }
+                JZ {
+                    T set $i 0 $offset {} {*}$regs
+                    T set $i 1 $next {} {*}$regs
+                }
+                NOP {
+                    T set $i [A set] $next
+                }
+                default {
+                    return -code error [format {invalid operation "%s"} $op]
+                }
             }
             incr i
         }
         my Q clear
         my Q set {*}[my T fixJumps $labels]
+        my S set [lindex $labels 1]
+        my F set $i
     }
 
     method run {regs {s {}}} {

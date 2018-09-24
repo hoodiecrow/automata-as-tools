@@ -1,7 +1,7 @@
 namespace eval automata {}
 
 oo::class create ::automata::Operator {
-    #: In the Processor, data is in a sequential-accessed sequence that can
+    #: In the Operator, data is in a sequential-accessed sequence that can
     #: grow if new elements are added at the ends.
     #:
     #: The operations supported are:

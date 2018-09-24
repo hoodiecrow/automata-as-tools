@@ -67,28 +67,20 @@ oo::class create ::automata::Processor {
     }
 
     method ExecCounter id {
+        log::log d [info level 0] 
         # unpack ID
         lassign $id data q0 flag
         # get move
         lassign [lindex [my get $q0 $flag] 0] - - q1 op r0 r1 r2
+        # instruction set, after Shepherdson and Sturgis (1963)
         switch $op {
-            INC - DEC - CLR {
-                lset data $r0 [my ALU $op $data $r0]
-            }
-            JZ {}
-            CPY {
-                lset data $r1 [lindex $data $r0]
-            }
-            EQ - EQL - ADD - MUL {
-                set v [my ALU $op $data $r0 $r1]
-                lset data $r2 $v
-            }
-            HALT {
-                return
-            }
-            default {
-                error \$op=$op
-            }
+            INC { lset data $r0 [expr {[lindex $data $r0] + 1}] }
+            DEC { lset data $r0 [expr {[lindex $data $r0] - 1}] }
+            CLR { lset data $r0 0 }
+            CPY { lset data $r1 [lindex $data $r0] }
+        }
+        if {[my F contains $q1]} {
+            return
         }
         # build new ID
         set r [lindex [my get $q1 *] 0 4]
