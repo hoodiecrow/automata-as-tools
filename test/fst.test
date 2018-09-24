@@ -247,14 +247,14 @@ test dfst-2.1 {edge detector} -setup $t -body {
 } -result {{{0 0 1}} {{0 0 1}} {{0 0 1 0 1 1 1 0}}}
 
 test dfst-2.2 {edge detector, same as 2.1} -setup $t -body {
-M compile {
-   <si  0/0 s0
-    si  1/0 s1
-    s0> 0/0 s0
-    s0  1/1 s1
-    s1> 0/1 s0
-    s1  1/0 s1
-}
+    M compile {
+       <si  0/0 s0
+        si  1/0 s1
+        s0> 0/0 s0
+        s0  1/1 s1
+        s1> 0/1 s0
+        s1  1/0 s1
+    }
     set res {}
     lappend res [M run -recognize {1 1 0} {0 0 1}]
     lappend res [M run -translate {1 1 0}]

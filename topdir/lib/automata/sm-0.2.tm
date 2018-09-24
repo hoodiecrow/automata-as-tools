@@ -24,12 +24,12 @@ oo::class create ::automata::SM {
     #: HALT       : stop the program
 
     constructor args {
-        #: This machine is defined by the tuple `<A, Q, S, T>`:
+        #: This machine is defined by the tuple `<A, Q, S, F, T>`:
         ::automata::Component create A -label "Flag symbols" -domain B
         ::automata::Component create Q -label "Instructions"
         ::automata::Component create S -label "Start address" -in [namespace which Q] -scalar
         ::automata::Component create F -label "Program end" -in [namespace which Q] -scalar
-        ::automata::STE create T {Q A}
+        ::automata::STE create T {Q S F A}
         #: * *T* is the transition relation, an instance of the `STE` class.
         #: 
         #: Inject the Processor class into T.
@@ -92,5 +92,5 @@ oo::class create ::automata::SM {
         lindex $results 0
     }
 
-#: * `A`, `Q`, `S`, `T` : public methods to give access to the components.
+#: * `A`, `Q`, `S`, `F`, `T` : public methods to give access to the components.
 }

@@ -15,16 +15,20 @@ oo::class create ::automata::CM {
     #: A Counter Machine is the simplest form of Register Machine.
     #:
     #: The ID of a CM is (r, i) = current registers, current instruction pointer.
+    #:
+    #: The number of registers is determined by the length of the {0, 1} sequence passed to the `run` method. Registers are indexed in the same way as a list index (0, 1, 2, ...).
+    #:
+    #: Register #0 is reserved for the value 0. It is an error to set it to another value.
 
     constructor args {
         set is 4
         #: Specify which actual instruction set to use when instantiating machine.
         #:
         if {[lindex $args 0] eq "-instructionset"} {
-            #: -instructionset 1 : {INC, DEC, JZ}, (Minsky (1961, 1967), Lambek (1961))
-            #: -instructionset 2 : {CLR, INC, JE}, (Ershov (1958), Peter (1958) as interpreted by Shepherdson-Sturgis (1964); Minsky (1967); Schönhage (1980))
-            #: -instructionset 3 : {INC, CPY, JE}, (Elgot-Robinson (1964), Minsky (1967))
-            #: -instructionset 4 : {INC, DEC, CLR, CPY, J, JZ} (default: Shepherdson and Sturgis (1963))
+            #: * `-instructionset 1` : {INC, DEC, JZ}, (Minsky (1961, 1967), Lambek (1961))
+            #: * `-instructionset 2` : {CLR, INC, JE}, (Ershov (1958), Peter (1958) as interpreted by Shepherdson-Sturgis (1964); Minsky (1967); Schönhage (1980))
+            #: * `-instructionset 3` : {INC, CPY, JE}, (Elgot-Robinson (1964), Minsky (1967))
+            #: * `-instructionset 4` : {INC, DEC, CLR, CPY, J, JZ} (default: Shepherdson and Sturgis (1963))
             #:
             set args [lassign $args - is]
         }
@@ -34,7 +38,7 @@ oo::class create ::automata::CM {
             3 {INC CPY JE}
             4 {INC DEC CLR CPY J JZ}
         } $is]
-        #: This machine is defined by the tuple `<A, Q, S, T>`:
+        #: This machine is defined by the tuple `<A, Q, S, F, T>`:
         ::automata::Component create A -label "Flag symbols" -domain B
         ::automata::Component create Q -label "Instructions" -domain N
         ::automata::Component create S -label "Program start" -in [namespace which Q] -scalar
@@ -63,8 +67,8 @@ oo::class create ::automata::CM {
             }
             set next [expr {$i + 1}]
             set regs [list {*}[string map {, { }} $regs]]
-            #: The basic instruction set is INC, DEC, CLR, CPY, J, JZ, JE, NOP.
-            #: The instruction NOP is added to all sets to have anything to jump to when jumping to end.
+            #: The basic instruction set is INC, DEC, CLR, CPY, J, JZ, JE.
+            #: The no operation instruction, NOP, is added to all sets to have something to jump to when jumping to end.
             if {$op ne "NOP" && $op ni $instructionSet} {
                 return -code error [format {illegal instruction opcode "%s"} $op]
             }
@@ -113,5 +117,5 @@ oo::class create ::automata::CM {
         lindex $results 0
     }
 
-#: * `A`, `Q`, `S`, `T` : public methods to give access to the components.
+#: * `A`, `Q`, `S`, `F`, `T` : public methods to give access to the components.
 }
