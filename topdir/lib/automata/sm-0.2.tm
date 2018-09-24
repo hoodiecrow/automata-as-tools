@@ -87,7 +87,7 @@ oo::class create ::automata::SM {
         if {$s ne {}} {
             my S set $s
         }
-        set ids [list [list $stack [my S get] [expr {[lindex $stack 0] != 0}]]]
+        set ids [list [list $stack [my S get]]]
         set results [my T iterate $ids ExecStack]
         lindex $results 0
     }

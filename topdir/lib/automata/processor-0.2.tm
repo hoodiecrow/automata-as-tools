@@ -32,10 +32,11 @@ oo::class create ::automata::Processor {
 
     method ExecStack id {
         # unpack ID
-        lassign $id data q0 flag
-        set _tail [lassign $data TOP]
+        lassign $id data q0
+        lassign $data TOP
         # get move
-        lassign [lindex [my get $q0 $flag] 0] - - q1 op val r0 r1
+        set flag [expr {$TOP != 0}]
+        lassign [lindex [my get $q0 $flag] 0] - - q1 op val
         switch $op {
             PUSH {
                 set data [linsert $data 0 $val]
@@ -55,12 +56,14 @@ oo::class create ::automata::Processor {
                 error \$op=$op,\ \$val=$val
             }
         }
+        if {[lindex $data 0] < 0} {
+            return -code error [format {negative value in top of stack}]
+        }
         if {[my F contains $q1]} {
             return
         }
         # build new ID
-        set flag [expr {[lindex $data 0] != 0}]
-        return [list [list $data $q1 $flag]]
+        return [list [list $data $q1]]
     }
 
     method ExecCounter id {
