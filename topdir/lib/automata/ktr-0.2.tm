@@ -75,32 +75,31 @@ oo::class create ::automata::KTR {
             set next [expr {$i + 1}]
             switch $op {
                 A {
-                    if {$label eq "turnoff"} {
-                        my F set $i
-                        T set $i [A get] 0
-                    } else {
-                        T set $i [A get] $next $op $label
+                    switch $label {
+                        turnoff {
+                            my F set $i
+                            T set $i [A get] 0
+                        }
+                        turnleft {
+                            T set $i [A get] $next L
+                        }
+                        move {
+                            T set $i [A get] $next M
+                        }
+                        default {
+                            T set $i [A get] $next $op $label
+                        }
                     }
                 }
-                T {
-                    T set $i [A get] $next $op $label
-                }
+                T { T set $i [A get] $next $op $label }
                 JZ {
                     T set $i 0 $next
                     T set $i 1 $label
                 }
-                J {
-                    T set $i [A get] $label
-                }
-                RET {
-                    T set $i [A get] 0 $op
-                }
-                GOSUB {
-                    T set $i [A get] $label $op
-                }
-                NOP {
-                    T set $i [A get] $next
-                }
+                J { T set $i [A get] $label }
+                RET { T set $i [A get] 0 $op }
+                GOSUB { T set $i [A get] $label $op }
+                NOP { T set $i [A get] $next }
                 default {
                     ;
                 }

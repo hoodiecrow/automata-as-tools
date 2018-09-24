@@ -12,6 +12,9 @@ oo::class create ::automata::Robot {
             2 { set x [expr {$x - 1}] }
             3 { set y [expr {$y - 1}] }
         }
+        if {[my CheckCollision $x $y]} {
+            return -code error [format {collision with a wall!}]
+        }
     }
 
     method Look {{ddir 0}} {
@@ -62,22 +65,12 @@ oo::class create ::automata::Robot {
         log::log d \$q=$q 
         log::log d "\$op=$op \$label=$label"
         switch $op {
+            L { my Turn }
+            M { my Move }
             A {
                 switch $label {
-                    turnleft {
-                        my Turn
-                    }
-                    move {
-                        my Move
-                        if {[my CheckCollision $x $y]} {
-                            return -code error [format {collision with a wall!}]
-                        }
-                    }
                     pickbeeper {}
                     putbeeper {}
-                    turnoff {
-                        return
-                    }
                     default {
                         error \$label=$label
                     }
@@ -85,41 +78,41 @@ oo::class create ::automata::Robot {
             }
             T {
                 set _walls [concat $walls [list 0 $y [expr {$w + 1}] $y $x 0 $x [expr {$h + 1}]]]
-                switch $label {
+                set t [switch $label {
                     front-is-clear {
-                        set t [expr {![my CheckCollision {*}[my Look]]}]
+                        expr {![my CheckCollision {*}[my Look]]}
                     }
                     front-is-blocked {
-                        set t [my CheckCollision {*}[my Look]]
+                        my CheckCollision {*}[my Look]]
                     }
                     left-is-clear {
-                        set t [expr {![my CheckCollision {*}[my Look +1]]}]
+                        expr {![my CheckCollision {*}[my Look +1]]}
                     }
                     left-is-blocked {
-                        set t [my CheckCollision {*}[my Look +1]]
+                        my CheckCollision {*}[my Look +1]
                     }
                     right-is-clear {
-                        set t [expr {![my CheckCollision {*}[my Look -1]]}]
+                        expr {![my CheckCollision {*}[my Look -1]]}
                     }
                     right-is-blocked {
-                        set t [my CheckCollision {*}[my Look -1]]
+                        my CheckCollision {*}[my Look -1]
                     }
-                    next-to-a-beeper { set t [my FindBeeper] }
-                    not-next-to-a-beeper { set t [expr {![my FindBeeper]}] }
-                    facing-north { set t [expr {$f eq 1}] }
-                    not-facing-north { set t [expr {$f ne 1}] }
-                    facing-south { set t [expr {$f eq 3}] }
-                    not-facing-south { set t [expr {$f ne 3}] }
-                    facing-east { set t [expr {$f eq 0}] }
-                    not-facing-east { set t [expr {$f ne 0}] }
-                    facing-west { set t [expr {$f eq 2}] }
-                    not-facing-west { set t [expr {$f ne 2}] }
-                    any-beepers-in-beeper-bag { set t [expr {$b > 0}] }
-                    no-beepers-in-beeper-bag { set t [expr {$b < 1}] }
+                    next-to-a-beeper { my FindBeeper }
+                    not-next-to-a-beeper { expr {![my FindBeeper]} }
+                    facing-north { expr {$f eq 1} }
+                    not-facing-north { expr {$f ne 1} }
+                    facing-south { expr {$f eq 3} }
+                    not-facing-south { expr {$f ne 3} }
+                    facing-east { expr {$f eq 0} }
+                    not-facing-east { expr {$f ne 0} }
+                    facing-west { expr {$f eq 2} }
+                    not-facing-west { expr {$f ne 2} }
+                    any-beepers-in-beeper-bag { expr {$b > 0} }
+                    no-beepers-in-beeper-bag { expr {$b < 1} }
                     default {
                         error "label = $label"
                     }
-                }
+                }]
             }
             RET {
                 set q [lrange $q 1 end]
