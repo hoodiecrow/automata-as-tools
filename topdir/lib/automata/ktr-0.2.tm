@@ -14,7 +14,7 @@ oo::class create ::automata::KTR {
     #: This is a very limited Karel the Robot that can only walk around, not
     #: interact with beepers.
     #:
-    #: The ID of a KTR is (o, r, s, t, b, a) = world, robot, state, teststate, beepers, walls
+    #: The ID of a KTR is (o, r, i, t, b, a) = world, robot, instruction pointer, teststate, beepers, walls
 
     constructor args {
         #: This machine is defined by the tuple `<A, Q, S, T>`:
