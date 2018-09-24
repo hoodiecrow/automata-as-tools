@@ -47,17 +47,17 @@ oo::class create ::automata::CM {
             # instruction set, after Shepherdson and Sturgis (1963); adds NOP to have anything to jump to when jumping to end.
             switch $op {
                 INC - DEC - CLR - CPY {
-                    T set $i [A set] $next $op {*}$regs
+                    T set $i [A get] $next $op {*}$regs
                 }
                 J {
-                    T set $i [A set] $offset
+                    T set $i [A get] $offset
                 }
                 JZ {
                     T set $i 0 $offset {} {*}$regs
                     T set $i 1 $next {} {*}$regs
                 }
                 NOP {
-                    T set $i [A set] $next
+                    T set $i [A get] $next
                 }
                 default {
                     return -code error [format {invalid operation "%s"} $op]

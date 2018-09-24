@@ -28,7 +28,7 @@ oo::class create ::automata::SM {
         ::automata::Component create A -label "Flag symbols" -domain B
         ::automata::Component create Q -label "Instructions"
         ::automata::Component create S -label "Start address" -in [namespace which Q] -scalar
-        S set 0
+        ::automata::Component create F -label "Program end" -in [namespace which Q] -scalar
         ::automata::STE create T {Q A}
         #: * *T* is the transition relation, an instance of the `STE` class.
         #: 
@@ -46,20 +46,40 @@ oo::class create ::automata::SM {
                 dict set labels [string trimright $token :] $i
                 continue
             }
-            regexp {([[:upper:]]+):?(\w*)$} $token -> op val
             set next [expr {$i + 1}]
-            if {$op eq "JZ"} {
-                T set $i 0 $val $op - 0 1
-                T set $i 1 $next $op - 0 1
-            } elseif {$op eq "J"} {
-                T set $i [A set] $val $op - 0 1
+            if {[string is entier -strict $token]} {
+                T set $i [A get] $next PUSH $token
             } else {
-                T set $i [A set] $next $op $val 0 1
+                if {[regexp {([[:upper:]]+):?(.*)$} $token -> op val]} {
+                    switch $op {
+                        JZ {
+                            T set $i 0 $val
+                            T set $i 1 $next
+                        }
+                        J {
+                            T set $i [A get] $val
+                        }
+                        OP { # operation
+                            T set $i [A get] $next $val
+                        }
+                        NOP {
+                            T set $i [A get] $next
+                        }
+                        default {
+                            error \$op=$op
+                        }
+                    }
+                } else {
+                    error \$token=$token
+                }
             }
             incr i
         }
+        T set $i [A get] [incr i]
         my Q clear
         my Q set {*}[my T fixJumps $labels]
+        my S set [lindex [my Q get] 0]
+        my F set $i
     }
 
     method run {stack {s {}}} {

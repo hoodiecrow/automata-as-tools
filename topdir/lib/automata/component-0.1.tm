@@ -112,6 +112,7 @@ oo::class create ::automata::Component {
             }
         }
         set data [lsort -dict -unique $data]
+        return
     }
 
     method succ a {

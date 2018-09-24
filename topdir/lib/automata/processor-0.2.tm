@@ -6,6 +6,7 @@ oo::class create ::automata::Processor {
     #: For the Counter machine, accesses are by absolute index.
 
     method ALU {op data args} {
+        log::log d [info level 0] 
         switch $op {
             INC { set res [expr {[lindex $data {*}$args] + 1}] }
             DEC { set res [expr {[lindex $data {*}$args] - 1}] }
@@ -37,29 +38,27 @@ oo::class create ::automata::Processor {
         # get move
         lassign [lindex [my get $q0 $flag] 0] - - q1 op val r0 r1
         switch $op {
-            INC - DEC - CLR {
-                lset data $r0 [my ALU $op $data $r0]
-            }
-            JZ - J {}
             PUSH {
-                set data [linsert $data $r0 $val]
+                set data [linsert $data 0 $val]
             }
-            POP {
-                set data [lreplace $data $r0 $r0]
+            INC - DEC - CLR {
+                lset data 0 [my ALU $op $data 0]
             }
             DUP {
-                set data [linsert $data $r0 $TOP]
+                set data [linsert $data 0 $TOP]
             }
-            EQ - EQL - ADD - MUL {
-                set v [my ALU $op $data $r0 $r1]
-                set data [lreplace $data $r0 $r1 $v]
+            eq - == - + - * {
+                set v [my ALU $op $data 0 1]
+                set data [lreplace $data 0 1 $v]
             }
-            HALT {
-                return
-            }
+            {} {}
             default {
-                error \$op=$op
+                error \$op=$op,\ \$val=$val
             }
+        }
+        log::log d \$data=$data 
+        if {[my F contains $q1]} {
+            return
         }
         # build new ID
         set flag [expr {[lindex $data 0] != 0}]
