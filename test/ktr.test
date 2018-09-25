@@ -11,20 +11,20 @@ test ktr-1.0 {} -setup {
     ::automata::KTR create M
 } -body {
     M compile {
-        a:          T:next-to-a-beeper
-                    JZ:end
-                    T:right-is-blocked
-                    JZ:b
+        a:          TEST:next-to-a-beeper
+                    JUMPZ:end
+                    TEST:right-is-blocked
+                    JUMPZ:b
                     GOSUB:turnright
-                    J:c
-        b:          T:front-is-clear
-                    JZ:c
-                    A:turnleft
-                    J:b
-        c:          A:move
-                    J:a
-        end:        A:turnoff
-        turnright:  A:turnleft A:turnleft A:turnleft RET
+                    JUMP:c
+        b:          TEST:front-is-clear
+                    JUMPZ:c
+                    ACTION:turnleft
+                    JUMP:b
+        c:          ACTION:move
+                    JUMP:a
+        end:        ACTION:turnoff
+        turnright:  ACTION:turnleft ACTION:turnleft ACTION:turnleft RET
     }
     M run {3 3} {1 1 1 0} {3 2 1} {2 1 2 2}
 } -cleanup {
@@ -36,63 +36,63 @@ test ktr-1.1 {print 1.0} -setup {
     ::automata::KTR create M
 } -body {
     M compile {
-        a:          T:next-to-a-beeper
-                    JZ:end
-                    T:right-is-blocked
-                    JZ:b
+        a:          TEST:next-to-a-beeper
+                    JUMPZ:end
+                    TEST:right-is-blocked
+                    JUMPZ:b
                     GOSUB:turnright
-                    J:c
-        b:          T:front-is-clear
-                    JZ:c
-                    A:turnleft
-                    J:b
-        c:          A:move
-                    J:a
-        end:        A:turnoff
-        turnright:  A:turnleft A:turnleft A:turnleft RET
+                    JUMP:c
+        b:          TEST:front-is-clear
+                    JUMPZ:c
+                    ACTION:turnleft
+                    JUMP:b
+        c:          ACTION:move
+                    JUMP:a
+        end:        ACTION:turnoff
+        turnright:  ACTION:turnleft ACTION:turnleft ACTION:turnleft RET
     }
     M print
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
 } -output {Flag symbols    A = {0, 1}
-State symbols   Q = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17}
+Instructions    Q = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17}
 Program start   S = 1
 Program end     F = 13
 Transitions
 q0    inp   q1    out
-1     0     2     T next-to-a-beeper
-1     1     2     T next-to-a-beeper
+1     0     2     TEST next-to-a-beeper
+1     1     2     TEST next-to-a-beeper
 2     0     3     
 2     1     13    
-3     0     4     T right-is-blocked
-3     1     4     T right-is-blocked
+3     0     4     TEST right-is-blocked
+3     1     4     TEST right-is-blocked
 4     0     5     
 4     1     7     
 5     0     14    GOSUB
 5     1     14    GOSUB
 6     0     11    
 6     1     11    
-7     0     8     T front-is-clear
-7     1     8     T front-is-clear
+7     0     8     TEST front-is-clear
+7     1     8     TEST front-is-clear
 8     0     9     
 8     1     11    
-9     0     10    L
-9     1     10    L
+9     0     10    TURN
+9     1     10    TURN
 10    0     7     
 10    1     7     
-11    0     12    M
-11    1     12    M
+11    0     12    MOVE
+11    1     12    MOVE
 12    0     1     
 12    1     1     
 13    0     0     
 13    1     0     
-14    0     15    L
-14    1     15    L
-15    0     16    L
-15    1     16    L
-16    0     17    L
-16    1     17    L
+14    0     15    TURN
+14    1     15    TURN
+15    0     16    TURN
+15    1     16    TURN
+16    0     17    TURN
+16    1     17    TURN
 17    0     0     RET
 17    1     0     RET
 }

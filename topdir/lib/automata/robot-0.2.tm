@@ -60,23 +60,13 @@ oo::class create ::automata::Robot {
         }
         lassign [lindex [my get $q0 $t] 0] - - q1 op label
         set t {}
-        log::log d \$q1=$q1 
         lset q 0 $q1
-        log::log d \$q=$q 
-        log::log d "\$op=$op \$label=$label"
         switch $op {
-            L { my Turn }
-            M { my Move }
-            A {
-                switch $label {
-                    pickbeeper {}
-                    putbeeper {}
-                    default {
-                        error \$label=$label
-                    }
-                }
-            }
-            T {
+            TURN { my Turn }
+            MOVE { my Move }
+            TAKE {}
+            DROP {}
+            TEST {
                 set _walls [concat $walls [list 0 $y [expr {$w + 1}] $y $x 0 $x [expr {$h + 1}]]]
                 set t [switch $label {
                     front-is-clear {

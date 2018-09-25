@@ -17,10 +17,10 @@ oo::class create ::automata::KTR {
     #: The ID of a KTR is (o, r, i, t, b, a) = world, robot, instruction stack, teststate, beepers, walls.
 
     constructor args {
-        #: This machine is defined by the tuple `<A, Q, S, T>`:
+        #: This machine is defined by the tuple `<A, Q, S, F, T>`:
         #:
         ::automata::Component create A -label "Flag symbols" -domain B
-        ::automata::Component create Q -label "State symbols" -domain N
+        ::automata::Component create Q -label "Instructions" -domain N
         ::automata::Component create S -label "Program start" -in [namespace which Q] -scalar
         ::automata::Component create F -label "Program end" -in [namespace which Q] -scalar
         S set 0
@@ -35,31 +35,6 @@ oo::class create ::automata::KTR {
     method compile tokens {
         #: Convert source code to transition configuration.
         #:
-        set i 0
-        set labels {}
-        foreach token $tokens {
-            if {[string match *: $token]} {
-                dict set labels [string trimright $token :] $i
-                continue
-            }
-            regexp {([[:upper:]]+):?(.*)$} $token -> op label
-            if {$label eq {}} {
-                set label 0
-            }
-            if {$op in {T A}} {
-                T set $i $op 0 $label
-            } else {
-                T set $i $op $label
-            }
-            incr i
-        }
-        my Q clear
-        my Q set {*}[my T fixJumps $labels]
-    }
-
-    method compile tokens {
-        #: Convert source code to transition configuration.
-        #:
         # address 0 is invalid
         set i 1
         set labels {}
@@ -68,41 +43,50 @@ oo::class create ::automata::KTR {
                 dict set labels [string trimright $token :] $i
                 continue
             }
-            regexp {([[:upper:]]+):?(.*)$} $token -> op label
-            if {$label eq {}} {
-                set label 0
-            }
-            set next [expr {$i + 1}]
-            switch $op {
-                A {
-                    switch $label {
-                        turnoff {
-                            my F set $i
-                            T set $i [A get] 0
-                        }
-                        turnleft {
-                            T set $i [A get] $next L
-                        }
-                        move {
-                            T set $i [A get] $next M
-                        }
-                        default {
-                            T set $i [A get] $next $op $label
+            if {[regexp {([[:upper:]]+):?(.*)$} $token -> op label]} {
+                if {$label eq {}} {
+                    set label 0
+                }
+                set next [expr {$i + 1}]
+                switch $op {
+                    ACTION {
+                        switch $label {
+                            turnoff {
+                                my F set $i
+                                T set $i [A get] 0
+                            }
+                            turnleft {
+                                T set $i [A get] $next TURN
+                            }
+                            move {
+                                T set $i [A get] $next MOVE
+                            }
+                            pickbeeper {
+                                T set $i [A get] $next TAKE
+                            }
+                            putbeeper {
+                                T set $i [A get] $next DROP
+                            }
+                            default {
+                                return -code error [format {unknown action "%s"} $label]
+                            }
                         }
                     }
+                    TEST { T set $i [A get] $next $op $label }
+                    JUMPZ {
+                        T set $i 0 $next
+                        T set $i 1 $label
+                    }
+                    JUMP { T set $i [A get] $label }
+                    RET { T set $i [A get] 0 $op }
+                    GOSUB { T set $i [A get] $label $op }
+                    NOP { T set $i [A get] $next }
+                    default {
+                        ;
+                    }
                 }
-                T { T set $i [A get] $next $op $label }
-                JZ {
-                    T set $i 0 $next
-                    T set $i 1 $label
-                }
-                J { T set $i [A get] $label }
-                RET { T set $i [A get] 0 $op }
-                GOSUB { T set $i [A get] $label $op }
-                NOP { T set $i [A get] $next }
-                default {
-                    ;
-                }
+            } else {
+                return -code error [format {syntax error: "%s"} $token]
             }
             incr i
         }
@@ -126,5 +110,5 @@ oo::class create ::automata::KTR {
         lindex $results 0
     }
 
-#: * `A`, `Q`, `S`, `T` : public methods to give access to the components.
+#: * `A`, `Q`, `S`, `F`, `T` : public methods to give access to the components.
 }
