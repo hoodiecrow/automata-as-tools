@@ -11,7 +11,8 @@ package require automata::fsm
 
 set m {::automata::FSM create M}
 
-test dfa-1.0 {accept binary numbers that are multiples of 3} -setup $m -body {
+test dfa-1.0 {accept binary numbers that are multiples of 3} -body {
+    ::automata::FSM create M
     M compile {
        <s0> 0 s0
         s0  1 s1
@@ -34,7 +35,6 @@ test dfa-1.0 {accept binary numbers that are multiples of 3} -setup $m -body {
     log::lvSuppressLE i 1
 } -result {0 0 1 0 0 1 0}
 
-cleanupTests ; return ; # ---------------------------------
 test dfa-1.1 {find even number of ones/zeros} -setup $m -body {
 M compile {
    <s1> 0 s2
@@ -66,26 +66,26 @@ test dfa-1.2 {find even number of ones/zeros: print the machine} -setup $m -body
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -output {A Input alphabet : {0, 1}
-Q State symbols  : {s1, s2}
-S Start symbol(s): {s1}
-F Final symbol(s): {s1}
+} -output {Input symbols   A = {0, 1}
+State symbols   Q = {s1, s2}
+Start symbols   S = {s1}
+Final symbols   F = {s1}
 Transitions
-q0  inp q1  out
-s1  0   s2  
-s1  1   s1  
-s2  0   s1  
-s2  1   s2  
+q0    inp   q1    out
+s1    0     s2    
+s1    1     s1    
+s2    0     s1    
+s2    1     s2    
 }
 
 test nfa-1.0 {} -setup $m -body {
-    M T set s0 0 s0
-    M T set s0 1 s0
-    M T set s0 1 s1
-    M T set s1 0 s0
-    M T set s1 1 s1
-    M S set s0
-    M F set s1
+    M add table s0 0 s0
+    M add table s0 1 s0
+    M add table s0 1 s1
+    M add table s1 0 s0
+    M add table s1 1 s1
+    M add S s0
+    M add F s1
     set res {}
     lappend res [M run {1}]
     lappend res [M run {0}]
@@ -101,8 +101,8 @@ test nfa-1.0 {} -setup $m -body {
 
 test nfa-1.1 {find even number of ones/zeros} -setup $m -body {
     M compile {
-        s0 ε s1
-        s0 ε s3
+       <s0 ε s1>
+        s0 ε s3>
         s1 0 s2
         s1 1 s1
         s2 0 s1
@@ -112,9 +112,6 @@ test nfa-1.1 {find even number of ones/zeros} -setup $m -body {
         s4 0 s4
         s4 1 s3
     }
-    M S set s0
-    M F set s1
-    M F set s3
     set res {}
     lappend res [M run {1 1}]
     lappend res [M run {1 0}]
