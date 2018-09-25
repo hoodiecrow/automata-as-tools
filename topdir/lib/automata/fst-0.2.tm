@@ -30,9 +30,9 @@ oo::class create ::automata::FST {
         ::automata::Component create A -label "Input symbols" -exclude {{}}
         ::automata::Component create B -label "Output symbols" -exclude {{}}
         ::automata::Component create Q -label "State symbols"
-        ::automata::Component create S -label "Start symbols" -in [namespace which Q]
-        ::automata::Component create F -label "Final symbols" -in [namespace which Q]
-        ::automata::STE create T {Q S F A B}
+        ::automata::Component create S -label "Start symbols" -in Q
+        ::automata::Component create F -label "Final symbols" -in Q
+        ::automata::STE create T
         #: * *T* is the transition relation, an instance of the `STE` class.
         #: 
         #: Inject the processing methods into T.

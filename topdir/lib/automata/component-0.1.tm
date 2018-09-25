@@ -27,7 +27,8 @@ oo::class create ::automata::Component {
                     #: component's value is set, this command prefix will be
                     #: called as `cmd set val` for every value passed as
                     #: argument to the component's `set` method.
-                    set args [lassign $args - superset]
+                    set args [lassign $args - cmd]
+                    set superset [uplevel 1 [list namespace which $cmd]]
                 }
                 -domain {
                     #: * `-domain d` : adds a domain test. Currently supports

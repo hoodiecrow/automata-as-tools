@@ -29,10 +29,10 @@ oo::class create ::automata::PDA {
         ::automata::Component create A -label "Input symbols" -exclude {{}}
         ::automata::Component create B -label "Stack symbols" -exclude {{}}
         ::automata::Component create Q -label "State symbols"
-        ::automata::Component create Z -label "Stack bottom" -in [namespace which B] -scalar
-        ::automata::Component create S -label "Start symbol" -in [namespace which Q] -scalar
-        ::automata::Component create F -label "Final symbols" -in [namespace which Q]
-        ::automata::STE create T {Q S F A B}
+        ::automata::Component create Z -label "Stack bottom" -in B -scalar
+        ::automata::Component create S -label "Start symbol" -in Q -scalar
+        ::automata::Component create F -label "Final symbols" -in Q
+        ::automata::STE create T
         #: * *T* is the transition relation, an instance of the `STE` class.
         #: 
         #: Inject the Machine class into T.

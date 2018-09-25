@@ -27,9 +27,9 @@ oo::class create ::automata::SM {
         #: This machine is defined by the tuple `<A, Q, S, F, T>`:
         ::automata::Component create A -label "Flag symbols" -domain B
         ::automata::Component create Q -label "Instructions"
-        ::automata::Component create S -label "Start address" -in [namespace which Q] -scalar
-        ::automata::Component create F -label "Program end" -in [namespace which Q] -scalar
-        ::automata::STE create T {Q S F A}
+        ::automata::Component create S -label "Start address" -in Q -scalar
+        ::automata::Component create F -label "Program end" -in Q -scalar
+        ::automata::STE create T
         #: * *T* is the transition relation, an instance of the `STE` class.
         #: 
         #: Inject the Processor class into T.

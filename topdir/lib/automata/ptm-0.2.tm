@@ -21,12 +21,12 @@ oo::class create ::automata::PTM {
         #: This machine is defined by the tuple `<A, b, Q, S, F, T>`:
         #:
         ::automata::Component create A -label "Tape symbols" -domain B
-        ::automata::Component create b -label "Blank symbol" -scalar -in [namespace which A]
+        ::automata::Component create b -label "Blank symbol" -scalar -in A
         b set 0
         ::automata::Component create Q -label "Instructions" -domain N
-        ::automata::Component create S -label "Program start" -in [namespace which Q] -scalar
-        ::automata::Component create F -label "End points" -in [namespace which Q]
-        ::automata::STE create T {Q S F A}
+        ::automata::Component create S -label "Program start" -in Q -scalar
+        ::automata::Component create F -label "End points" -in Q
+        ::automata::STE create T
         #: 
         #: Inject the Blank method and Operator class into T.
         oo::objdefine T method Blank {} [format {

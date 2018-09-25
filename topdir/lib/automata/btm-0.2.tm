@@ -17,12 +17,12 @@ oo::class create ::automata::BTM {
     constructor args {
         #: This machine is defined by the tuple `<A, B, b, Q, S, F, T>`:
         ::automata::Component create A -label "Tape symbols" -exclude {{} L R}
-        ::automata::Component create B -label "Init symbols" -exclude {{}} -in [namespace which A]
-        ::automata::Component create b -label "Blank symbol" -scalar -in [namespace which A]
+        ::automata::Component create B -label "Print symbols" -exclude {{} L R} -in A
+        ::automata::Component create b -label "Blank symbol" -scalar -in A
         ::automata::Component create Q -label "State symbols"
-        ::automata::Component create S -label "Start symbol" -in [namespace which Q] -scalar
-        ::automata::Component create F -label "Final symbols" -in [namespace which Q]
-        ::automata::STE create T {Q S F B A}
+        ::automata::Component create S -label "Start symbol" -in Q -scalar
+        ::automata::Component create F -label "Final symbols" -in Q
+        ::automata::STE create T
         #: * *T* is the transition relation, an instance of the `STE` class.
         #: 
         #: Inject the Blank method and Operator class into T.

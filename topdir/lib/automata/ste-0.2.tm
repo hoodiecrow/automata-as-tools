@@ -13,25 +13,15 @@ oo::class create ::automata::STE {
     #: into this class when the machine is instantiated.
 
     constructor args {
-        #: Takes as argument a list of the set components for (in order) state
-        #: symbols, start states, final states, input symbols, output symbols.
-        #: The components can be omitted from the end forwards.
-        #:
-        lassign $args components
-        lassign [apply {n {
-            list [namespace qualifiers $n] [namespace tail $n]
-        }} [self]] ns name
-        if no {
-            set ns [namespace qualifiers [self]]
-            set name [namespace tail [self]]
-        }
+        # currently uses no arguments
+        set ns [namespace qualifiers [self]]
+        set name [namespace tail [self]]
         #: Adds itself to the component list (for printing) and as an exported
         #: method in the owning instance.
         lappend $ns\::complist $name
         oo::objdefine [uplevel 1 {self}] forward $name $name
         oo::objdefine [uplevel 1 {self}] export $name
-        oo::objdefine [self] forward Q $ns\::Q
-        oo::objdefine [self] forward F $ns\::F
+        my GetComponents
     }
 
     method Dump {} {set data}
@@ -48,6 +38,18 @@ oo::class create ::automata::STE {
             lappend res [format {%-5s %-5s %-5s %s} $q0 $inp $q1 $out]
         }
         return [join $res \n]
+    }
+
+    method GetComponents {} {
+        set components [list]
+        foreach c [info class instances ::automata::Component] {
+            if {[string match $ns\::* $c]} {
+                set _c [namespace tail $c]
+                oo::objdefine [self] forward $_c $c
+                oo::objdefine [self] unexport $_c
+                lappend components $_c
+            }
+        }
     }
 
     method isEpsilonFree {} {
@@ -82,7 +84,7 @@ oo::class create ::automata::STE {
         if no {
             set syms [list {*}[string map {, { }} $syms]]
         }
-        if {[llength $components] > 0} {
+        if {"Q" in $components} {
             foreach q [list $q0 $q1] {
                 if {[regexp {<(\w+)} $q -> qs]} {
                     lappend qss $qs
@@ -90,25 +92,21 @@ oo::class create ::automata::STE {
                 if {[regexp {(\w+)>} $q -> qf]} {
                     lappend qfs $qf
                 }
-                $ns\::[lindex $components 0] set [regexp -inline {\w+} $q]
+                my Q set [regexp -inline {\w+} $q]
             }
             lassign [regexp -all -inline {[-+]?\d+|\w+} [list $q0 $q1]] q0 q1
         }
-        if {[llength $components] > 1} {
-            foreach q $qss {
-                $ns\::[lindex $components 1] set $q
-            }
+        if {"S" in $components} {
+            my S set {*}$qss
         }
-        if {[llength $components] > 2} {
-            foreach q $qfs {
-                $ns\::[lindex $components 2] set $q
-            }
+        if {"F" in $components} {
+            my F set {*}$qfs
         }
-        if {[llength $components] > 3} {
-            $ns\::[lindex $components 3] set {*}$syms
+        if {"A" in $components} {
+            my A set {*}$syms
         }
-        if {[llength $components] > 4} {
-            $ns\::[lindex $components 4] set {*}$args
+        if {"B" in $components} {
+            my B set {*}$args
         }
         foreach sym $syms {
             lappend data [list $q0 $sym $q1 {*}$args]
