@@ -1,9 +1,6 @@
 
 ::tcl::tm::path add [file dirname [file dirname [file normalize [info script]]]]
 
-if no {
-    package require -exact automata::ste 0.3
-}
 package require -exact automata::machine 0.3
 package require automata::configuration
 
@@ -22,8 +19,8 @@ oo::class create ::automata::FSM {
     constructor args {
         my graded "Input symbols" A -epsilon ε
         my graded "State symbols" Q
-        my graded "Start symbols" S -insert Q
-        my graded "Final symbols" F -insert Q
+        my graded "Start symbols" S
+        my graded "Final symbols" F
         my table -as {Q A Q}
         my id {w q} {A* Q}
     }
@@ -36,9 +33,6 @@ oo::class create ::automata::FSM {
         #:
         foreach {from input next} $tokens {
             splitItems input
-            if no {
-                set input [lmap inp $input {if {$inp eq {ε}} list {set inp}}]
-            }
             if {[string match <* $from]} {
                 set from [string trimleft $from <]
                 my add S [string trimright $from >]
@@ -114,7 +108,5 @@ oo::class create ::automata::FSM {
         }
         return {}
     }
-
-#: * `A`, `Q`, `S`, `F`, `T` : public methods to give access to the components.
 
 }

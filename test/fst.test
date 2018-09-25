@@ -3,8 +3,6 @@ namespace import ::tcltest::*
 
 ::tcltest::configure {*}$argv
 
-::tcltest::testConstraint noskip 1
-
 ::tcltest::loadTestedCommands
 
 package require automata::fst
@@ -89,7 +87,7 @@ test generate-1.0 {} -setup $t -body {
 
 test generate-1.1 {} -setup $t -body {
     M compile {
-       <1  ε/  2
+       <1  ε/ε 2
         1> a/a 3
         2> a/b 3
         3> ε/a 1
@@ -135,7 +133,7 @@ test recognize-1.2 {recognize {a*(b+c+)?} relation {a b c} -> {x y z}} -setup $t
         2  b/y 2
         2  c/z 3
         3  c/z 3
-        3  ε/  1
+        3  ε/ε 1
     }
     set res {}
     lappend res [M run -recognize {a b c} {x y z}]
@@ -177,8 +175,6 @@ test dfst-1.2 {} -setup $t -body {
        <1> a/a 2
         2  ε/a 1
     }
-    M S set 1
-    M F set 1
     M run -translate {a a}
 } -cleanup {
     M destroy
