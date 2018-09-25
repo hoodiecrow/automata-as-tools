@@ -39,24 +39,19 @@ oo::class create ::automata::FSM {
             if no {
                 set input [lmap inp $input {if {$inp eq {ε}} list {set inp}}]
             }
-            lassign {} qss qfs
             if {[string match <* $from]} {
                 set from [string trimleft $from <]
-                lappend qss [string trimright $from >]
+                my add S [string trimright $from >]
             }
             foreach name {from next} {
                 if {[string match *> [set $name]]} {
                     set $name [string trimright [set $name] >]
-                    lappend qfs [set $name]
+                    my add F [set $name]
                 }
             }
             foreach inp $input {
                 my add table $from $inp $next
             }
-            my add A {*}$input
-            my add Q $from $next
-            my add S {*}$qss
-            my add F {*}$qfs
         }
     }
 

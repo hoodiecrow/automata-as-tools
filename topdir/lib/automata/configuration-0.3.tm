@@ -38,7 +38,7 @@ oo::class create ::automata::Configuration {
                 }
             }
         }
-        puts [string trimright $str \n]
+        puts -nonewline $str
     }
 
     method graded {label name args} {
@@ -167,25 +167,33 @@ oo::class create ::automata::Configuration {
     }
 
     method AddGraded {name args} {
-        dict with components $name {
-            if {$domain eq "B"} {
-                return
-            }
+        if {[llength $args] > 0} {
             if {[my FitsGraded $name syms {*}$args]} {
-                if {$scalar} {
-                    set sym [lindex $syms end]
-                    apply $insert $sym
-                    set value $sym
-                } else {
-                    foreach sym $syms {
-                        apply $insert $sym
-                        lappend value $sym
-                    }
-                    set value [lsort -unique -dict $value]
-                }
+                my AddGradedValue $name $syms
             }
         }
     }
+
+    method AddGradedValue {name syms} {
+        dict with components $name {
+            if {$scalar} {
+                set sym [lindex $syms end]
+                if {$sym ne {}} {
+                    apply $insert $sym
+                    set value $sym
+                }
+            } else {
+                foreach sym $syms {
+                    if {$sym ne {}} {
+                        apply $insert $sym
+                        lappend value $sym
+                    }
+                }
+                set value [lsort -unique -dict $value]
+            }
+        }
+    }
+
 
     method FitsGraded {name varName args} {
         upvar 1 $varName syms
@@ -193,6 +201,11 @@ oo::class create ::automata::Configuration {
         dict with components $name {
             foreach sym $args {
                 switch $domain {
+                    B {
+                        if {$sym ni {0 1}} {
+                            return 0
+                        }
+                    }
                     N {
                         if {![string is digit -strict $sym]} {
                             return 0
@@ -229,13 +242,16 @@ oo::class create ::automata::Configuration {
                     return -code error [format {too many symbols}]
                 }
                 if {[string index $fmt end] eq "*"} {
-                    if {[my FitsGraded [string trimright $fmt *] syms {*}$arg]} {
+                    set c [string trimright $fmt *]
+                    if {[my FitsGraded $c syms {*}$arg]} {
+                        my AddGradedValue $c $syms
                         lappend tuple $syms
                     } else {
                         return
                     }
                 } else {
                     if {[my FitsGraded $fmt sym $arg]} {
+                        my AddGradedValue $fmt $sym
                         lappend tuple [lindex $sym 0]
                     } else {
                         return
