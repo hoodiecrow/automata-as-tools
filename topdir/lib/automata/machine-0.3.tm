@@ -14,10 +14,17 @@ oo::class create ::automata::Machine {
                 incr steps -1
             }
         }
-        return [my $fn $id $steps]
+        set ids [my $fn $id]
+        if {[llength $ids] eq 0} {
+            return [list $id]
+        }
+        set ids [lsort -unique $ids]
+        return [concat {*}[lmap id $ids {
+            my search $id $fn $steps
+        }]]
     }
 
-    method consumeOne {id steps} {
+    method consumeOne id {
         # unpack ID
         dict with id {
             # get epsilons
@@ -35,17 +42,10 @@ oo::class create ::automata::Machine {
                 my add id $_w $target
             }]
         }
-        if {[llength $ids] eq 0} {
-            return [list $id]
-        }
-        set ids [lsort -unique $ids]
-        lassign [info level 0] - fn
-        return [concat {*}[lmap id $ids {
-            my search $id $fn $steps
-        }]]
+        return $ids
     }
 
-    method recognize {id steps} {
+    method recognize id {
         # unpack ID
         dict with id {
             # get epsilons
@@ -75,17 +75,10 @@ oo::class create ::automata::Machine {
                 my add id {*}[lrange $tuple 1 end]
             }]
         }
-        if {[llength $ids] eq 0} {
-            return [list $id]
-        }
-        set ids [lsort -unique $ids]
-        lassign [info level 0] - fn
-        return [concat {*}[lmap id $ids {
-            my search $id $fn $steps
-        }]]
+        return $ids
     }
 
-    method translate {id steps} {
+    method translate id {
         # unpack ID
         dict with id {
             set _a [lassign $a A]
@@ -111,17 +104,10 @@ oo::class create ::automata::Machine {
                 my add id {*}[lrange $tuple 1 end]
             }]
         }
-        if {[llength $ids] eq 0} {
-            return [list $id]
-        }
-        set ids [lsort -unique $ids]
-        lassign [info level 0] - fn
-        return [concat {*}[lmap id $ids {
-            my search $id $fn $steps
-        }]]
+        return $ids
     }
 
-    method reconstruct {id steps} {
+    method reconstruct id {
         # unpack ID
         dict with id {
             set _b [lassign $b B]
@@ -148,17 +134,10 @@ oo::class create ::automata::Machine {
                 my add id {*}[lrange $tuple 1 end]
             }]
         }
-        if {[llength $ids] eq 0} {
-            return [list $id]
-        }
-        set ids [lsort -unique $ids]
-        lassign [info level 0] - fn
-        return [concat {*}[lmap id $ids {
-            my search $id $fn $steps
-        }]]
+        return $ids
     }
 
-    method generate {id steps} {
+    method generate id {
         # unpack ID
         dict with id {
             # get moves
@@ -181,14 +160,7 @@ oo::class create ::automata::Machine {
                 my add id {*}[lrange $tuple 1 end]
             }]
         }
-        if {[llength $ids] eq 0} {
-            return [list $id]
-        }
-        set ids [lsort -unique $ids]
-        lassign [info level 0] - fn
-        return [concat {*}[lmap id $ids {
-            my search $id $fn $steps
-        }]]
+        return $ids
     }
 
     method makeMoves id {
