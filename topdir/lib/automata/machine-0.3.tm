@@ -293,4 +293,63 @@ oo::class create ::automata::Machine {
         }
     }
 
+    method ALU {op data args} {
+        switch $op {
+            INC { set res [expr {[lindex $data {*}$args] + 1}] }
+            DEC { set res [expr {[lindex $data {*}$args] - 1}] }
+            CLR { set res 0 }
+            default {
+                if {[string is upper -strict $op]} {
+                    set op [dict get {
+                        EQ  eq
+                        EQL ==
+                        ADD +
+                        MUL *
+                    } $op]
+                }
+                set res [::tcl::mathop::$op {*}[lmap arg $args {
+                    lindex $data $arg
+                }]]
+            }
+        }
+        if {$res < 0} {
+            return -code error [format {result less than 0}]
+        }
+        return $res
+    }
+
+    method ExecStack id {
+        log::log d [info level 0] 
+        # unpack ID
+        dict with id {
+            if {[my in F $i]} {
+                return
+            }
+            lassign $s TOP
+            # get move
+            set flag [expr {$TOP != 0}]
+            lassign [lindex [my get table $i $flag] 0] - - i1 op val
+            switch $op {
+                PUSH {
+                    set s [linsert $s 0 $val]
+                }
+                INC - DEC - CLR {
+                    lset s 0 [my ALU $op $s 0]
+                }
+                DUP {
+                    set s [linsert $s 0 $TOP]
+                }
+                eq - == - + - * {
+                    set v [my ALU $op $s 0 1]
+                    set s [lreplace $s 0 1 $v]
+                }
+            }
+            if {[lindex $s 0] < 0} {
+                return -code error [format {negative value in top of stack}]
+            }
+            # build new ID
+            list [my add id $s $i1]
+        }
+    }
+
 }

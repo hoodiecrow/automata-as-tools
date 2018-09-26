@@ -126,14 +126,6 @@ oo::class create ::automata::CM {
         if {$s ne {}} {
             my add S $s
         }
-        if no {
-            set r [lindex [my T get [my S get] *] 0 4]
-            set f [expr {[lindex $regs $r] != 0}]
-            if no {
-                set ids [list [list $regs [my S get] $f]]
-            }
-            set ids [list [list $regs [my get S]]]
-        }
         set id [my AddID $regs [my get S]]
         set results [my search $id ExecCounter]
         dict values [lindex $results 0]
