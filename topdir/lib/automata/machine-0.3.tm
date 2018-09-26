@@ -261,4 +261,36 @@ oo::class create ::automata::Machine {
         return $ids
     }
 
+    method ExecCounter id {
+        log::log d [info level 0] 
+        # unpack ID
+        dict with id {
+            if {[my in F $i]} {
+                return
+            }
+            # get move
+            lassign [lindex [my get table $i *] 0] - - - - regs
+            lassign $regs r_ r0
+            set f [expr {[lindex $r $r_] == [lindex $r $r0]}]
+            log::log d "\$r_=$r_, \$r0=$r0, \$f=$f"
+            lassign [lindex [my get table $i $f] 0] - - i1 op regs
+            lassign $regs - r0 r1 r2
+            log::log d "[my get table $i $f]: \$i1=$i1 "
+            switch $op {
+                INC { lset r $r0 [expr {[lindex $r $r0] + 1}] }
+                DEC { lset r $r0 [expr {[lindex $r $r0] - 1}] }
+                CLR { lset r $r0 0 }
+                CPY { lset r $r1 [lindex $r $r0] }
+            }
+            if {[lindex $r $r0] < 0} {
+                return -code error [format {negative value in register %d} $r0]
+            }
+            if {[lindex $r 0] ne 0} {
+                return -code error [format {register 0 has been changed}]
+            }
+            # build new ID
+            list [my add id $r $i1]
+        }
+    }
+
 }

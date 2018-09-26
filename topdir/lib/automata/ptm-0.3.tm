@@ -18,7 +18,7 @@ oo::class create ::automata::PTM {
         my graded "Tape symbols"  A -domain B
         my graded "Print symbols" B -enum {0 1 N}
         my graded "Move symbols"  C -enum {L R N}
-        my graded "Instructions"  Q
+        my graded "Instructions"  Q -domain N
         my graded "Erase symbol"  E -scalar -default 0
         my graded "Program start" S -scalar
         my graded "Program end"   F
@@ -31,8 +31,8 @@ oo::class create ::automata::PTM {
         #: Create a transition matrix from a sequence of operation tokens.
         #:
         set i 1
-        set jumps {}
-        set instructions [list {}]
+        set jumps [dict create]
+        set program [list]
         foreach token $tokens {
             if {[string match *: $token]} {
                 dict set jumps [string trimright $token :] $i
@@ -45,55 +45,55 @@ oo::class create ::automata::PTM {
             switch $op {
                 P {
                     foreach inp [my get A] {
-                        my add table $i $inp $next [lindex [my get A] end] N
+                        lappend program [list $i $inp $next [lindex [my get A] end] N]
                     }
                 }
                 E {
                     foreach inp [my get A] {
-                        my add table $i $inp $next [my get E] N
+                        lappend program [list $i $inp $next [my get E] N]
                     }
                 }
                 L {
                     foreach inp [my get A] {
-                        my add table $i $inp $next N R
+                        lappend program [list $i $inp $next N R]
                     }
                 }
                 R {
                     foreach inp [my get A] {
-                        my add table $i $inp $next N L
+                        lappend program [list $i $inp $next N L]
                     }
                 }
                 N {
                     foreach inp [my get A] {
-                        my add table $i $inp $next N N
+                        lappend program [list $i $inp $next N N]
                     }
                 }
                 J {
                     foreach inp [my get A] {
-                        my add table $i $inp $offset N N
+                        lappend program [list $i $inp $offset N N]
                     }
                 }
                 H {
                     my add F $next
                     foreach inp [my get A] {
-                        my add table $i $inp $next N N
+                        lappend program [list $i $inp $next N N]
                     }
                 }
                 J0 {
                     foreach inp [my get A] {
                         if {$inp eq 0} {
-                            my add table $i $inp $offset N N
+                            lappend program [list $i $inp $offset N N]
                         } else {
-                            my add table $i $inp $next N N
+                            lappend program [list $i $inp $next N N]
                         }
                     }
                 }
                 J1 {
                     foreach inp [my get A] {
                         if {$inp eq 1} {
-                            my add table $i $inp $offset N N
+                            lappend program [list $i $inp $offset N N]
                         } else {
-                            my add table $i $inp $next N N
+                            lappend program [list $i $inp $next N N]
                         }
                     }
                 }
@@ -103,9 +103,22 @@ oo::class create ::automata::PTM {
             }
             incr i
         }
-        my fix table $jumps
+        log::log d \$jumps=$jumps 
         my add S [lindex $jumps 1]
         my add F $i
+        # fix jumps
+        for {set i 0} {$i < [llength $program]} {incr i} {
+            lassign [lindex $program $i] q0 - q1
+            if {[regexp {^[-+]\d+$} $q1]} {
+                lset program $i 2 [expr $q0$q1]
+            } elseif {[dict exists $jumps $q1]} {
+                lset program $i 2 [dict get $jumps $q1]
+            }
+        }
+        # store program
+        foreach line $program {
+            my add table {*}$line
+        }
     }
 
     method run {tape {tapeIndex {}}} {

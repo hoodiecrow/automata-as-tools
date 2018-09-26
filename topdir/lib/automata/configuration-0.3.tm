@@ -79,7 +79,9 @@ oo::class create ::automata::Configuration {
                 }
                 -domain {
                     set args [lassign $args - d]
-                    dict set components $name value {0 1}
+                    if {$d eq "B"} {
+                        dict set components $name value {0 1}
+                    }
                     dict set components $name domain $d
                 }
                 default {
@@ -208,6 +210,7 @@ oo::class create ::automata::Configuration {
 
 
     method FitsGraded {name varName args} {
+        log::log d [info level 0] 
         upvar 1 $varName syms
         set syms [list]
         dict with components $name {
@@ -249,6 +252,7 @@ oo::class create ::automata::Configuration {
     }
 
     method AddTable args {
+        log::log d [info level 0] 
         set name table
         set tuple [list]
         dict with components $name {
@@ -314,7 +318,7 @@ oo::class create ::automata::Configuration {
         }
     }
 
-    method FixTable jumps {
+    method _FixTable jumps {
         #: Set labeled or relative jumps to their final address.
         set _q [list]
         dict with components table {
