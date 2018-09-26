@@ -200,6 +200,9 @@ oo::class create ::automata::Configuration {
         set syms [list]
         dict with components $name {
             foreach sym $args {
+                if {[llength $sym] > 1} {
+                    return -code error [format {non-atomic symbol "%s"} $sym]
+                }
                 switch $domain {
                     B {
                         if {$sym ni {0 1}} {

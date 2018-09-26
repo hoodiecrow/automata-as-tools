@@ -141,7 +141,7 @@ oo::class create ::automata::Machine {
         # unpack ID
         dict with id {
             # get moves
-            lappend tuples {*}[my get table $q *]
+            set tuples [my get table $q *]
             set ids [lmap tuple $tuples {
                 # q1 from tuple
                 lassign $tuple - inp q1 out
@@ -165,31 +165,36 @@ oo::class create ::automata::Machine {
 
     method makeMoves id {
         # unpack ID
-        lassign $id a q0 b
-        set _a [lassign $a A]
-        set _b [lassign $b B]
-        # get epsilons
-        set tuples [my get $q0 {}]
-        # get moves
-        lappend tuples {*}[my get $q0 $A]
-        # build new IDs
-        return [lmap tuple $tuples {
-            # q1 from tuple
-            set _o [lassign $tuple - inp q1 O]
-            if {$inp eq {}} {
-                set tuple [lreplace $tuple 0 1 $a]
-            } else {
-                # consume input token
-                set tuple [lreplace $tuple 0 1 $_a]
-            }
-            if {$O ne $B} {
-                # reject invalid transition
-                continue
-            } else {
-                # push stack
-                lset tuple 2 [concat $_o $_b]
-            }
-        }]
+        dict with id {
+            set _w [lassign $w W]
+            set _z [lassign $z Z]
+            # get epsilons
+            set tuples [my get table $q {}]
+            # get moves
+            lappend tuples {*}[my get table $q $W]
+            set ids [lmap tuple $tuples {
+                # q1 from tuple
+                lassign $tuple - inp q1 O _o
+                if {$inp eq {}} {
+                    lset tuple 1 $w
+                } else {
+                    # consume input token
+                    lset tuple 1 $_w
+                }
+                if {$O ne $Z} {
+                    # reject invalid transition
+                    continue
+                } else {
+                    # push stack
+                    lset tuple 3 [concat {*}$_o $_z]
+                }
+                my add id {*}[apply {tuple {
+                    set _z [lassign $tuple - w q z]
+                    list $w $q $z
+                }} $tuple]
+            }]
+        }
+        return $ids
     }
 
 }
