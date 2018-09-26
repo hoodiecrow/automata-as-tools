@@ -28,11 +28,11 @@ test ptm-1.0 {2 state, 2 symbol busy beaver} -setup {} -body {
             J:H
         H:	H
     }
-    M run {0} 0
+    M run {0}
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {{{1 1 1 1} 16 1}}
+} -result {{{1 1 1 1} 1 16}}
 
 test ptm-1.1 {2 state, 2 symbol busy beaver, print} -setup {} -body {
     ::automata::PTM create M
@@ -58,10 +58,13 @@ test ptm-1.1 {2 state, 2 symbol busy beaver, print} -setup {} -body {
     M destroy
     log::lvSuppressLE i 1
 } -output {Tape symbols    A = {0, 1}
-Blank symbol    b = 0
+Print symbols   B = {0, 1, N}
+Move symbols    C = {L, N, R}
 Instructions    Q = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
+Erase symbol    E = 0
 Program start   S = 1
-End points      F = {16}
+Program end     F = {16}
+Head position   H = 0
 Transitions
 q0    inp   q1    out
 1     0     2     N N
@@ -121,6 +124,6 @@ test ptm-1.2 {multiply two numbers in unary} -setup {} -body {
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {{{0 0 0 0 0 0 1 1 1 1 1 0 1 1 1 1 1 1 1 1 1 1 1 1 1 0} 37 5}}
+} -result {{{0 0 0 0 0 0 1 1 1 1 1 0 1 1 1 1 1 1 1 1 1 1 1 1 1 0} 5 37}}
 
 cleanupTests ; return ; # ---------------------------------

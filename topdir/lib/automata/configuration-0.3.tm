@@ -303,4 +303,36 @@ oo::class create ::automata::Configuration {
         return $result
     }
 
+    method fix {what args} {
+        switch $what {
+            table {
+                my FixTable {*}$args
+            }
+            default {
+                return -code error [format {unknown command "fix %s"} $what]
+            }
+        }
+    }
+
+    method FixTable jumps {
+        #: Set labeled or relative jumps to their final address.
+        set _q [list]
+        dict with components table {
+            for {set i 0} {$i < [llength $value]} {incr i} {
+                lassign [lindex $value $i] q0 - q1
+                if {[regexp {^[-+]\d+$} $q1]} {
+                    lappend _q $q0
+                    lset value $i 2 [expr $q0$q1]
+                } elseif {[dict exists $jumps $q1]} {
+                    lappend _q $q0
+                    lset value $i 2 [dict get $jumps $q1]
+                } else {
+                    lappend _q $q0 $q1
+                }
+            }
+        }
+        dict set components Q value {}
+        dict set components Q value [lsort -dict -unique $_q]
+    }
+
 }

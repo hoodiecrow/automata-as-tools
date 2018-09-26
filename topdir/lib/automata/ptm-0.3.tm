@@ -1,0 +1,134 @@
+::tcl::tm::path add [file dirname [file dirname [file normalize [info script]]]]
+
+package require -exact automata::machine 0.3
+package require automata::configuration
+
+namespace eval automata {}
+
+oo::class create ::automata::PTM {
+    mixin ::automata::Configuration ::automata::Machine
+
+    #: A Post-Turing Machine is essentially a TM. The transition matrix is set
+    #: by compiling a program.  The tape uses a binary symbol set (here, {0,
+    #: 1}).
+    #:
+    #: The configuration of a PTM is (A, B, C, Q, E, S, F, H | t, h, q)
+
+    constructor args {
+        my graded "Tape symbols"  A -domain B
+        my graded "Print symbols" B -enum {0 1 N}
+        my graded "Move symbols"  C -enum {L R N}
+        my graded "Instructions"  Q
+        my graded "Erase symbol"  E -scalar -default 0
+        my graded "Program start" S -scalar
+        my graded "Program end"   F
+        my graded "Head position" H -domain N -default 0 -scalar
+        my table -as {Q A Q B C}
+        my id {t h q} {A* H Q}
+    }
+
+    method compile tokens {
+        #: Create a transition matrix from a sequence of operation tokens.
+        #:
+        set i 1
+        set jumps {}
+        set instructions [list {}]
+        foreach token $tokens {
+            if {[string match *: $token]} {
+                dict set jumps [string trimright $token :] $i
+                continue
+            }
+            lassign [split $token :] op offset
+            set next $i
+            incr next
+            # movement directions are switched
+            switch $op {
+                P {
+                    foreach inp [my get A] {
+                        my add table $i $inp $next [lindex [my get A] end] N
+                    }
+                }
+                E {
+                    foreach inp [my get A] {
+                        my add table $i $inp $next [my get E] N
+                    }
+                }
+                L {
+                    foreach inp [my get A] {
+                        my add table $i $inp $next N R
+                    }
+                }
+                R {
+                    foreach inp [my get A] {
+                        my add table $i $inp $next N L
+                    }
+                }
+                N {
+                    foreach inp [my get A] {
+                        my add table $i $inp $next N N
+                    }
+                }
+                J {
+                    foreach inp [my get A] {
+                        my add table $i $inp $offset N N
+                    }
+                }
+                H {
+                    my add F $next
+                    foreach inp [my get A] {
+                        my add table $i $inp $next N N
+                    }
+                }
+                J0 {
+                    foreach inp [my get A] {
+                        if {$inp eq 0} {
+                            my add table $i $inp $offset N N
+                        } else {
+                            my add table $i $inp $next N N
+                        }
+                    }
+                }
+                J1 {
+                    foreach inp [my get A] {
+                        if {$inp eq 1} {
+                            my add table $i $inp $offset N N
+                        } else {
+                            my add table $i $inp $next N N
+                        }
+                    }
+                }
+                default {
+                    error \$op=$op
+                }
+            }
+            incr i
+        }
+        my fix table $jumps
+        my add S [lindex $jumps 1]
+        my add F $i
+    }
+
+    method run {tape {tapeIndex {}}} {
+        #: Run the code on this tape, return tape.
+        if {$tapeIndex ne {}} {
+            my add H $tapeIndex
+        }
+        set tape [list {*}$tape]
+        set ids [lmap q [my get S] {
+            my AddID $tape [my get H] $q
+        }]
+        set results [concat {*}[lmap id $ids {
+            my search $id process
+        }]]
+        lmap result $results {
+            dict with result {
+                if {[my in F $q]} {
+                    dict values $result
+                } else {
+                    continue
+                }
+            }
+        }
+    }
+
+}
