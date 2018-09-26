@@ -352,4 +352,139 @@ oo::class create ::automata::Machine {
         }
     }
 
+    method Turn {varName {a 1}} {
+        log::log d [info level 0] 
+        upvar 1 $varName f
+        set f [expr {($f + $a + 4) % 4}]
+    }
+
+    method RMove {w h varName1 varName2 f a} {
+        upvar 1 $varName1 x $varName2 y
+        switch $f {
+            0 { set x [expr {$x + 1}] }
+            1 { set y [expr {$y + 1}] }
+            2 { set x [expr {$x - 1}] }
+            3 { set y [expr {$y - 1}] }
+        }
+        if {[my CheckCollision $w $h $x $y $a]} {
+            return -code error [format {collision with a wall!}]
+        }
+    }
+
+    method Look {x y f {ddir 0}} {
+        switch [expr {($f + $ddir + 4) % 4}] {
+            0 { incr x }
+            1 { incr y }
+            2 { incr x -1 }
+            3 { incr y -1 }
+        }
+        return [list $x $y]
+    }
+
+    method FindBeeper {x y b} {
+        foreach {X Y} $b {
+            if {$X eq $x && $Y eq $y} {
+                return 1
+            }
+        }
+        return 0
+    }
+
+    method CheckCollision {w h x y a} {
+        log::log d [info level 0] 
+        set _a [list 0 $y [expr {$w + 1}] $y $x 0 $x [expr {$h + 1}]]
+        foreach {X Y} [concat $_a $a] {
+            if {$X eq $x && $Y eq $y} {return 1}
+        }
+        return 0
+    }
+
+    method Test {id index} {
+        log::log d [info level 0] 
+        dict with id {
+            switch [my GetTestLabel $index] {
+                front-is-clear {
+                    expr {![my CheckCollision $w $h {*}[my Look $x $y $f] $a]}
+                }
+                front-is-blocked {
+                    my CheckCollision $w $h {*}[my Look $x $y $f] $a
+                }
+                left-is-clear {
+                    expr {![my CheckCollision $w $h {*}[my Look $x $y $f +1] $a]}
+                }
+                left-is-blocked {
+                    my CheckCollision $w $h {*}[my Look $x $y $f +1] $a
+                }
+                right-is-clear {
+                    expr {![my CheckCollision $w $h {*}[my Look $x $y $f -1] $a]}
+                }
+                right-is-blocked {
+                    my CheckCollision $w $h {*}[my Look $x $y $f -1] $a
+                }
+                next-to-a-beeper { my FindBeeper $x $y $b }
+                not-next-to-a-beeper { expr {![my FindBeeper $x $y $b]} }
+                facing-north { expr {$f eq 1} }
+                not-facing-north { expr {$f ne 1} }
+                facing-south { expr {$f eq 3} }
+                not-facing-south { expr {$f ne 3} }
+                facing-east { expr {$f eq 0} }
+                not-facing-east { expr {$f ne 0} }
+                facing-west { expr {$f eq 2} }
+                not-facing-west { expr {$f ne 2} }
+                any-beepers-in-beeper-bag { expr {$n > 0} }
+                no-beepers-in-beeper-bag { expr {$n < 1} }
+            }
+        }
+    }
+
+    method exec id {
+        log::log d [info level 0] 
+        # unpack ID
+        dict with id {
+            # get move
+            lassign $i q
+            log::log d [lindex [my get table $q $t] 0]
+            lassign [lindex [my get table $q $t] 0] - - i1 op index
+            set t 0
+            lset i 0 $i1
+            log::log d \$i1=$i1 
+            log::log d \$i=$i 
+            switch $op {
+                TURN { my Turn f }
+                MOVE { my RMove $w $h x y $f $a }
+                TAKE {}
+                DROP {}
+                TEST {
+                    set t [my Test $id $index]
+                    log::log d \$t=$t 
+                }
+                RET {
+                    set i [lrange $i 1 end]
+                }
+                GOSUB {
+                    lset i 0 [my succ Q $q]
+            log::log d \$i=$i 
+                    set i [linsert $i 0 $i1]
+            log::log d \$i=$i 
+                    set t 0
+                }
+                NOP {}
+                default {
+                    error \$op=$op
+                }
+            }
+        }
+        if {[my in F [lindex $i 0]]} {
+            return
+        }
+        # build new ID
+        lappend _id $w $h
+        lappend _id $x $y $n $f
+        lappend _id $i
+        lappend _id $t
+        lappend _id $b
+        lappend _id $a
+        return [list [my add id {*}$_id]]
+    }
+
 }

@@ -28,6 +28,9 @@ oo::class create ::automata::Configuration {
                 }
                 id { ; }
                 default {
+                    if {[dict get $v hide]} {
+                        continue
+                    }
                     set vals [dict get $v value]
                     set _vals [lmap val $vals {if {$val eq {}} {lindex ε} {set val}}]
                     if {[dict get $v scalar]} {
@@ -47,6 +50,7 @@ oo::class create ::automata::Configuration {
         dict set components $name epsilon {v {set v}}
         dict set components $name exclude {v {set v}}
         dict set components $name insert {v {}}
+        dict set components $name hide 0
         dict set components $name scalar 0
         dict set components $name domain {}
         dict set components $name value {}
@@ -68,6 +72,10 @@ oo::class create ::automata::Configuration {
                 -insert {
                     set args [lassign $args - i]
                     dict set components $name insert [list sym [format {my add %s $sym} $i] [self namespace]]
+                }
+                -hide {
+                    set args [lassign $args -]
+                    dict set components $name hide 1
                 }
                 -scalar {
                     set args [lassign $args -]
@@ -156,6 +164,7 @@ oo::class create ::automata::Configuration {
     }
 
     method GetGraded {name args} {
+        log::log d [info level 0] 
         dict get $components $name value
     }
 
@@ -210,7 +219,6 @@ oo::class create ::automata::Configuration {
 
 
     method FitsGraded {name varName args} {
-        log::log d [info level 0] 
         upvar 1 $varName syms
         set syms [list]
         dict with components $name {
@@ -338,5 +346,32 @@ oo::class create ::automata::Configuration {
         dict set components Q value {}
         dict set components Q value [lsort -dict -unique $_q]
     }
+
+    method succ {what args} {
+        switch $what {
+            table - id {
+                return -code error [format {unknown command "succ %s"} $what]
+            }
+            default {
+                my Succ $what {*}$args
+            }
+        }
+    }
+
+    method Succ {name val} {
+        #: Given a value, find the next value in the component.
+        dict with components $name {
+            set idx [lsearch $value $val]
+            if {$idx < 0} {
+                return -code error [format {can't find value}]
+            }
+            incr idx
+            if {$idx >= [llength $value]} {
+                return -code error [format {no successor to %s} $val]
+            }
+        }
+        return [lindex $value $idx]
+    }
+
 
 }

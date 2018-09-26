@@ -10,7 +10,7 @@ oo::class create ::automata::SM {
 
     #: A simple sort of virtual Stack Machine.
     #: 
-    #: The configuration of an SM is (A, Q, S, F | s, i)
+    #: The configuration of an SM is (A, B, Q, S, F, O | s, i)
     #:
     #: The operations of the programming language are:
     #: 
