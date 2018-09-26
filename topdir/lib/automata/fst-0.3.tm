@@ -19,7 +19,11 @@ oo::class create ::automata::FST {
         my graded "Start symbols"  S
         my graded "Final symbols"  F
         my table -as {Q A Q B}
-        my id {a q b} {A* Q A*}
+        my id {
+            a A* "input symbols"
+            q Q  "current state"
+            b A* "output symbols"
+        }
     }
 
     method compile tokens {

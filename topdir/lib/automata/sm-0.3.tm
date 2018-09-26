@@ -28,8 +28,10 @@ oo::class create ::automata::SM {
         my graded "Program end"   F
         my graded "Operator list" O -enum {PUSH INC DEC CLR NOP EQ EQL ADD MUL eq == + *}
         my table -as {Q A Q O B}
-        # stack and instruction pointer
-        my id {s i} {B* Q}
+        my id {
+            s B* "current stack"
+            i Q  "instruction pointer"
+        }
     }
 
     method compile tokens {

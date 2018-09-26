@@ -20,7 +20,11 @@ oo::class create ::automata::PDA {
         my graded "Start symbol"  S -scalar
         my graded "Final symbols" F
         my table -as {Q A Q B B*}
-        my id {w q z} {A* Q B*}
+        my id {
+            w A* "remaining input"
+            q Q  "current state"
+            z B* "current stack"
+        }
     }
 
     method compile tokens {

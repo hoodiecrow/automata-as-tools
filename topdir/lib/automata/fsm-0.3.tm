@@ -22,7 +22,10 @@ oo::class create ::automata::FSM {
         my graded "Start symbols" S
         my graded "Final symbols" F
         my table -as {Q A Q}
-        my id {w q} {A* Q}
+        my id {
+            w A* "remaining input"
+            q Q  "current state"
+        }
     }
 
     method compile tokens {

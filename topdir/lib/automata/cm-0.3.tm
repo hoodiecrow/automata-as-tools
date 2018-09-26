@@ -45,8 +45,10 @@ oo::class create ::automata::CM {
         my graded "Operator list"   O -enum {INC DEC CLR CPY NOP}
         my graded "Register index"  R -domain N
         my table -as {Q A Q O R*}
-        # registers and instruction pointer
-        my id {r i} {A* Q}
+        my id {
+            r A* "registers"
+            i Q  "instruction pointer"
+        }
 
     }
 
@@ -126,7 +128,7 @@ oo::class create ::automata::CM {
         if {$s ne {}} {
             my add S $s
         }
-        set id [my AddID $regs [my get S]]
+        set id [my add id $regs [my get S]]
         set results [my search $id ExecCounter]
         dict values [lindex $results 0]
     }

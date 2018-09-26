@@ -118,15 +118,19 @@ oo::class create ::automata::Configuration {
         }
     }
 
-    method id {names as} {
+    method id desc {
         if {[dict exists $components id]} {
             return -code error [format {id format already defined}]
         }
         set name id
         dict set components $name label ID
         dict set components $name type id
-        dict set components $name names $names
-        dict set components $name as $as
+        dict set components $name members {}
+        dict with components $name {
+            foreach {tag type label} $desc {
+                lappend members [list $tag $type $label]
+            }
+        }
     }
 
     method in {what args} {
@@ -293,10 +297,13 @@ oo::class create ::automata::Configuration {
         set name id
         set result [dict create]
         dict with components $name {
-            foreach arg $args key $names fmt $as {
-                if {$key eq {} || $fmt eq {}} {
+            log::log d \$members=$members 
+            foreach arg $args member $members {
+                if {$member eq {}} {
                     return -code error [format {too many symbols}]
                 }
+                log::log d \$member=$member 
+                lassign $member key fmt
                 if {[string index $fmt end] eq "*"} {
                     if {[my FitsGraded [string trimright $fmt *] syms {*}$arg]} {
                         dict set result $key $syms
@@ -313,38 +320,6 @@ oo::class create ::automata::Configuration {
             }
         }
         return $result
-    }
-
-    method fix {what args} {
-        switch $what {
-            table {
-                my FixTable {*}$args
-            }
-            default {
-                return -code error [format {unknown command "fix %s"} $what]
-            }
-        }
-    }
-
-    method _FixTable jumps {
-        #: Set labeled or relative jumps to their final address.
-        set _q [list]
-        dict with components table {
-            for {set i 0} {$i < [llength $value]} {incr i} {
-                lassign [lindex $value $i] q0 - q1
-                if {[regexp {^[-+]\d+$} $q1]} {
-                    lappend _q $q0
-                    lset value $i 2 [expr $q0$q1]
-                } elseif {[dict exists $jumps $q1]} {
-                    lappend _q $q0
-                    lset value $i 2 [dict get $jumps $q1]
-                } else {
-                    lappend _q $q0 $q1
-                }
-            }
-        }
-        dict set components Q value {}
-        dict set components Q value [lsort -dict -unique $_q]
     }
 
     method succ {what args} {

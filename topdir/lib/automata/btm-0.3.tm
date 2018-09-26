@@ -22,7 +22,11 @@ oo::class create ::automata::BTM {
         my graded "Final symbols" F
         my graded "Head position" H -domain N -default 0 -scalar
         my table -as {Q A Q B C}
-        my id {t h q} {A* H Q}
+        my id {
+            t A* "tape"
+            h H  "current cell"
+            q Q  "current state"
+        }
     }
 
     method compile tokens {

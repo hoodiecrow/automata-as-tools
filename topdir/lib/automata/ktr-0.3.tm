@@ -27,9 +27,18 @@ oo::class create ::automata::KTR {
         }
         my graded "Test numbers"    T -domain N
         my table -as {Q A Q O B}
-        # world width, height, robot x, y, #beepers, facing, instruction stack, test state, beeper coords, wall coords
-        my id {w h x y n f i t b a} \
-              {B B B B B C Q* A B* B*}
+        my id {
+            w B  "world width"
+            h B  "world height"
+            x B  "robot x"
+            y B  "robot y"
+            n B  "robot's beepers"
+            f C  "robot facing"
+            i Q* "instructions"
+            t A  "test state"
+            b B* "beeper coords"
+            a B* "wall coords"
+        }
         set testlabels {
             {}
             front-is-clear
