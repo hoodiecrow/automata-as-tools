@@ -54,24 +54,36 @@ oo::class create ::automata::Configuration {
             switch [lindex $args 0] {
                 -epsilon {
                     set args [lassign $args - e]
-                    dict set components $name epsilon [list [list sym] [format {if {$sym eq "%s"} list {set sym}} $e]]
+                    dict set components $name epsilon [list sym [format {if {$sym eq "%s"} list {set sym}} $e]]
+                }
+                -enum {
+                    set args [lassign $args - e]
+                    dict set components $name value $e
+                    dict set components $name exclude [list sym [format {if {$sym ni {%s}} list {set sym}} $e]]
                 }
                 -exclude {
                     set args [lassign $args - e]
-                    dict set components $name exclude [list [list sym] [format {if {$sym in {%s}} list {set sym}} $e]]]
+                    dict set components $name exclude [list sym [format {if {$sym in {%s}} list {set sym}} $e]]
                 }
                 -insert {
                     set args [lassign $args - i]
-                    dict set components $name insert [list [list sym] [format {my add %s $sym} $i] [self namespace]]
+                    dict set components $name insert [list sym [format {my add %s $sym} $i] [self namespace]]
                 }
                 -scalar {
                     set args [lassign $args -]
                     dict set components $name scalar 1
                 }
+                -default {
+                    set args [lassign $args - d]
+                    dict set components $name value $d
+                }
                 -domain {
                     set args [lassign $args - d]
                     dict set components $name value {0 1}
                     dict set components $name domain $d
+                }
+                default {
+                    return -code error [format {unknown option "%s"} [lindex $args 0]]
                 }
             }
         }

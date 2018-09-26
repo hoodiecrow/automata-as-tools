@@ -30,7 +30,7 @@ oo::class create ::automata::PDA {
         #: stack-action is split by ; into stack-input and stack-push
         #: Stack symbols in stack-push are separated by commas.
         foreach {from edge next} $tokens {
-            regexp {(<?[\w,]*>?)\s*/\s*(\w*);(<?[\w,]*>?)} $edge -> input stackInput stackPush
+            regexp {([\w,]*)\s*/\s*(\w*)\s*;\s*([\w,]*)} $edge -> input stackInput stackPush
             splitItems input
             splitItems stackPush
             if {[string match <* $from]} {

@@ -197,4 +197,68 @@ oo::class create ::automata::Machine {
         return $ids
     }
 
+    #: In tape machines, data is in a sequential-accessed sequence that can
+    #: grow if new elements are added at the ends.
+    #:
+    #: The operations supported are:
+    #:
+    #: Print
+    #:  <symbol> print symbol (including blank)
+    #:  N        do not print
+    #:
+    #: Move
+    #:  L        move tape one cell to the left
+    #:  R        move tape one cell to the right
+    #:  N        do not move tape
+    #:
+    #: In the Post-Turing machine, the head is moved instead, so the compiler
+    #: emits R for L and L for R.
+
+    method Print {varName h s} {
+        upvar 1 $varName t
+        if {$s ne "N"} {
+            lset t $h $s
+        }
+        return
+    }
+
+    method Move {varName1 varName2 dir} {
+        upvar 1 $varName1 t $varName2 h
+        switch $dir {
+            L {
+                incr h
+                if {$h >= [expr {[llength $t] - 1}]} {
+                    lappend t [my get E]
+                }
+            }
+            R {
+                if {$h < 1} {
+                    set t [linsert $t 0 [my get E]]
+                } else {
+                    incr h -1
+                }
+            }
+            N {}
+        }
+        return
+    }
+
+    method process id {
+        # unpack ID
+        dict with id {
+            if {[my in F $q]} {
+                return
+            }
+            set tuples [my get table $q [lindex $t $h]]
+            # should always be 0 or 1 tuples
+            set ids [lmap tuple $tuples {
+                set q1 [lindex $tuple 2]
+                my Print t $h [lindex $tuple 3]
+                my Move t h [lindex $tuple 4]
+                my add id $t $h $q1
+            }]
+        }
+        return $ids
+    }
+
 }
