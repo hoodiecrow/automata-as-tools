@@ -11,8 +11,8 @@ set t {::automata::FST create M}
 
 test fst-1.0 {} -setup $t -body {
     M compile {
-       <0> a/a 1
-        1  b/b 0
+        {<0> a/a 1}
+        {1  b/b 0}
     }
     M run -generate 4
 } -cleanup {
@@ -22,9 +22,9 @@ test fst-1.0 {} -setup $t -body {
 
 test fst-1.1 {} -setup $t -body {
     M compile {
-       <0> a/a 1
-        1  b/b 2
-        2  ε/c 0
+        {<0> a/a 1}
+        {1  b/b 2}
+        {2  ε/c 0}
     }
     M run -generate 6
 } -cleanup {
@@ -34,10 +34,10 @@ test fst-1.1 {} -setup $t -body {
 
 test fst-1.2 {} -setup $t -body {
     M compile {
-       <0> a/a 1
-        0  b/d 2
-        1> b/b 2
-        2> ε/c 0
+        {<0> a/a 1}
+        {0  b/d 2}
+        {1> b/b 2}
+        {2> ε/c 0}
     }
     M run -generate 6
 } -cleanup {
@@ -47,8 +47,8 @@ test fst-1.2 {} -setup $t -body {
 
 test fst-2.0 {} -setup $t -body {
     M compile {
-       <0> a/a 1
-        1  b/b 0
+        {<0> a/a 1}
+        {1  b/b 0}
     }
     set res {}
     lappend res [M run -recognize {a b a b} {a b a b}]
@@ -61,9 +61,9 @@ test fst-2.0 {} -setup $t -body {
 
 test fst-2.1 {} -setup $t -body {
     M compile {
-       <0> a/a 1
-        1  b/b 2
-        2  ε/c 0
+        {<0> a/a 1}
+        {1  b/b 2}
+        {2  ε/c 0}
     }
     set res {}
     lappend res [M run -recognize {a b a b} {a b c a b c}]
@@ -76,8 +76,8 @@ test fst-2.1 {} -setup $t -body {
 
 test generate-1.0 {} -setup $t -body {
     M compile {
-       <1> a/a 2
-        2  ε/a 1
+        {<1> a/a 2}
+        {2  ε/a 1}
     }
     M run -generate 4
 } -cleanup {
@@ -87,10 +87,10 @@ test generate-1.0 {} -setup $t -body {
 
 test generate-1.1 {} -setup $t -body {
     M compile {
-       <1  ε/ε 2
-        1> a/a 3
-        2> a/b 3
-        3> ε/a 1
+        {<1  ε/ε 2}
+        {1> a/a 3}
+        {2> a/b 3}
+        {3> ε/a 1}
     }
     lsort [M run -generate 4]
 } -cleanup {
@@ -100,9 +100,9 @@ test generate-1.1 {} -setup $t -body {
 
 test recognize-1.0 {recognize relation {a b} -> {x y}} -setup $t -body {
     M compile {
-       <1> a/x 1
-        1  b/y 2
-        2  ε/ε 1
+        {<1> a/x 1}
+        {1  b/y 2}
+        {2  ε/ε 1}
     }
     M run -recognize {a a} {x x}
 } -cleanup {
@@ -112,9 +112,9 @@ test recognize-1.0 {recognize relation {a b} -> {x y}} -setup $t -body {
 
 test recognize-1.1 {recognize relation {a b} -> {x (y y)}} -setup $t -body {
     M compile {
-       <1> a/x 1
-        1  b/y 2
-        2  ε/y 1
+        {<1> a/x 1}
+        {1  b/y 2}
+        {2  ε/y 1}
     }
     set res {}
     lappend res [M run -recognize {a b a} {x y y x}]
@@ -128,12 +128,12 @@ test recognize-1.1 {recognize relation {a b} -> {x (y y)}} -setup $t -body {
 
 test recognize-1.2 {recognize {a*(b+c+)?} relation {a b c} -> {x y z}} -setup $t -body {
     M compile {
-       <1> a/x 1
-        1  b/y 2
-        2  b/y 2
-        2  c/z 3
-        3  c/z 3
-        3  ε/ε 1
+        {<1> a/x 1}
+        {1  b/y 2}
+        {2  b/y 2}
+        {2  c/z 3}
+        {3  c/z 3}
+        {3  ε/ε 1}
     }
     set res {}
     lappend res [M run -recognize {a b c} {x y z}]
@@ -148,8 +148,8 @@ test recognize-1.2 {recognize {a*(b+c+)?} relation {a b c} -> {x y z}} -setup $t
 
 test dfst-1.0 {} -setup $t -body {
     M compile {
-       <1> a/a 2
-        2  ε/a 1
+        {<1> a/a 2}
+        {2  ε/a 1}
     }
     M run -generate 4
 } -cleanup {
@@ -160,8 +160,8 @@ test dfst-1.0 {} -setup $t -body {
 
 test dfst-1.1 {} -setup $t -body {
     M compile {
-       <1> a/a 2
-        2  ε/a 1
+        {<1> a/a 2}
+        {2  ε/a 1}
     }
     M run -recognize {a a} {a a a a}
 } -cleanup {
@@ -172,8 +172,8 @@ test dfst-1.1 {} -setup $t -body {
 
 test dfst-1.2 {} -setup $t -body {
     M compile {
-       <1> a/a 2
-        2  ε/a 1
+        {<1> a/a 2}
+        {2  ε/a 1}
     }
     M run -translate {a a}
 } -cleanup {
@@ -184,8 +184,8 @@ test dfst-1.2 {} -setup $t -body {
 
 test dfst-1.3 {} -setup $t -body {
     M compile {
-       <1> a/a 2
-        2  ε/a 1
+        {<1> a/a 2}
+        {2  ε/a 1}
     }
     M run -reconstruct {a a a a}
 } -cleanup {
@@ -195,24 +195,24 @@ test dfst-1.3 {} -setup $t -body {
 
 test dfst-2.0 {The output becomes 1 and remains 1 thereafter when at least two 0's and two 1's have occurred as inputs} -setup $t -body {
     M compile {
-       <A> 0/0 D
-        A> 1/0 B
-        B> 0/0 E
-        B> 1/0 C
-        C> 0/0 F
-        C> 1/0 C
-        D> 0/0 G
-        D> 1/0 E
-        E> 0/0 H
-        E> 1/0 F
-        F> 0/0 I
-        F> 1/0 F
-        G> 0/0 G
-        G> 1/0 H
-        H> 0/0 H
-        H> 1/0 I
-        I> 0/1 I
-        I> 1/1 I
+        {<A> 0/0 D}
+        {A> 1/0 B}
+        {B> 0/0 E}
+        {B> 1/0 C}
+        {C> 0/0 F}
+        {C> 1/0 C}
+        {D> 0/0 G}
+        {D> 1/0 E}
+        {E> 0/0 H}
+        {E> 1/0 F}
+        {F> 0/0 I}
+        {F> 1/0 F}
+        {G> 0/0 G}
+        {G> 1/0 H}
+        {H> 0/0 H}
+        {H> 1/0 I}
+        {I> 0/1 I}
+        {I> 1/1 I}
     }
     set res {}
     lappend res [M run -translate {1 1}]
@@ -226,12 +226,12 @@ test dfst-2.0 {The output becomes 1 and remains 1 thereafter when at least two 0
 
 test dfst-2.1 {edge detector} -setup $t -body {
     M compile {
-       <si  0/0 s0
-        si  1/0 s1
-        s0> 0/0 s0
-        s0  1/1 s1
-        s1> 0/1 s0
-        s1  1/0 s1
+        {<si  0/0 s0}
+        {si  1/0 s1}
+        {s0> 0/0 s0}
+        {s0  1/1 s1}
+        {s1> 0/1 s0}
+        {s1  1/0 s1}
     }
     set res {}
     lappend res [M run -translate {1 1 0}]
@@ -244,12 +244,12 @@ test dfst-2.1 {edge detector} -setup $t -body {
 
 test dfst-2.2 {edge detector, same as 2.1} -setup $t -body {
     M compile {
-       <si  0/0 s0
-        si  1/0 s1
-        s0> 0/0 s0
-        s0  1/1 s1
-        s1> 0/1 s0
-        s1  1/0 s1
+        {<si  0/0 s0}
+        {si  1/0 s1}
+        {s0> 0/0 s0}
+        {s0  1/1 s1}
+        {s1> 0/1 s0}
+        {s1  1/0 s1}
     }
     set res {}
     lappend res [M run -recognize {1 1 0} {0 0 1}]
@@ -263,12 +263,12 @@ test dfst-2.2 {edge detector, same as 2.1} -setup $t -body {
 
 test dfst-2.4 {edge detector, print} -setup $t -body {
     M compile {
-       <si  0/0 s0
-        si  1/0 s1
-        s0> 0/0 s0
-        s0  1/1 s1
-        s1> 0/1 s0
-        s1  1/0 s1
+        {<si  0/0 s0}
+        {si  1/0 s1}
+        {s0> 0/0 s0}
+        {s0  1/1 s1}
+        {s1> 0/1 s0}
+        {s1  1/0 s1}
     }
     M print
 } -cleanup {
@@ -288,5 +288,11 @@ s0    1     s1    1
 s1    0     s0    1
 s1    1     s1    0
 }
+
+test doc-1.0 {document class} -setup $t -body {
+    M doc
+} -cleanup {
+    M destroy
+} -match glob -result *
 
 cleanupTests ; return ; # ---------------------------------

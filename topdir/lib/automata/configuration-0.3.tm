@@ -45,7 +45,6 @@ oo::class create ::automata::Configuration {
     }
 
     method AddDoc {what args} {
-        log::log d [info level 0] 
         switch $what {
             preamble {
                 dict set doc $what $args
@@ -60,7 +59,6 @@ oo::class create ::automata::Configuration {
     }
 
     method GetDoc what {
-        log::log d [info level 0] 
         switch $what {
             preamble {
                 dict get $doc $what
@@ -80,12 +78,14 @@ oo::class create ::automata::Configuration {
             }
             argument {
                 set res {}
-                foreach arg [dict get $doc $what] {
-                    switch [llength $arg] {
-                        1 { append res "* `[lindex $arg 0]`\n" }
-                        2 { append res "* `[lindex $arg 0]`: [lindex $arg 1]\n" }
-                        default {
-                            ;
+                if {[dict exists $doc $what]} {
+                    foreach arg [dict get $doc $what] {
+                        switch [llength $arg] {
+                            1 { append res "* `[lindex $arg 0]`\n" }
+                            2 { append res "* `[lindex $arg 0]`: [lindex $arg 1]\n" }
+                            default {
+                                ;
+                            }
                         }
                     }
                 }
@@ -321,7 +321,6 @@ oo::class create ::automata::Configuration {
     }
 
     method GetGraded {name args} {
-        log::log d [info level 0] 
         dict get $components $name value
     }
 
@@ -422,7 +421,7 @@ oo::class create ::automata::Configuration {
     }
 
     method AddTable args {
-        log::log d [info level 0] 
+        log::log i [info level 0] 
         set name table
         set tuple [list]
         dict with components $name {
@@ -452,16 +451,14 @@ oo::class create ::automata::Configuration {
     }
 
     method AddID args {
-        log::log d [info level 0] 
+        log::log i [info level 0] 
         set name id
         set result [dict create]
         dict with components $name {
-            log::log d \$members=$members 
             foreach arg $args member $members {
                 if {$member eq {}} {
                     return -code error [format {too many symbols}]
                 }
-                log::log d \$member=$member 
                 lassign $member key fmt
                 if {[string index $fmt end] eq "*"} {
                     if {[my FitsGraded [string trimright $fmt *] syms {*}$arg]} {

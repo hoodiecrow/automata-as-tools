@@ -8,16 +8,21 @@ namespace eval automata {}
 oo::class create ::automata::PDA {
     mixin ::automata::Configuration ::automata::Machine
 
-    #: A Pushdown Automaton recognizes a context-free language.
-    #:
-    #: The configuration of a PDA is (A, B, Q, Z, S, F | w, q, z).
-
     constructor args {
+        my add doc preamble {
+A Pushdown Automaton recognizes a context-free language.
+        }
+        my installRunMethod {
+            -accept Accept {[[accept]] the input}
+            -classify Classify {[[classify]] the input}
+            default Accept {[[accept]] the input}
+            a {} {a list of input symbols}
+        }
         my graded "Input symbols" A -epsilon ε
         my graded "Stack symbols" B -epsilon ε
         my graded "State symbols" Q
-        my graded "Start symbol"  S -scalar
-        my graded "Final symbols" F
+        my graded "Start symbol"  S -superset Q -scalar
+        my graded "Final symbols" F -superset Q
         my table -as {Q A Q B B*}
         my id {
             w A* "remaining input"
@@ -26,60 +31,44 @@ oo::class create ::automata::PDA {
         }
     }
 
-    method compile tokens {
+    method compile tuples {
         #: 'source' form is three tokens: from, edge, next.
         #: edge is split by / into input and stack-action
         #: input can contain one or more input symbols, separated by comma.
         #: stack-action is split by ; into stack-input and stack-push
         #: Stack symbols in stack-push are separated by commas.
-        foreach {from edge next} $tokens {
-            regexp {([\w,]*)\s*/\s*(\w*)\s*;\s*([\w,]*)} $edge -> input stackInput stackPush
-            splitItems input
-            splitItems stackPush
-            if {[string match <* $from]} {
-                set from [string trimleft $from <]
-                my add S [string trimright $from >]
-            }
-            foreach name {from next} {
-                if {[string match *> [set $name]]} {
-                    set $name [string trimright [set $name] >]
-                    my add F [set $name]
+        foreach tokens $tuples {
+            foreach {from edge next} $tokens {
+                regexp {(\w+)\s*/\s*(\w+)\s*;\s*(.*)} $edge -> input stackInput stackPush
+                if no {
+                    splitItems input
+                }
+                splitItems stackPush
+                if {[string match <* $from]} {
+                    set from [string trimleft $from <]
+                    my add S [string trimright $from >]
+                }
+                foreach name {from next} {
+                    if {[string match *> [set $name]]} {
+                        set $name [string trimright [set $name] >]
+                        my add F [set $name]
+                    }
+                }
+                if {$stackPush eq "ε"} {
+                    set stackPush {}
+                }
+                foreach inp $input {
+                    my add table $from $inp $next $stackInput $stackPush
                 }
             }
-            foreach inp $input {
-                my add table $from $inp $next $stackInput $stackPush
-            }
         }
     }
 
-    method run args {
-        #: Run the machine:
-        set _args [lassign $args arg]
-        switch $arg {
-            -acceptor - -accept {
-                #: provide the flag `-acceptor` or `-accept` to accept input,
-                my Accept {*}$_args
-            }
-            -classifier - -classify {
-                #: and `-classifier` or `-classify` to classify input.
-                my Classify {*}$_args
-            }
-            default {
-                #: With no flags given, the machine accepts.
-                my Accept {*}$args
-            }
-        }
-        #: Also provide a list of input symbols.
-    }
-
-    method Accept {a {z {}}} {
+    method Accept arglist {
         # Are we in a final state when all input symbols are consumed and the stack has only one item?
+        lassign $arglist a
         set a [list {*}$a]
-        if {$z eq {}} {
-            set Z [lindex [my get B] 0]
-        } else {
-            set Z $z
-        }
+        set Z [lindex [my get B] 0]
         set ids [lmap q [my get S] {
             my AddID $a $q [list $Z]
         }]
@@ -96,14 +85,13 @@ oo::class create ::automata::PDA {
         return 0
     }
 
-    method Classify {a {z {}}} {
+    method Classify arglist {
         # What state are we in when all input symbols are consumed and the stack has only one item?
+        lassign $arglist a
         set a [list {*}$a]
-        if {$z ne {}} {
-            my add Z $z
-        }
+        set Z [lindex [my get B] 0]
         set ids [lmap q [my get S] {
-            my AddID $a $q [list [my get Z]]
+            my AddID $a $q [list $Z]
         }]
         set results [concat {*}[lmap id $ids {
             my search $id makeMoves

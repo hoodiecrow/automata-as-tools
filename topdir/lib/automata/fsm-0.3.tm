@@ -38,7 +38,9 @@ A [[Finite State Machine|finitestatemachine]] recognizes a regular language. It 
         #:
         foreach tokens $tuples {
             foreach {from input next} $tokens {
-                splitItems input
+                if no {
+                    splitItems input
+                }
                 if {[string match <* $from]} {
                     set from [string trimleft $from <]
                     my add S [string trimright $from >]

@@ -126,10 +126,9 @@ test nfa-1.1 {find even number of ones/zeros} -setup $m -body {
 } -result {1 0 0 1 1 0}
 
 test doc-1.0 {document class} -setup $m -body {
-    log::lvSuppressLE i 0
     M doc
 } -cleanup {
     M destroy
-} -match glob -result {}
+} -match glob -result *
 
 cleanupTests ; return ; # ---------------------------------
