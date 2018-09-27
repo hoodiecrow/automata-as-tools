@@ -14,13 +14,13 @@ set m {::automata::FSM create M}
 test dfa-1.0 {accept binary numbers that are multiples of 3} -body {
     ::automata::FSM create M
     M compile {
-       <s0> 0 s0
-        s0  1 s1
-        s1  0 s2
-        s1  1 s0
-        s2  0 s1
-        s2  1 s2
-    }
+        {<s0> 0 s0}
+        { s0  1 s1}
+        { s1  0 s2}
+        { s1  1 s0}
+        { s2  0 s1}
+        { s2  1 s2}
+   }
     set res {}
     lappend res [M run {1}]
     lappend res [M run {0 1}]
@@ -37,10 +37,10 @@ test dfa-1.0 {accept binary numbers that are multiples of 3} -body {
 
 test dfa-1.1 {find even number of ones/zeros} -setup $m -body {
 M compile {
-   <s1> 0 s2
-    s1  1 s1
-    s2  0 s1
-    s2  1 s2
+    {<s1> 0 s2}
+    { s1  1 s1}
+    { s2  0 s1}
+    { s2  1 s2}
 }
     set res {}
     lappend res [M run {1 1}]
@@ -57,10 +57,10 @@ M compile {
 
 test dfa-1.2 {find even number of ones/zeros: print the machine} -setup $m -body {
     M compile {
-       <s1> 0 s2
-        s1  1 s1
-        s2  0 s1
-        s2  1 s2
+        {<s1> 0 s2}
+        { s1  1 s1}
+        { s2  0 s1}
+        { s2  1 s2}
     }
     M print
 } -cleanup {
@@ -101,16 +101,16 @@ test nfa-1.0 {} -setup $m -body {
 
 test nfa-1.1 {find even number of ones/zeros} -setup $m -body {
     M compile {
-       <s0 ε s1>
-        s0 ε s3>
-        s1 0 s2
-        s1 1 s1
-        s2 0 s1
-        s2 1 s2
-        s3 0 s3
-        s3 1 s4
-        s4 0 s4
-        s4 1 s3
+        {<s0 ε s1>}
+        { s0 ε s3>}
+        { s1 0 s2 }
+        { s1 1 s1 }
+        { s2 0 s1 }
+        { s2 1 s2 }
+        { s3 0 s3 }
+        { s3 1 s4 }
+        { s4 0 s4 }
+        { s4 1 s3 }
     }
     set res {}
     lappend res [M run {1 1}]
@@ -124,5 +124,12 @@ test nfa-1.1 {find even number of ones/zeros} -setup $m -body {
     M destroy
     log::lvSuppressLE i 1
 } -result {1 0 0 1 1 0}
+
+test doc-1.0 {document class} -setup $m -body {
+    log::lvSuppressLE i 0
+    M doc
+} -cleanup {
+    M destroy
+} -match glob -result {}
 
 cleanupTests ; return ; # ---------------------------------

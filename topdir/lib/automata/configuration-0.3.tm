@@ -2,7 +2,7 @@
 namespace eval automata {}
 
 oo::class create ::automata::Configuration {
-    variable components table id
+    variable components table id doc
 
     #: Handles machine configurations, including instantaneous descriptions.
 
@@ -44,6 +44,131 @@ oo::class create ::automata::Configuration {
         puts -nonewline $str
     }
 
+    method AddDoc {what args} {
+        log::log d [info level 0] 
+        switch $what {
+            preamble {
+                dict set doc $what $args
+            }
+            option - argument {
+                dict lappend doc $what $args
+            }
+            default {
+                ;
+            }
+        }
+    }
+
+    method GetDoc what {
+        log::log d [info level 0] 
+        switch $what {
+            preamble {
+                dict get $doc $what
+            }
+            option {
+                set res {}
+                foreach opt [dict get $doc $what] {
+                    switch [llength $opt] {
+                        1 { append res "* `[lindex $opt 0]`\n" }
+                        2 { append res "* `[lindex $opt 0]`: [lindex $opt 1]\n" }
+                        default {
+                            ;
+                        }
+                    }
+                }
+                return $res
+            }
+            argument {
+                set res {}
+                foreach arg [dict get $doc $what] {
+                    switch [llength $arg] {
+                        1 { append res "* `[lindex $arg 0]`\n" }
+                        2 { append res "* `[lindex $arg 0]`: [lindex $arg 1]\n" }
+                        default {
+                            ;
+                        }
+                    }
+                }
+                return $res
+            }
+            default {
+                ;
+            }
+        }
+    }
+
+    method installRunMethod items {
+        set options [list]
+        foreach {name code desc} $items {
+            if {[string match -* $name]} {
+                lappend options $name [format {my %s $_args} $code]
+                my add doc option $name $desc
+            } elseif {$name eq "default"} {
+                lappend options $name [format {my %s $args} $code]
+                my add doc option $name $desc
+            } else {
+                my add doc argument $name $desc
+            }
+        }
+        if no {
+            error [format {
+                set _args [lassign $args arg]
+                switch $arg {%s}
+            } $options]
+        }
+        oo::objdefine [self] method run args [format {
+            set _args [lassign $args arg]
+            switch $arg {%s}
+        } $options]
+    }
+
+    method doc {} {
+        set docstr {}
+        set c [info object class [self]]
+        dict for {name conf} $components {
+            switch $name {
+                table {
+                    set comp2 [dict get $conf as]
+                }
+                id {
+                    set comp3 [lmap m [dict get $conf members] {lindex $m 0}]
+                }
+                default {
+                    lappend comp1 $name
+                }
+            }
+        }
+        append docstr "\n\n## Definition\n"
+        append docstr "\n`$c` (class)\n"
+        append docstr \n[string trim [join [my get doc preamble]]]\n
+        append docstr [format "\nThe configuration for %s is (%s | %s | %s)\n" \
+        [namespace tail $c] \
+        [join $comp1 ", "] \
+        [join $comp2 ×] \
+        [join $comp3 ", "]]
+        append docstr \n {where the [[defining tuple|dt]] is:} \n\n
+        foreach name $comp1 {
+            append docstr [format "* `%s` = %s%s\n" \
+            $name \
+            [string tolower [dict get $components $name label]] \
+            [if {[dict get $components $name superset] ne {}} {
+                format " (⊆ %s)" [dict get $components $name superset]
+            }]]
+        }
+        append docstr \n {and the [[Instantaneous Description|id]] (ID) is:} \n\n
+        foreach name $comp3 label [lmap m [dict get $components id members] {lindex $m 2}] {
+            append docstr [format "* `%s` = %s\n" \
+            $name \
+            [string tolower $label]]
+        }
+        append docstr "\n## Usage\n"
+        append docstr "\n*machine* `run` *?option...?* *?arg...?*\n"
+        append docstr "\n### Options\n"
+        append docstr \n [my get doc option] \n
+        append docstr "\n### Arguments\n"
+        append docstr \n [my get doc argument] \n
+    }
+
     method graded {label name args} {
         dict set components $name label $label
         dict set components $name type graded
@@ -53,6 +178,7 @@ oo::class create ::automata::Configuration {
         dict set components $name sorted 0
         dict set components $name hide 0
         dict set components $name scalar 0
+        dict set components $name superset {}
         dict set components $name domain {}
         dict set components $name value {}
         while {[string match -* [lindex $args 0]]} {
@@ -85,6 +211,10 @@ oo::class create ::automata::Configuration {
                 -scalar {
                     set args [lassign $args -]
                     dict set components $name scalar 1
+                }
+                -superset {
+                    set args [lassign $args - s]
+                    dict set components $name superset $s
                 }
                 -default {
                     set args [lassign $args - d]
@@ -181,6 +311,9 @@ oo::class create ::automata::Configuration {
             id {
                 my GetID {*}$args
             }
+            doc {
+                my GetDoc {*}$args
+            }
             default {
                 my GetGraded $what {*}$args
             }
@@ -206,6 +339,9 @@ oo::class create ::automata::Configuration {
             }
             id {
                 my AddID {*}$args
+            }
+            doc {
+                my AddDoc {*}$args
             }
             default {
                 my AddGraded $what {*}$args

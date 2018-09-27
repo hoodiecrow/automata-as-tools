@@ -32,14 +32,14 @@ oo::class create ::automata::Machine {
                 lindex $row 2
             }]
             set ids [lmap target $targets {
-                my add id $w $target
+                my add id $a $target
             }]
-            set _w [lassign $w W]
-            set targets [lmap row [my get table $q $W] {
+            set _a [lassign $a A]
+            set targets [lmap row [my get table $q $A] {
                 lindex $row 2
             }]
             lappend ids {*}[lmap target $targets {
-                my add id $_w $target
+                my add id $_a $target
             }]
         }
         return $ids
