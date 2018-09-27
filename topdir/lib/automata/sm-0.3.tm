@@ -22,7 +22,7 @@ oo::class create ::automata::SM {
 
     constructor args {
         my graded "Flag symbols"  A -domain B
-        my graded "Stack values"  B -domain N
+        my graded "Stack values"  B -domain N -hide
         my graded "Instructions"  Q -domain N
         my graded "Program start" S -scalar
         my graded "Program end"   F

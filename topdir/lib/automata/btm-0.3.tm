@@ -10,14 +10,13 @@ oo::class create ::automata::BTM {
 
     #: A Basic Turing Machine recognizes a recursively enumerable language.
     #:
-    #: The configuration of a BTM is (A, B, C, Q, E, S, F, H | t h q)
+    #: The configuration of a BTM is (A, B, C, Q, S, F, H | t h q)
 
     constructor args {
-        my graded "Input symbols" A -epsilon ε -exclude {L R}
-        my graded "Print symbols" B -exclude {L R}
+        my graded "Tape symbols"  A -sorted
+        my graded "Print symbols" B -enum {E P N}
         my graded "Move symbols"  C -enum {L R N}
         my graded "State symbols" Q
-        my graded "Erase symbol"  E -scalar
         my graded "Start symbol"  S -scalar
         my graded "Final symbols" F
         my graded "Head position" H -domain N -default 0 -scalar
@@ -34,20 +33,20 @@ oo::class create ::automata::BTM {
         #: edge is split by / into input and tape-action
         #: tape-action is split by ; into print and move
         foreach {from edge next} $tokens {
-            regexp {([\w,]*)\s*/\s*(\w*)\s*;\s*([LRN])} $edge -> input print move
-            splitItems input
-            if {[string match <* $from]} {
-                set from [string trimleft $from <]
-                my add S [string trimright $from >]
-            }
-            foreach name {from next} {
-                if {[string match *> [set $name]]} {
-                    set $name [string trimright [set $name] >]
-                    my add F [set $name]
+            if {[regexp {(\w)\s*/\s*([EPN]|P\w)\s*;\s*([LRN])} $edge -> input print move]} {
+                if {[string match <* $from]} {
+                    set from [string trimleft $from <]
+                    my add S [string trimright $from >]
                 }
-            }
-            foreach inp $input {
-                my add table $from $inp $next $print $move
+                foreach name {from next} {
+                    if {[string match *> [set $name]]} {
+                        set $name [string trimright [set $name] >]
+                        my add F [set $name]
+                    }
+                }
+                my add table $from $input $next $print $move
+            } else {
+                return -code error [format {can't parse "%s"} $edge]
             }
         }
     }

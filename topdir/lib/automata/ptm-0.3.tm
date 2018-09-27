@@ -16,10 +16,9 @@ oo::class create ::automata::PTM {
 
     constructor args {
         my graded "Tape symbols"  A -domain B
-        my graded "Print symbols" B -enum {0 1 N}
+        my graded "Print symbols" B -enum {E P N}
         my graded "Move symbols"  C -enum {L R N}
         my graded "Instructions"  Q -domain N
-        my graded "Erase symbol"  E -scalar -default 0
         my graded "Program start" S -scalar
         my graded "Program end"   F
         my graded "Head position" H -domain N -default 0 -scalar
@@ -47,14 +46,9 @@ oo::class create ::automata::PTM {
             incr next
             # movement directions are switched
             switch $op {
-                P {
+                P - E {
                     foreach inp [my get A] {
-                        lappend program [list $i $inp $next [lindex [my get A] end] N]
-                    }
-                }
-                E {
-                    foreach inp [my get A] {
-                        lappend program [list $i $inp $next [my get E] N]
+                        lappend program [list $i $inp $next $op N]
                     }
                 }
                 L {

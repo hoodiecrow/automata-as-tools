@@ -53,7 +53,7 @@ Instructions    Q = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 Erase symbol    E = 0
 Program start   S = 0
 Program end     F = {10}
-Operator list   O = {CLR, CPY, DEC, INC, NOP}
+Operator list   O = {INC, DEC, CLR, CPY, NOP}
 Register index  R = {0, 1, 2, 3}
 Transitions
 q0    inp   q1    out

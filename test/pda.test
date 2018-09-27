@@ -76,15 +76,13 @@ test pda-1.3 {} -setup {
         q ε/Z;Z   r>
     }
 } -body {
-    M add Z Z
     M print
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
 } -output {Input symbols   A = {0, 1}
-Stack symbols   B = {A, Z}
+Stack symbols   B = {Z, A}
 State symbols   Q = {p, q, r}
-Stack bottom    Z = Z
 Start symbol    S = p
 Final symbols   F = {r}
 Transitions

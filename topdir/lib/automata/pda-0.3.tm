@@ -16,7 +16,6 @@ oo::class create ::automata::PDA {
         my graded "Input symbols" A -epsilon ε
         my graded "Stack symbols" B -epsilon ε
         my graded "State symbols" Q
-        my graded "Stack bottom"  Z -scalar
         my graded "Start symbol"  S -scalar
         my graded "Final symbols" F
         my table -as {Q A Q B B*}
@@ -76,11 +75,13 @@ oo::class create ::automata::PDA {
     method Accept {a {z {}}} {
         # Are we in a final state when all input symbols are consumed and the stack has only one item?
         set a [list {*}$a]
-        if {$z ne {}} {
-            my add Z $z
+        if {$z eq {}} {
+            set Z [lindex [my get B] 0]
+        } else {
+            set Z $z
         }
         set ids [lmap q [my get S] {
-            my AddID $a $q [list [my get Z]]
+            my AddID $a $q [list $Z]
         }]
         set results [concat {*}[lmap id $ids {
             my search $id makeMoves

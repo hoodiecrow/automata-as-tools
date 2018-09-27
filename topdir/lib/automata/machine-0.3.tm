@@ -214,10 +214,18 @@ oo::class create ::automata::Machine {
     #: In the Post-Turing machine, the head is moved instead, so the compiler
     #: emits R for L and L for R.
 
-    method Print {varName h s} {
+    method Print {varName h p} {
+        log::log d [info level 0] 
         upvar 1 $varName t
-        if {$s ne "N"} {
-            lset t $h $s
+        switch $p {
+            N  {}
+            E  { lset t $h [lindex [my get A] 0] }
+            P  { lset t $h [lindex [my get A] 1] }
+            default {
+                if {[regexp {^P(.)$} $p -> s]} {
+                    lset t $h $s
+                }
+            }
         }
         return
     }
@@ -228,12 +236,12 @@ oo::class create ::automata::Machine {
             L {
                 incr h
                 if {$h >= [expr {[llength $t] - 1}]} {
-                    lappend t [my get E]
+                    lappend t [lindex [my get A] 0]
                 }
             }
             R {
                 if {$h < 1} {
-                    set t [linsert $t 0 [my get E]]
+                    set t [linsert $t 0 [lindex [my get A] 0]]
                 } else {
                     incr h -1
                 }
@@ -252,9 +260,11 @@ oo::class create ::automata::Machine {
             set tuples [my get table $q [lindex $t $h]]
             # should always be 0 or 1 tuples
             set ids [lmap tuple $tuples {
-                set q1 [lindex $tuple 2]
-                my Print t $h [lindex $tuple 3]
-                my Move t h [lindex $tuple 4]
+                log::log d \$tuple=$tuple 
+                lassign $tuple - - q1 p m
+                log::log d \$p=$p 
+                my Print t $h $p
+                my Move t h $m
                 my add id $t $h $q1
             }]
         }

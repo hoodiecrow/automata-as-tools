@@ -30,11 +30,10 @@ test sm-1.1 {print 1.0} -setup {
     M destroy
     log::lvSuppressLE i 1
 } -output {Flag symbols    A = {0, 1}
-Stack values    B = {0, 2, 3, 4}
 Instructions    Q = {0, 1, 2, 3, 4, 5, 6}
 Program start   S = 0
 Program end     F = {5}
-Operator list   O = {*, +, ==, ADD, CLR, DEC, EQ, eq, EQL, INC, MUL, NOP, PUSH}
+Operator list   O = {PUSH, INC, DEC, CLR, NOP, EQ, EQL, ADD, MUL, eq, ==, +, *}
 Transitions
 q0    inp   q1    out
 0     0     1     PUSH 2
@@ -82,11 +81,10 @@ test sm-2.1 {Print 2.0} -setup {
     M destroy
     log::lvSuppressLE i 1
 } -output {Flag symbols    A = {0, 1}
-Stack values    B = {0, 3}
 Instructions    Q = {0, 1, 2, 3, 4, 5, 6}
 Program start   S = 0
 Program end     F = {5}
-Operator list   O = {*, +, ==, ADD, CLR, DEC, EQ, eq, EQL, INC, MUL, NOP, PUSH}
+Operator list   O = {PUSH, INC, DEC, CLR, NOP, EQ, EQL, ADD, MUL, eq, ==, +, *}
 Transitions
 q0    inp   q1    out
 0     0     1     PUSH 3

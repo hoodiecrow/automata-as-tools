@@ -50,6 +50,7 @@ oo::class create ::automata::Configuration {
         dict set components $name epsilon {v {set v}}
         dict set components $name exclude {v {set v}}
         dict set components $name insert {v {}}
+        dict set components $name sorted 0
         dict set components $name hide 0
         dict set components $name scalar 0
         dict set components $name domain {}
@@ -73,6 +74,10 @@ oo::class create ::automata::Configuration {
                     set args [lassign $args - i]
                     dict set components $name insert [list sym [format {my add %s $sym} $i] [self namespace]]
                 }
+                -sorted {
+                    set args [lassign $args -]
+                    dict set components $name sorted 1
+                }
                 -hide {
                     set args [lassign $args -]
                     dict set components $name hide 1
@@ -87,10 +92,11 @@ oo::class create ::automata::Configuration {
                 }
                 -domain {
                     set args [lassign $args - d]
+                    dict set components $name domain $d
                     if {$d eq "B"} {
                         dict set components $name value {0 1}
                     }
-                    dict set components $name domain $d
+                    dict set components $name sorted 1
                 }
                 default {
                     return -code error [format {unknown option "%s"} [lindex $args 0]]
@@ -131,6 +137,20 @@ oo::class create ::automata::Configuration {
                 lappend members [list $tag $type $label]
             }
         }
+    }
+
+    method Arrange {varName sorted} {
+        upvar 1 $varName value
+        if {$sorted} {
+            set value [lsort -unique -dict $value]
+        } else {
+            set u [dict create]
+            foreach item $value {
+                dict set u $item 1
+            }
+            set value [dict keys $u]
+        }
+        return
     }
 
     method in {what args} {
@@ -218,7 +238,7 @@ oo::class create ::automata::Configuration {
                         lappend value $sym
                     }
                 }
-                set value [lsort -unique -dict $value]
+                my Arrange value $sorted
             }
         }
     }
@@ -296,6 +316,7 @@ oo::class create ::automata::Configuration {
     }
 
     method AddID args {
+        log::log d [info level 0] 
         set name id
         set result [dict create]
         dict with components $name {

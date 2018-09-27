@@ -25,9 +25,9 @@ oo::class create ::automata::KTR {
         my graded "Program start"   S -scalar
         my graded "Program end"     F
         my graded "Operator list"   O -enum {
-            TURN MOVE TAKE DROP TEST RET GOSUB NOP
+            TAKE DROP TEST RET GOSUB NOP
         }
-        my graded "Test numbers"    T -domain N
+        my graded "Test numbers"    T -domain N -hide
         my table -as {Q A Q L M O B}
         my id {
             w B  "world width"
