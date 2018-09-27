@@ -19,14 +19,16 @@ oo::class create ::automata::KTR {
         my graded "Flag symbols"    A -domain B
         my graded "Lengths/Amounts" B -domain N -hide
         my graded "Facing"          C -enum {0 1 2 3}
+        my graded "Turn symbols"    L -enum {L N} -hide
+        my graded "Move flag"       M -domain B -hide
         my graded "Instructions"    Q -domain N
         my graded "Program start"   S -scalar
         my graded "Program end"     F
         my graded "Operator list"   O -enum {
-            TURN MOVE TAKE DROP TEST JUMPZ JUMP RET GOSUB NOP
+            TURN MOVE TAKE DROP TEST RET GOSUB NOP
         }
         my graded "Test numbers"    T -domain N
-        my table -as {Q A Q O B}
+        my table -as {Q A Q L M O B}
         my id {
             w B  "world width"
             h B  "world height"
@@ -79,32 +81,32 @@ oo::class create ::automata::KTR {
                 turnoff {
                     my add F $i
                     foreach inp [my get A] {
-                        lappend program [list $i $inp $next NOP 0]
+                        lappend program [list $i $inp $next N 0 NOP 0]
                     }
                 }
                 turnleft {
                     foreach inp [my get A] {
-                        lappend program [list $i $inp $next TURN 0]
+                        lappend program [list $i $inp $next L 0 NOP 0]
                     }
                 }
                 move {
                     foreach inp [my get A] {
-                        lappend program [list $i $inp $next MOVE 0]
+                        lappend program [list $i $inp $next N 1 NOP 0]
                     }
                 }
                 pickbeeper {
                     foreach inp [my get A] {
-                        lappend program [list $i $inp $next TAKE 0]
+                        lappend program [list $i $inp $next N 0 TAKE 0]
                     }
                 }
                 putbeeper {
                     foreach inp [my get A] {
-                        lappend program [list $i $inp $next DROP 0]
+                        lappend program [list $i $inp $next N 0 DROP 0]
                     }
                 }
                 RET {
                     foreach inp [my get A] {
-                        lappend program [list $i $inp $next $token 0]
+                        lappend program [list $i $inp $next N 0 $token 0]
                     }
                 }
                 default {
@@ -116,26 +118,26 @@ oo::class create ::automata::KTR {
                             TEST {
                                 set n [my GetTestNumber $label]
                                 foreach inp [my get A] {
-                                    lappend program [list $i $inp $next TEST $n]
+                                    lappend program [list $i $inp $next N 0 TEST $n]
                                 }
                             }
                             JUMPZ {
-                                lappend program [list $i 0 $next NOP 0]
-                                lappend program [list $i 1 $label NOP 0]
+                                lappend program [list $i 0 $next N 0 NOP 0]
+                                lappend program [list $i 1 $label N 0 NOP 0]
                             }
                             JUMP {
                                 foreach inp [my get A] {
-                                    lappend program [list $i $inp $label NOP 0]
+                                    lappend program [list $i $inp $label N 0 NOP 0]
                                 }
                             }
                             GOSUB {
                                 foreach inp [my get A] {
-                                    lappend program [list $i $inp $label $op 0]
+                                    lappend program [list $i $inp $label N 0 $op 0]
                                 }
                             }
                             NOP {
                                 foreach inp [my get A] {
-                                    lappend program [list $i $inp $next NOP 0]
+                                    lappend program [list $i $inp $next N 0 NOP 0]
                                 }
                             }
                             default {

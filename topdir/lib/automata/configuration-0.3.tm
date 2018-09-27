@@ -197,6 +197,8 @@ oo::class create ::automata::Configuration {
         if {[llength $args] > 0} {
             if {[my FitsGraded $name syms {*}$args]} {
                 my AddGradedValue $name $syms
+            } else {
+                return -code error [format {can't add "%s" to %s} $syms $name]
             }
         }
     }
@@ -278,14 +280,14 @@ oo::class create ::automata::Configuration {
                         my AddGradedValue $c $syms
                         lappend tuple $syms
                     } else {
-                        return
+                        return -code error [format {can't add "%s" to table} $syms]
                     }
                 } else {
                     if {[my FitsGraded $fmt sym $arg]} {
                         my AddGradedValue $fmt $sym
                         lappend tuple [lindex $sym 0]
                     } else {
-                        return
+                        return -code error [format {can't add "%s" to table} $sym]
                     }
                 }
             }

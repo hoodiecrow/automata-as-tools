@@ -444,14 +444,14 @@ oo::class create ::automata::Machine {
             # get move
             lassign $i q
             log::log d [lindex [my get table $q $t] 0]
-            lassign [lindex [my get table $q $t] 0] - - i1 op index
+            lassign [lindex [my get table $q $t] 0] - - i1 turn move op index
             set t 0
             lset i 0 $i1
             log::log d \$i1=$i1 
             log::log d \$i=$i 
+            if {$turn eq "L"} { my Turn f }
+            if {$move} { my RMove $w $h x y $f $a }
             switch $op {
-                TURN { my Turn f }
-                MOVE { my RMove $w $h x y $f $a }
                 TAKE {}
                 DROP {}
                 TEST {
