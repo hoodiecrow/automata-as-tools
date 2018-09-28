@@ -12,7 +12,7 @@ package require automata::pda
 set mc PDA
 set m [subst {::automata::$mc create M}]
 {*}$m
-M doc [file join ~ code automata-as-tools.wiki $mc.md]
+M doc [file join ~ code automata-as-tools.wiki class.$mc.md]
 M destroy
 
 test pda-1.0 {0^n1^n | n >= 0} -setup {

@@ -8,21 +8,20 @@ namespace import ::tcltest::*
 package require automata::btm
 
 set mc BTM
-if no {
-::automata::$mc create M
-M doc [file join ~ code automata-as-tools.wiki $mc.md]
+set m [subst {::automata::$mc create M}]
+{*}$m
+M doc [file join ~ code automata-as-tools.wiki class.$mc.md]
 M destroy
-}
 
 test btm-1.0 {3 state, 2 symbol busy beaver} -setup {} -body {
     ::automata::BTM create M
     M compile {
-       <A 0/P;R B
-        A 1/P;L C
-        B 0/P;L A
-        B 1/P;R B
-        C 0/P;L B
-        C 1/P;R H>
+        {<A 0/P;R B}
+        {A 1/P;L C}
+        {B 0/P;L A}
+        {B 1/P;R B}
+        {C 0/P;L B}
+        {C 1/P;R H>}
     }
     M add A 0 1
     M run {0}
@@ -34,12 +33,12 @@ test btm-1.0 {3 state, 2 symbol busy beaver} -setup {} -body {
 test btm-1.1 {3 state, 2 symbol busy beaver print} -setup {} -body {
     ::automata::BTM create M
     M compile {
-       <A 0/P;R B
-        A 1/P;L C
-        B 0/P;L A
-        B 1/P;R B
-        C 0/P;L B
-        C 1/P;R H>
+        {<A 0/P;R B}
+        {A 1/P;L C}
+        {B 0/P;L A}
+        {B 1/P;R B}
+        {C 0/P;L B}
+        {C 1/P;R H>}
     }
     M print
 } -cleanup {

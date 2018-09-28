@@ -7,6 +7,12 @@ namespace import ::tcltest::*
 
 package require automata::sm
 
+set mc SM
+set m [subst {::automata::$mc create M}]
+{*}$m
+M doc [file join ~ code automata-as-tools.wiki class.$mc.md]
+M destroy
+
 test sm-1.0 {Calculate 4 x (2 + 3)} -setup {
     ::automata::SM create M
 } -body {

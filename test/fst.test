@@ -10,7 +10,7 @@ package require automata::fst
 set mc FST
 set m [subst {::automata::$mc create M}]
 {*}$m
-M doc [file join ~ code automata-as-tools.wiki $mc.md]
+M doc [file join ~ code automata-as-tools.wiki class.$mc.md]
 M destroy
 
 test fst-1.0 {} -setup $m -body {

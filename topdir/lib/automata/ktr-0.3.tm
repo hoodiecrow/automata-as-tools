@@ -10,12 +10,45 @@ oo::class create ::automata::KTR {
 
     variable testlabels
 
-    #: This is a very limited Karel the Robot that can only walk around, not
-    #: interact with beepers.
-    #:
-    #: The configuration of a KTR is (A, B, C, Q, S, F | w, h, x, y, n, f, i, t, b, a)
-
     constructor args {
+        my add doc preamble {
+This is a very limited Karel the Robot that can only walk around, not interact with beepers.
+
+Test numbers:
+
+| Number | Test                      |
+| :---:  | :---                      |
+| 1/2    | front-is-clear/blocked    |
+| 3/4    | left-is-clear/blocked     |
+| 5/6    | right-is-clear/blocked    |
+| 7/8    | next-to-a-beeper/not-     |
+| 9/10   | facing-north/not-         |
+| 11/12  | facing-south/not-         |
+| 13/14  | facing-east/not-          |
+| 15/16  | facing-west/not-          |
+| 17     | any-beepers-in-beeper-bag |
+| 18     | no-beepers-in-beeper-bag  |
+        }
+        my add doc language {
+            turnoff    {} {shut down the robot (and end the program)}
+            turnleft   {} {turn the robot left}
+            move       {} {move the robot forward}
+            pickbeeper {} {pick up a beeper (does nothing)}
+            putbeeper  {} {place a beeper (does nothing)}
+            RET        {} {return from a subroutine}
+            TEST       label  {perform test *label*}
+            JUMPZ      a  {jump on (test state =) zero to address *a*}
+            JUMP       a  {jump unconditionally to address *a*}
+            GOSUB      a  {jump to subroutine at address *a*}
+            NOP        {} {no operation}
+        }
+        my installRunMethod {
+            world   {} {a list of width, height values (integer)}
+            robot   {} {a list of x, y, n, f values (integer)}
+            beepers {} {an even-sized list of x, y values}
+            walls   {} {an even-sized list of x, y values}
+            ?start? {} {initial state}
+        }
         my graded "Flag symbols"    A -domain B
         my graded "Lengths/Amounts" B -domain N -hide
         my graded "Facing"          C -enum {0 1 2 3}
@@ -176,7 +209,7 @@ oo::class create ::automata::KTR {
         lindex $testlabels $index
     }
 
-    method run {world robot beepers walls {s {}}} {
+    method Run {world robot beepers walls {s {}}} {
         #: Run the code with the given configuration, starting from s.
         if {$s eq {}} {
             set s [my get S]

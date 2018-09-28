@@ -7,6 +7,12 @@ namespace import ::tcltest::*
 
 package require automata::cm
 
+set mc CM
+set m [subst {::automata::$mc create M}]
+{*}$m
+M doc [file join ~ code automata-as-tools.wiki class.$mc.md]
+M destroy
+
 test cm-1.0 {Implement a CPY operation} -setup {
     ::automata::CM create M
 } -body {

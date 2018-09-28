@@ -10,24 +10,9 @@ oo::class create ::automata::CM {
 
     variable instructionSet
 
-    #: A Counter Machine is the simplest form of Register Machine.
-    #:
-    #: The configuration of a CM is (A, B, Q, E, S, F, R | r, i)
-    #:
-    #: The number of registers is determined by the length of the {0, 1} sequence passed to the `run` method. Registers are indexed in the same way as a list index (0, 1, 2, ...).
-    #:
-    #: Register #0 is reserved for the value 0. It is an error to set it to another value.
-
     constructor args {
         set is 4
-        #: Specify which actual instruction set to use when instantiating machine.
-        #:
         if {[lindex $args 0] eq "-instructionset"} {
-            #: * `-instructionset 1` : {INC, DEC, JZ}, (Minsky (1961, 1967), Lambek (1961))
-            #: * `-instructionset 2` : {CLR, INC, JE}, (Ershov (1958), Peter (1958) as interpreted by Shepherdson-Sturgis (1964); Minsky (1967); Schönhage (1980))
-            #: * `-instructionset 3` : {INC, CPY, JE}, (Elgot-Robinson (1964), Minsky (1967))
-            #: * `-instructionset 4` : {INC, DEC, CLR, CPY, J, JZ} (default: Shepherdson and Sturgis (1963))
-            #:
             set args [lassign $args - is]
         }
         set instructionSet [dict get {
@@ -36,6 +21,34 @@ oo::class create ::automata::CM {
             3 {INC CPY JE}
             4 {INC DEC CLR CPY J JZ}
         } $is]
+        my add doc preamble {
+A Counter Machine is the simplest form of Register Machine.
+
+The number of registers is determined by the length of the list passed to the `run` method. Registers are indexed in the same way as a list index (0, 1, 2, ...).
+
+Register #0 is reserved for the value 0. It is an error to set it to another value.
+
+Specify which actual instruction set to use when instantiating machine.
+
+* `-instructionset 1` : (INC, DEC, JZ), (Minsky (1961, 1967), Lambek (1961))
+* `-instructionset 2` : (CLR, INC, JE), (Ershov (1958), Peter (1958) as interpreted by Shepherdson-Sturgis (1964); Minsky (1967); Schönhage (1980))
+* `-instructionset 3` : (INC, CPY, JE), (Elgot-Robinson (1964), Minsky (1967))
+* `-instructionset 4` : (INC, DEC, CLR, CPY, J, JZ) (default: Shepherdson and Sturgis (1963))
+        }
+        my add doc language {
+            JZ  r,a   {jump on ([r] = 0) to address *a*}
+            JZ  i,j,a {jump on ([i] = [j]) to address *a*}
+            J   a     {jump unconditionally to address *a*}
+            INC r     {increment value in register r}
+            DEC r     {decrement value in register r}
+            CLR r     {set value in register r to 0}
+            CPY i,j   {copy [i] -> j}
+            NOP {}    {no operation}
+        }
+        my installRunMethod {
+            registers {} {a list of initial register cells}
+            ?start? {} {initial state}
+        }
         my graded "Register values" A -domain N
         my graded "Flag symbols"    B -domain B
         my graded "Instructions"    Q -domain N
@@ -63,7 +76,7 @@ oo::class create ::automata::CM {
                 dict set jumps [string trimright $token :] $i
                 continue
             }
-            regexp {([[:upper:]]+):?([,\d]*),?([-+]?\w*)$} $token -> op regs offset
+            regexp {([[:upper:]]+):?([,\d]*),?([-+]?\d+|\w*)$} $token -> op regs offset
             if {$offset eq {}} {
                 set offset 0
             }
@@ -123,7 +136,7 @@ oo::class create ::automata::CM {
         }
     }
 
-    method run {regs {s {}}} {
+    method Run {regs {s {}}} {
         #: Run the code with the given register settings, starting from s.
         if {$s ne {}} {
             my add S $s

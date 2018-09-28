@@ -8,19 +8,23 @@ namespace eval automata {}
 oo::class create ::automata::SM {
     mixin ::automata::Configuration ::automata::Machine
 
-    #: A simple sort of virtual Stack Machine.
-    #: 
-    #: The configuration of an SM is (A, B, Q, S, F, O | s, i)
-    #:
-    #: The operations of the programming language are:
-    #: 
-    #: JZ:a, J:a  : jump on zero (top of stack) / jump unconditional to a
-    #: INC, DEC   : increment/decrement top of stack
-    #: CLR        : set top of stack to 0
-    #: <integer>  : push value onto stack
-    #: op         : (op = EQ, EQL, ADD, MUL, eq, ==, +, *) perform ALU op on top two stack elements and replace them with result
-
     constructor args {
+        my add doc preamble {
+A simple sort of virtual Stack Machine.
+        }
+        my add doc language {
+            JZ  a  {jump on (top of stack =) zero to address *a*}
+            J   a  {jump unconditionally to address *a*}
+            INC {} {increment value on top of stack}
+            DEC {} {decrement value on top of stack}
+            CLR {} {set top of stack to 0}
+            <integer> {} {push value onto stack}
+            <operator> {} {(operator = EQ, EQL, ADD, MUL, eq, ==, +, *) perform ALU op on top two stack elements and replace them with result}
+        }
+        my installRunMethod {
+            stack {} {a list of initial stack symbols}
+            ?start? {} {initial state}
+        }
         my graded "Flag symbols"  A -domain B
         my graded "Stack values"  B -domain N -hide
         my graded "Instructions"  Q -domain N
@@ -108,7 +112,7 @@ oo::class create ::automata::SM {
         my add S [lindex [my get Q] 0]
     }
 
-    method run {stack {s {}}} {
+    method Run {stack {s {}}} {
         #: Run the code with the given stack, starting from s.
         if {$s ne {}} {
             my set S $s

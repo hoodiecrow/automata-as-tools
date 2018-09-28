@@ -7,6 +7,12 @@ namespace import ::tcltest::*
 
 package require automata::ktr
 
+set mc KTR
+set m [subst {::automata::$mc create M}]
+{*}$m
+M doc [file join ~ code automata-as-tools.wiki class.$mc.md]
+M destroy
+
 test ktr-1.0 {} -setup {
     ::automata::KTR create M
 } -body {

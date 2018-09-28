@@ -12,7 +12,7 @@ oo::class create ::automata::PTM {
         my add doc preamble {
 A Post-Turing Machine is essentially a TM. The transition matrix
 is set by compiling a program.  The tape uses a binary symbol set
-(here, {0, 1}).
+(here, 0, 1).
         }
         my installRunMethod {
             tape {} {a list of initial tape symbols}
