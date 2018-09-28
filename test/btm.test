@@ -7,6 +7,13 @@ namespace import ::tcltest::*
 
 package require automata::btm
 
+set mc BTM
+if no {
+::automata::$mc create M
+M doc [file join ~ code automata-as-tools.wiki $mc.md]
+M destroy
+}
+
 test btm-1.0 {3 state, 2 symbol busy beaver} -setup {} -body {
     ::automata::BTM create M
     M compile {

@@ -22,6 +22,7 @@ A Pushdown Automaton recognizes a context-free language.
         my graded "Stack symbols" B -epsilon ε
         my graded "State symbols" Q
         my graded "Start symbol"  S -superset Q -scalar
+        my graded "Initial stack" Z -firstof B -scalar
         my graded "Final symbols" F -superset Q
         my table -as {Q A Q B B*}
         my id {
@@ -68,9 +69,11 @@ A Pushdown Automaton recognizes a context-free language.
         # Are we in a final state when all input symbols are consumed and the stack has only one item?
         lassign $arglist a
         set a [list {*}$a]
-        set Z [lindex [my get B] 0]
+        if no {
+            set Z [lindex [my get B] 0]
+        }
         set ids [lmap q [my get S] {
-            my AddID $a $q [list $Z]
+            my AddID $a $q [list [my get Z]]
         }]
         set results [concat {*}[lmap id $ids {
             my search $id makeMoves

@@ -9,6 +9,12 @@ namespace import ::tcltest::*
 
 package require automata::pda
 
+set mc PDA
+set m [subst {::automata::$mc create M}]
+{*}$m
+M doc [file join ~ code automata-as-tools.wiki $mc.md]
+M destroy
+
 test pda-1.0 {0^n1^n | n >= 0} -setup {
     ::automata::PDA create M
     M compile {
@@ -84,6 +90,7 @@ test pda-1.3 {} -setup {
 Stack symbols   B = {Z, A}
 State symbols   Q = {p, q, r}
 Start symbol    S = p
+Initial stack   Z = Z
 Final symbols   F = {r}
 Transitions
 q0    inp   q1    out
@@ -94,13 +101,6 @@ p     ε     q     A A
 q     1     q     A {}
 q     ε     r     Z Z
 }
-
-test doc-1.0 {document class} -body {
-    ::automata::PDA create M
-    M doc
-} -cleanup {
-    M destroy
-} -match glob -result {}
 
 if {[package vcompare [package present automata::pda] 0.1] > 0} { 
     cleanupTests ; return 

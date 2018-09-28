@@ -9,7 +9,11 @@ namespace import ::tcltest::*
 
 package require automata::fsm
 
-set m {::automata::FSM create M}
+set mc FSM
+set m [subst {::automata::$mc create M}]
+{*}$m
+M doc [file join ~ code automata-as-tools.wiki $mc.md]
+M destroy
 
 test dfa-1.0 {accept binary numbers that are multiples of 3} -body {
     ::automata::FSM create M
@@ -124,11 +128,5 @@ test nfa-1.1 {find even number of ones/zeros} -setup $m -body {
     M destroy
     log::lvSuppressLE i 1
 } -result {1 0 0 1 1 0}
-
-test doc-1.0 {document class} -setup $m -body {
-    M doc
-} -cleanup {
-    M destroy
-} -match glob -result *
 
 cleanupTests ; return ; # ---------------------------------

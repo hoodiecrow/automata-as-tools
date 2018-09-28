@@ -8,13 +8,16 @@ namespace eval automata {}
 oo::class create ::automata::PTM {
     mixin ::automata::Configuration ::automata::Machine
 
-    #: A Post-Turing Machine is essentially a TM. The transition matrix is set
-    #: by compiling a program.  The tape uses a binary symbol set (here, {0,
-    #: 1}).
-    #:
-    #: The configuration of a PTM is (A, B, C, Q, E, S, F, H | t, h, q)
-
     constructor args {
+        my add doc preamble {
+A Post-Turing Machine is essentially a TM. The transition matrix
+is set by compiling a program.  The tape uses a binary symbol set
+(here, {0, 1}).
+        }
+        my installRunMethod {
+            tape {} {a list of initial tape symbols}
+            ?head? {} {initial head position}
+        }
         my graded "Tape symbols"  A -domain B
         my graded "Print symbols" B -enum {E P N}
         my graded "Move symbols"  C -enum {L R N}
@@ -119,10 +122,10 @@ oo::class create ::automata::PTM {
         }
     }
 
-    method run {tape {tapeIndex {}}} {
+    method Run {tape {head {}}} {
         #: Run the code on this tape, return tape.
-        if {$tapeIndex ne {}} {
-            my add H $tapeIndex
+        if {$head ne {}} {
+            my add H $head
         }
         set tape [list {*}$tape]
         set ids [lmap q [my get S] {
