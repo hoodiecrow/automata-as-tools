@@ -14,6 +14,17 @@ A Post-Turing Machine is essentially a TM. The transition matrix
 is set by compiling a program.  The tape uses a binary symbol set
 (here, 0, 1).
         }
+        my installOperations {P E L R N H J: J0: J1:} {
+            P   {list $i $j [incr i]                    P N} {print to current cell}
+            E   {list $i $j [incr i]                    E N} {erase the current cell}
+            L   {list $i $j [incr i]                    N R} {move head left}
+            R   {list $i $j [incr i]                    N L} {move head right}
+            N   {list $i $j [incr i]                    N N} {no operation}
+            H   {list $i $j END_OF_CODE                 N N} {halt}
+            J:  {list $i $j $a                          N N} {jump unconditionally to address *a*}
+            J0: {list $i $j [if {!$j} {set a} {incr i}] N N} {jump on ([*input*] = 0) to address *a*}
+            J1: {list $i $j [if {$j} {set a} {incr i}]  N N} {jump on ([*input*] = 1) to address *a*}
+        }
         my installRunMethod {
             tape {} {a list of initial tape symbols}
             ?head? {} {initial head position}
@@ -44,66 +55,18 @@ is set by compiling a program.  The tape uses a binary symbol set
                 dict set jumps [string trimright $token :] $i
                 continue
             }
-            lassign [split $token :] op offset
-            set next $i
-            incr next
-            # movement directions are switched
-            switch $op {
-                P - E {
-                    foreach inp [my get A] {
-                        lappend program [list $i $inp $next $op N]
-                    }
-                }
-                L {
-                    foreach inp [my get A] {
-                        lappend program [list $i $inp $next N R]
-                    }
-                }
-                R {
-                    foreach inp [my get A] {
-                        lappend program [list $i $inp $next N L]
-                    }
-                }
-                N {
-                    foreach inp [my get A] {
-                        lappend program [list $i $inp $next N N]
-                    }
-                }
-                J {
-                    foreach inp [my get A] {
-                        lappend program [list $i $inp $offset N N]
-                    }
-                }
-                H {
-                    my add F $next
-                    foreach inp [my get A] {
-                        lappend program [list $i $inp $next N N]
-                    }
-                }
-                J0 {
-                    foreach inp [my get A] {
-                        if {$inp eq 0} {
-                            lappend program [list $i $inp $offset N N]
-                        } else {
-                            lappend program [list $i $inp $next N N]
-                        }
-                    }
-                }
-                J1 {
-                    foreach inp [my get A] {
-                        if {$inp eq 1} {
-                            lappend program [list $i $inp $offset N N]
-                        } else {
-                            lappend program [list $i $inp $next N N]
-                        }
-                    }
-                }
-                default {
-                    error \$op=$op
+            if {![regexp {^([[:upper:]]\d?:)(.+)$} $token -> op offset]} {
+                if {[regexp {^[[:upper:]]$} $token]} {
+                    set op $token
+                    set offset {}
+                } else {
+                    return -code error [format {malformed token "%s"} $token]
                 }
             }
+            lappend program {*}[lmap a [my get A] {my GenOp $i $a $op $offset}]
             incr i
         }
+        dict set jumps END_OF_CODE $i
         log::log d \$jumps=$jumps 
         my add S [lindex $jumps 1]
         my add F $i
