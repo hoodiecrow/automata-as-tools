@@ -39,10 +39,10 @@ Specify which actual instruction set to use when instantiating machine.
             JZ:  {list $i $j [if {$j} {set b} {incr i}] NOP [list 0 $a]}  {jump on ([*a*] = 0) to address *b*}
             JE:  {list $i $j [if {$j} {set c} {incr i}] NOP [list $a $b]} {jump on ([*a*] = [*b*]) to address *c*}
             J:   {list $i $j $a                         NOP {}}           {jump unconditionally to address *a*}
-            INC: {list $i $j [incr i]                   INC [list $a]}    {set *a* <- [*a*] + 1}
-            DEC: {list $i $j [incr i]                   DEC [list $a]}    {set *a* <- [*a*] - 1}
-            CLR: {list $i $j [incr i]                   CLR [list $a]}    {set *a* <- 0}
-            CPY: {list $i $j [incr i]                   CPY [list $a]}    {copy *a* <- [*b*]}
+            INC: {list $i $j [incr i]                   INC [list $a]}    {set *a* ← [*a*] + 1}
+            DEC: {list $i $j [incr i]                   DEC [list $a]}    {set *a* ← [*a*] - 1}
+            CLR: {list $i $j [incr i]                   CLR [list $a]}    {set *a* ← 0}
+            CPY: {list $i $j [incr i]                   CPY [list $a]}    {copy *a* ← [*b*]}
             NOP  {list $i $j [incr i]                   NOP {}}           {no operation}
         }
         my installRunMethod {

@@ -12,14 +12,22 @@ oo::class create ::automata::SM {
         my add doc preamble {
 A simple sort of virtual Stack Machine.
         }
-        my add doc language {
-            JZ  a  {jump on (top of stack =) zero to address *a*}
-            J   a  {jump unconditionally to address *a*}
-            INC {} {increment value on top of stack}
-            DEC {} {decrement value on top of stack}
-            CLR {} {set top of stack to 0}
-            <integer> {} {push value onto stack}
-            <operator> {} {(operator = EQ, EQL, ADD, MUL, eq, ==, +, *) perform ALU op on top two stack elements and replace them with result}
+        my installOperations {INC DEC CLR J: JZ: EQ EQL ADD MUL eq == + * PUSH NOP} {
+            INC      {list $i $j [incr i] INC  0}  {<i>ToS</i> ← [<i>ToS</i>] + 1}
+            DEC      {list $i $j [incr i] DEC  0}  {<i>ToS</i> ← [<i>ToS</i>] - 1}
+            CLR      {list $i $j [incr i] PUSH 0}  {<i>ToS</i> ← 0}
+            EQ       {list $i $j [incr i] EQ   0}  {<i>ToS<sub>0,1</sub></i> ← [<i>ToS<sub>0</sub></i>] eq [<i>ToS<sub>1</sub></i>]}
+            EQL      {list $i $j [incr i] EQL  0}  {<i>ToS<sub>0,1</sub></i> ← [<i>ToS<sub>0</sub></i>] == [<i>ToS<sub>1</sub></i>]}
+            ADD      {list $i $j [incr i] ADD  0}  {<i>ToS<sub>0,1</sub></i> ← [<i>ToS<sub>0</sub></i>] + [<i>ToS<sub>1</sub></i>]}
+            MUL      {list $i $j [incr i] MUL  0}  {<i>ToS<sub>0,1</sub></i> ← [<i>ToS<sub>0</sub></i>] \\* [<i>ToS<sub>1</sub></i>]}
+            eq       {list $i $j [incr i] EQ   0}  {<i>ToS<sub>0,1</sub></i> ← [<i>ToS<sub>0</sub></i>] eq [<i>ToS<sub>1</sub></i>]}
+            ==       {list $i $j [incr i] EQL  0}  {<i>ToS<sub>0,1</sub></i> ← [<i>ToS<sub>0</sub></i>] == [<i>ToS<sub>1</sub></i>]}
+            +        {list $i $j [incr i] ADD  0}  {<i>ToS<sub>0,1</sub></i> ← [<i>ToS<sub>0</sub></i>] + [<i>ToS<sub>1</sub></i>]}
+            *        {list $i $j [incr i] MUL  0}  {<i>ToS<sub>0,1</sub></i> ← [<i>ToS<sub>0</sub></i>] \\* [<i>ToS<sub>1</sub></i>]}
+            NOP      {list $i $j [incr i] NOP  0}  {no operation}
+            J:       {list $i $j $a       NOP  0}  {jump unconditionally to address *a*}
+            JZ:      {list $i $j [if {!$j} {set a} {incr i}] NOP  0} {jump on (<i>ToS</i> = 0) to address *a*}
+            <number> {list $i $j [incr i] PUSH $a} {<i>ToS</i> ← <i>a</i>}
         }
         my installRunMethod {
             stack {} {a list of initial stack symbols}
@@ -29,8 +37,8 @@ A simple sort of virtual Stack Machine.
         my graded "Stack values"  B -domain N -hide
         my graded "Instructions"  Q -domain N
         my graded "Program start" S -scalar
-        my graded "Program end"   F
-        my graded "Operator list" O -enum {PUSH INC DEC CLR NOP EQ EQL ADD MUL eq == + *}
+        my graded "End points"    F
+        my graded "Operators"     O -enum {PUSH INC DEC CLR NOP EQ EQL ADD MUL eq == + *}
         my table -as {Q A Q O B}
         my id {
             s B* "current stack"
@@ -48,53 +56,27 @@ A simple sort of virtual Stack Machine.
                 dict set jumps [string trimright $token :] $i
                 continue
             }
-            set next [expr {$i + 1}]
-            if {$token in {eq == + *}} {
-                foreach inp [my get A] {
-                    lappend program [list $i $inp $next $token 0]
-                }
-            } else {
-                if {[string is entier -strict $token]} {
-                    foreach inp [my get A] {
-                        lappend program [list $i $inp $next PUSH $token]
-                    }
-                } else {
-                    if {[regexp {([[:upper:]]+):?(.*)$} $token -> op val]} {
-                        switch $op {
-                            JZ {
-                                lappend program [list $i 0 $val NOP 0]
-                                lappend program [list $i 1 $next NOP 0]
-                            }
-                            J {
-                                foreach inp [my get A] {
-                                    lappend program [list $i $inp $val NOP 0]
-                                }
-                            }
-                            INC - DEC - CLR {
-                                foreach inp [my get A] {
-                                    lappend program [list $i $inp $next $op 0]
-                                }
-                            }
-                            NOP {
-                                foreach inp [my get A] {
-                                    lappend program [list $i $inp $next NOP 0]
-                                }
-                            }
-                            default {
-                                error \$op=$op
-                            }
-                        }
-                    } else {
+            set val 0
+            switch $token {
+                INC - DEC -
+                NOP { set op $token }
+                EQ - eq   { set op EQ }
+                EQL - ==  { set op EQL }
+                ADD - +   { set op ADD }
+                MUL - *   { set op MUL }
+                default {
+                    if {[string is entier -strict $token]} {
+                        set op PUSH
+                        set val [expr {$token}]
+                    } elseif {![regexp {([[:upper:]]+:)(.*)$} $token -> op val]} {
                         error \$token=$token
                     }
                 }
             }
+            lappend program {*}[lmap a [my get A] {my GenOp $i $a $op $val}]
             incr i
         }
-        set next [expr {$i + 1}]
-        foreach inp [my get A] {
-            lappend program [list $i $inp $next NOP 0]
-        }
+        lappend program {*}[lmap a [my get A] {my GenOp $i $a NOP 0}]
         my add F $i
         # fix jumps
         for {set i 0} {$i < [llength $program]} {incr i} {

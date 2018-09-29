@@ -22,8 +22,8 @@ is set by compiling a program.  The tape uses a binary symbol set
             N   {list $i $j [incr i]                    N N} {no operation}
             H   {list $i $j END_OF_CODE                 N N} {halt}
             J:  {list $i $j $a                          N N} {jump unconditionally to address *a*}
-            J0: {list $i $j [if {!$j} {set a} {incr i}] N N} {jump on ([*input*] = 0) to address *a*}
-            J1: {list $i $j [if {$j} {set a} {incr i}]  N N} {jump on ([*input*] = 1) to address *a*}
+            J0: {list $i $j [if {!$j} {set a} {incr i}] N N} {jump on (<i>input</i> = 0) to address *a*}
+            J1: {list $i $j [if {$j} {set a} {incr i}]  N N} {jump on (<i>input</i> = 1) to address *a*}
         }
         my installRunMethod {
             tape {} {a list of initial tape symbols}

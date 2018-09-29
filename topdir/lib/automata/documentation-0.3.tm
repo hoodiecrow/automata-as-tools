@@ -94,6 +94,9 @@ oo::class create ::automata::Documentation {
         set actions [list]
         foreach {op fn desc} $ops {
             lappend lang $op [join [lsort -unique [regexp -all -inline {\*\w\*} $desc]] ,] $desc
+            if {$op eq "<number>"} {
+                set op PUSH
+            }
             if {$op in [list {*}$instructionSet NOP]} {
                 lappend actions $op [format {
                     lassign $regs a b c
@@ -101,7 +104,11 @@ oo::class create ::automata::Documentation {
                 } $fn]
             }
         }
+        if {![dict exists $actions PUSH]} {
+            lappend actions PUSH {}
+        }
         lappend actions default {error [info level 0]}
+        log::log d \$actions=$actions 
         my add doc language $lang
         oo::objdefine [self] method GenOp {i j op regs} [format {
             switch $op {%s}

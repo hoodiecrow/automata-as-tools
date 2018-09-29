@@ -347,7 +347,7 @@ oo::class create ::automata::Machine {
                 DUP {
                     set s [linsert $s 0 $TOP]
                 }
-                eq - == - + - * {
+                EQ - EQL - ADD - MUL {
                     set v [my ALU $op $s 0 1]
                     set s [lreplace $s 0 1 $v]
                 }
