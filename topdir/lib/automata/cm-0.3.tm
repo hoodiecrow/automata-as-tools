@@ -16,10 +16,10 @@ oo::class create ::automata::CM {
             set args [lassign $args - is]
         }
         set instructionSet [dict get {
-            1 {INC DEC JZ}
-            2 {CLR INC JE}
-            3 {INC CPY JE}
-            4 {INC DEC CLR CPY J JZ}
+            1 {INC: DEC: JZ:}
+            2 {CLR: INC: JE:}
+            3 {INC: CPY: JE:}
+            4 {INC: DEC: CLR: CPY: J: JZ:}
         } $is]
         my add doc preamble {
 A Counter Machine is the simplest form of Register Machine.
@@ -35,15 +35,15 @@ Specify which actual instruction set to use when instantiating machine.
 * `-instructionset 3` : (INC, CPY, JE), (Elgot-Robinson (1964), Minsky (1967))
 * `-instructionset 4` : (INC, DEC, CLR, CPY, J, JZ) (default: Shepherdson and Sturgis (1963))
         }
-        my add doc language {
-            JZ  r,a   {jump on ([r] = 0) to address *a*}
-            JZ  i,j,a {jump on ([i] = [j]) to address *a*}
-            J   a     {jump unconditionally to address *a*}
-            INC r     {increment value in register r}
-            DEC r     {decrement value in register r}
-            CLR r     {set value in register r to 0}
-            CPY i,j   {copy [i] -> j}
-            NOP {}    {no operation}
+        my installOperations $instructionSet {
+            JZ:  {list $i $j [if {$j} {set b} {incr i}] NOP [list 0 $a]}  {jump on ([*a*] = 0) to address *b*}
+            JE:  {list $i $j [if {$j} {set c} {incr i}] NOP [list $a $b]} {jump on ([*a*] = [*b*]) to address *c*}
+            J:   {list $i $j $a                         NOP {}}           {jump unconditionally to address *a*}
+            INC: {list $i $j [incr i]                   INC [list $a]}    {set *a* <- [*a*] + 1}
+            DEC: {list $i $j [incr i]                   DEC [list $a]}    {set *a* <- [*a*] - 1}
+            CLR: {list $i $j [incr i]                   CLR [list $a]}    {set *a* <- 0}
+            CPY: {list $i $j [incr i]                   CPY [list $a]}    {copy *a* <- [*b*]}
+            NOP  {list $i $j [incr i]                   NOP {}}           {no operation}
         }
         my installRunMethod {
             registers {} {a list of initial register cells}
@@ -76,46 +76,16 @@ Specify which actual instruction set to use when instantiating machine.
                 dict set jumps [string trimright $token :] $i
                 continue
             }
-            regexp {([[:upper:]]+):?([,\d]*),?([-+]?\d+|\w*)$} $token -> op regs offset
-            if {$offset eq {}} {
-                set offset 0
+            if {![regexp {([[:upper:]]+:)(.+)$} $token -> op regs]} {
+                if {$token eq "NOP"} {
+                    set op $token
+                    set regs {}
+                } else {
+                    return -code error [format {malformed token "%s"} $token]
+                }
             }
-            set next [expr {$i + 1}]
             set regs [list {*}[string map {, { }} $regs]]
-            #: The basic instruction set is INC, DEC, CLR, CPY, J, JZ, JE.
-            #: The no operation instruction, NOP, is added to all sets to have something to jump to when jumping to end.
-            if {$op ne "NOP" && $op ni $instructionSet} {
-                return -code error [format {illegal instruction opcode "%s"} $op]
-            }
-            switch $op {
-                INC - DEC - CLR - CPY {
-                    foreach inp [my get B] {
-                        lappend program [list $i $inp $next $op [linsert $regs 0 0]]
-                    }
-                }
-                J {
-                    foreach inp [my get B] {
-                        lappend program [list $i $inp $offset NOP {0 0}]
-                    }
-                }
-                JZ {
-                    lappend program [list $i 0 $next NOP [linsert $regs 0 0]]
-                    lappend program [list $i 1 $offset NOP [linsert $regs 0 0]]
-                }
-                JE { # JE not in Shepherdson and Sturgis
-                    lappend program [list $i 0 $next NOP $regs]
-                    lappend program [list $i 1 $offset NOP $regs]
-                }
-                NOP {
-                    # not in Shepherdson and Sturgis
-                    foreach inp [my get B] {
-                        lappend program [list $i $inp $next NOP {0 0}]
-                    }
-                }
-                default {
-                    return -code error [format {invalid operation "%s"} $op]
-                }
-            }
+            lappend program {*}[lmap b [my get B] {my GenOp $i $b $op $regs}]
             incr i
         }
         my add S [lindex $jumps 1]

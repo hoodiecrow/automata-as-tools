@@ -79,12 +79,6 @@ oo::class create ::automata::Documentation {
                 my add doc argument $name $desc
             }
         }
-        if no {
-            error [format {
-                set _args [lassign $args arg]
-                switch $arg {%s}
-            } $options]
-        }
         if {[llength $options] > 0} {
             oo::objdefine [self] method run args [format {
                 set _args [lassign $args arg]
@@ -93,6 +87,25 @@ oo::class create ::automata::Documentation {
         } else {
             oo::objdefine [self] forward run my Run
         }
+    }
+
+    method installOperations {instructionSet ops} {
+        set lang [list]
+        set actions [list]
+        foreach {op fn desc} $ops {
+            lappend lang $op [join [lsort -unique [regexp -all -inline {\*\w\*} $desc]] ,] $desc
+            if {$op in [list {*}$instructionSet NOP]} {
+                lappend actions $op [format {
+                    lassign $regs a b c
+                    apply {{i j a b c} {%s}} $i $j $a $b $c
+                } $fn]
+            }
+        }
+        lappend actions default {error [info level 0]}
+        my add doc language $lang
+        oo::objdefine [self] method GenOp {i j op regs} [format {
+            switch $op {%s}
+        } $actions]
     }
 
     method doc fn {

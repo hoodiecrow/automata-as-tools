@@ -279,13 +279,11 @@ oo::class create ::automata::Machine {
                 return
             }
             # get move
-            lassign [lindex [my get table $i *] 0] - - - - regs
-            lassign $regs r_ r0
-            set f [expr {[lindex $r $r_] == [lindex $r $r0]}]
-            log::log d "\$r_=$r_, \$r0=$r0, \$f=$f"
-            lassign [lindex [my get table $i $f] 0] - - i1 op regs
-            lassign $regs - r0 r1 r2
-            log::log d "[my get table $i $f]: \$i1=$i1 "
+            set tuples [my get table $i *]
+            lassign [lindex $tuples 0] - - - op regs
+            lassign $regs r0 r1 r2
+            set f [expr {[lindex $r $r0] == [lindex $r $r1]}]
+            lassign [lsearch -inline -index 1 $tuples $f] - - i1
             switch $op {
                 INC { lset r $r0 [expr {[lindex $r $r0] + 1}] }
                 DEC { lset r $r0 [expr {[lindex $r $r0] - 1}] }
