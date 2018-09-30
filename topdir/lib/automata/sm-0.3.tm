@@ -19,15 +19,15 @@ A simple sort of virtual Stack Machine.
             EQ       {list $i $j [incr i] EQ   0}  {<i>ToS<sub>0,1</sub></i> ← [<i>ToS<sub>0</sub></i>] eq [<i>ToS<sub>1</sub></i>]}
             EQL      {list $i $j [incr i] EQL  0}  {<i>ToS<sub>0,1</sub></i> ← [<i>ToS<sub>0</sub></i>] == [<i>ToS<sub>1</sub></i>]}
             ADD      {list $i $j [incr i] ADD  0}  {<i>ToS<sub>0,1</sub></i> ← [<i>ToS<sub>0</sub></i>] + [<i>ToS<sub>1</sub></i>]}
-            MUL      {list $i $j [incr i] MUL  0}  {<i>ToS<sub>0,1</sub></i> ← [<i>ToS<sub>0</sub></i>] \\* [<i>ToS<sub>1</sub></i>]}
+            MUL      {list $i $j [incr i] MUL  0}  {<i>ToS<sub>0,1</sub></i> ← [<i>ToS<sub>0</sub></i>] * [<i>ToS<sub>1</sub></i>]}
             eq       {list $i $j [incr i] EQ   0}  {<i>ToS<sub>0,1</sub></i> ← [<i>ToS<sub>0</sub></i>] eq [<i>ToS<sub>1</sub></i>]}
             ==       {list $i $j [incr i] EQL  0}  {<i>ToS<sub>0,1</sub></i> ← [<i>ToS<sub>0</sub></i>] == [<i>ToS<sub>1</sub></i>]}
             +        {list $i $j [incr i] ADD  0}  {<i>ToS<sub>0,1</sub></i> ← [<i>ToS<sub>0</sub></i>] + [<i>ToS<sub>1</sub></i>]}
-            *        {list $i $j [incr i] MUL  0}  {<i>ToS<sub>0,1</sub></i> ← [<i>ToS<sub>0</sub></i>] \\* [<i>ToS<sub>1</sub></i>]}
+            *        {list $i $j [incr i] MUL  0}  {<i>ToS<sub>0,1</sub></i> ← [<i>ToS<sub>0</sub></i>] * [<i>ToS<sub>1</sub></i>]}
             NOP      {list $i $j [incr i] NOP  0}  {no operation}
             J:       {list $i $j $a       NOP  0}  {jump unconditionally to address *a*}
             JZ:      {list $i $j [if {!$j} {set a} {incr i}] NOP  0} {jump on (<i>ToS</i> = 0) to address *a*}
-            <number> {list $i $j [incr i] PUSH $a} {<i>ToS</i> ← <i>a</i>}
+            <number> {list $i $j [incr i] PUSH $a} {<i>ToS</i> ← <i>number</i>}
         }
         my installRunMethod {
             stack {} {a list of initial stack symbols}
