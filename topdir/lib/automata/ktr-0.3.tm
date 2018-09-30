@@ -29,18 +29,18 @@ Test numbers:
 | 17     | any-beepers-in-beeper-bag |
 | 18     | no-beepers-in-beeper-bag  |
         }
-        my add doc language {
-            turnoff    {} {shut down the robot (and end the program)}
-            turnleft   {} {turn the robot left}
-            move       {} {move the robot forward}
-            pickbeeper {} {pick up a beeper (does nothing)}
-            putbeeper  {} {place a beeper (does nothing)}
-            RET        {} {return from a subroutine}
-            TEST       label  {perform test *label*}
-            JUMPZ      a  {jump on (test state =) zero to address *a*}
-            JUMP       a  {jump unconditionally to address *a*}
-            GOSUB      a  {jump to subroutine at address *a*}
-            NOP        {} {no operation}
+        my installOperations {turnoff turnleft move pickbeeper putbeeper RET TEST: JUMPZ: JUMP: GOSUB:} {
+            turnoff    {list $i $j END_OF_CODE                N 0 NOP   0 } {shut down the robot (and end the program)}
+            turnleft   {list $i $j [incr i]                   L 0 NOP   0 } {turn the robot left}
+            move       {list $i $j [incr i]                   N 1 NOP   0 } {move the robot forward}
+            pickbeeper {list $i $j [incr i]                   N 0 TAKE  0 } {pick up a beeper (does nothing)}
+            putbeeper  {list $i $j [incr i]                   N 0 DROP  0 } {place a beeper (does nothing)}
+            RET        {list $i $j [incr i]                   N 0 RET   0 } {return from a subroutine}
+            TEST:      {list $i $j [incr i]                   N 0 TEST  $a} {perform test *a*}
+            JUMPZ:     {list $i $j [if {$j} {set a} {incr i}] N 0 NOP   0 } {jump on (test flag =) zero to address *a*}
+            JUMP:      {list $i $j $a                         N 0 NOP   0 } {jump unconditionally to address *a*}
+            GOSUB:     {list $i $j $a                         N 0 GOSUB 0 } {jump to subroutine at address *a*}
+            NOP        {list $i $j [incr i]                   N 0 NOP   0 } {no operation}
         }
         my installRunMethod {
             world   {} {a list of width, height values (integer)}
@@ -109,81 +109,22 @@ Test numbers:
                 dict set jumps [string trimright $token :] $i
                 continue
             }
-            set next [expr {$i + 1}]
-            switch $token {
-                turnoff {
-                    my add F $i
-                    foreach inp [my get A] {
-                        lappend program [list $i $inp $next N 0 NOP 0]
-                    }
-                }
-                turnleft {
-                    foreach inp [my get A] {
-                        lappend program [list $i $inp $next L 0 NOP 0]
-                    }
-                }
-                move {
-                    foreach inp [my get A] {
-                        lappend program [list $i $inp $next N 1 NOP 0]
-                    }
-                }
-                pickbeeper {
-                    foreach inp [my get A] {
-                        lappend program [list $i $inp $next N 0 TAKE 0]
-                    }
-                }
-                putbeeper {
-                    foreach inp [my get A] {
-                        lappend program [list $i $inp $next N 0 DROP 0]
-                    }
-                }
-                RET {
-                    foreach inp [my get A] {
-                        lappend program [list $i $inp $next N 0 $token 0]
-                    }
-                }
-                default {
-                    if {[regexp {([[:upper:]]+):?(.*)$} $token -> op label]} {
-                        if {$label eq {}} {
-                            set label 0
-                        }
-                        switch $op {
-                            TEST {
-                                set n [my GetTestNumber $label]
-                                foreach inp [my get A] {
-                                    lappend program [list $i $inp $next N 0 TEST $n]
-                                }
-                            }
-                            JUMPZ {
-                                lappend program [list $i 0 $next N 0 NOP 0]
-                                lappend program [list $i 1 $label N 0 NOP 0]
-                            }
-                            JUMP {
-                                foreach inp [my get A] {
-                                    lappend program [list $i $inp $label N 0 NOP 0]
-                                }
-                            }
-                            GOSUB {
-                                foreach inp [my get A] {
-                                    lappend program [list $i $inp $label N 0 $op 0]
-                                }
-                            }
-                            NOP {
-                                foreach inp [my get A] {
-                                    lappend program [list $i $inp $next N 0 NOP 0]
-                                }
-                            }
-                            default {
-                                return -code error [format {unknown operation "%s"} $op]
-                            }
-                        }
-                    } else {
-                        return -code error [format {syntax error: "%s"} $token]
-                    }
-                }
+            if {$token eq "turnoff"} {
+                set op $token
+                set val 0
+                my add F $i
+            } elseif {$token in {turnleft move pickbeeper putbeeper RET NOP}} {
+                set op $token
+                set val 0
+            } elseif {[regexp {(TEST:)(.*)$} $token -> op label]} {
+                set val [my GetTestNumber $label]
+            } elseif {![regexp {([[:upper:]]+:)(.*)$} $token -> op val]} {
+                error \$token=$token
             }
+            lappend program {*}[lmap a [my get A] {my GenOp $i $a $op $val}]
             incr i
         }
+        dict set jumps END_OF_CODE $i
         my add S [lindex $jumps 1]
         my add F $i
         # fix jumps

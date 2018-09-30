@@ -93,8 +93,8 @@ q0    inp   q1    out
 11    1     12    N 1 NOP 0
 12    0     1     N 0 NOP 0
 12    1     1     N 0 NOP 0
-13    0     14    N 0 NOP 0
-13    1     14    N 0 NOP 0
+13    0     18    N 0 NOP 0
+13    1     18    N 0 NOP 0
 14    0     15    L 0 NOP 0
 14    1     15    L 0 NOP 0
 15    0     16    L 0 NOP 0
