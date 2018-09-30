@@ -1,0 +1,89 @@
+
+incr:a,b,c
+ CM  R/a: R/a + 1
+ KTR 
+ PTM T/H: T/H + 1
+ SM  S/T: S/T + 1
+
+list $i $j [incr i] INC [list $a] ;# should be list $i $j [incr i] NOP [incr a] 
+
+
+list $i $j [incr i] INC  0
+
+clear:a,b,c
+ CM  R/a: 0
+ KTR 
+ PTM T/H: 0
+ SM  S/T: 0
+
+copy:a,b,c
+ CM  R/a: R/b
+ KTR 
+ PTM 
+ SM  S/T: S/U
+
+dup:a,b,c
+ SM  push S/T
+
+eq:a,b,c
+ SM  
+ KTR 
+ PTM 
+ SM  V: pop S = pop S push V
+
+eql:a,b,c
+ SM  
+ KTR 
+ PTM 
+ SM  V: pop S == pop S push V
+
+add:a,b,c
+ SM  
+ KTR 
+ PTM 
+ SM  V: pop S + pop S push V
+
+mul:a,b,c
+ SM  
+ KTR 
+ PTM 
+ SM  V: pop S * pop S push V
+
+red: v: (take/last stack) * (take/last stack) append stack v
+
+jumpz:a,b,c
+ CM  either R/0 = R/a [IP: N][IP: b]
+ KTR either 0 = Tflag [IP: N][IP: a]
+ PTM either 0 = T/H   [IP: N][IP: a]
+ SM  either 0 = S/T   [IP: N][IP: a]
+
+$j would be the input symbol/flag, selected by equality with {0 == ?}
+list $i $j [lindex [list [set b] [incr i]] $j]     NOP   ;# ? is $a
+list $i $j [lindex [list [set a] [incr i]] $j] N 0 NOP 0 ;# ? is $tflag
+list $i $j [lindex [list [set b] [incr i]] $j] N N       ;# ? is [lindex $regs $a]
+list $i $j [lindex [list [set a] [incr i]] $j]     NOP 0 ;# ? is [lindex $stack 0]
+
+jump1:a,b,c
+ CM  
+ KTR either 1 = Tflag [IP: N][IP: a]
+ PTM either 1 = T/H   [IP: N][IP: a]
+ SM  either 1 = S/T   [IP: N][IP: a]
+
+jumpe:a,b,c
+ CM  either R/a = R/b [IP: N][IP: c]
+ KTR 
+ PTM 
+ SM  either S/T = S/U [IP: N][IP: a]
+
+jump:a,b,c
+ CM  IP: a
+ KTR IP: a
+ PTM IP: a
+ SM  IP: a
+
+call:a,b,c
+ CM  
+ KTR push IS next IP: a
+ PTM 
+ SM  ??
+
