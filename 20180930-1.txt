@@ -1,3 +1,55 @@
+halt  00 Stop the program
+nop   01 No operation
+call  02 Go to subroutine
+ret   03 Return
+jz    10 Jump on zero
+j1    11 Jump on one
+je    12 Jump on equal
+j     13 Jump
+clear 20 set to 0
+store 21 store a number
+incr  22 increment
+decr  23 decrement
+copy  24 copy value from b to a
+test  30 facing-east
+test  31 facing-north
+test  32 facing-west
+test  33 facing-south
+test  34 front-is-clear
+test  35 left-is-clear
+test  36 right-is-clear
+test  37 next-to-a-beeper
+test  38 any-beepers-in-beeper-bag
+erase 40 erase
+print 41 print
+left  42 moves to the left
+right 43 moves to the right
+move  44 moves the robot one space forward
+turn  45 changes robot's facing cclockwards
+take  46 transfer a beeper from square to bag
+drop  47 transfer a beeper from bag to square
+upl   50 unary plus
+umn   51 unary minus
+bnot  52 bit. not
+lnot  53 log. not
+mul   62 multiplication
+div   63 division
+mod   64 modulo
+add   65 addition
+sub   66 subtraction
+lt    70 less than
+le    71 less than or equal to
+gt    72 greater than
+ge    73 greater than or equal to
+eq    74 string equality
+eql   75 num. equality
+neq   76 num. inequality
+band  80 bit. and
+bxor  81 bit. xor
+bor   82 bit. or
+land  90 log. and
+lxor  91 log. xor
+lor   92 log. or
 
 incr:a,b,c
  CM  R/a: R/a + 1
