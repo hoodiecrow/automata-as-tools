@@ -92,16 +92,13 @@ oo::class create ::automata::Documentation {
     method installOperations {instructionSet ops} {
         set lang [list]
         set actions [list]
-        foreach {op fn desc} $ops {
+        foreach {op o desc} $ops {
             lappend lang $op [join [lsort -unique [regexp -all -inline {\*\w\*} $desc]] ,] $desc
             if {$op eq "<number>"} {
                 set op PUSH
             }
             if {$op in [list {*}$instructionSet NOP]} {
-                lappend actions $op [format {
-                    lassign $regs a b c
-                    apply {{i j a b c} {%s}} $i $j $a $b $c
-                } $fn]
+                lappend actions $op [format {lindex {%s}} $o]
             }
         }
         if {![dict exists $actions PUSH]} {
@@ -110,7 +107,7 @@ oo::class create ::automata::Documentation {
         lappend actions default {error [info level 0]}
         log::log d \$actions=$actions 
         my add doc language $lang
-        oo::objdefine [self] method GenOp {i j op regs} [format {
+        oo::objdefine [self] method GenOp op [format {
             switch $op {%s}
         } $actions]
     }

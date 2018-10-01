@@ -36,30 +36,29 @@ Specify which actual instruction set to use when instantiating machine.
 * `-instructionset 4` : (INC, DEC, CLR, CPY, J, JZ) (default: Shepherdson and Sturgis (1963))
         }
         my installOperations $instructionSet {
-            JZ:  {list $i $j [if {$j} {set b} {incr i}] NOP [list 0 $a]}  {jump on ([*a*] = 0) to address *b*}
-            JE:  {list $i $j [if {$j} {set c} {incr i}] NOP [list $a $b]} {jump on ([*a*] = [*b*]) to address *c*}
-            J:   {list $i $j $a                         NOP {}}           {jump unconditionally to address *a*}
-            INC: {list $i $j [incr i]                   INC [list $a]}    {set *a* ← [*a*] + 1}
-            DEC: {list $i $j [incr i]                   DEC [list $a]}    {set *a* ← [*a*] - 1}
-            CLR: {list $i $j [incr i]                   CLR [list $a]}    {set *a* ← 0}
-            CPY: {list $i $j [incr i]                   CPY [list $a]}    {copy *a* ← [*b*]}
-            NOP  {list $i $j [incr i]                   NOP {}}           {no operation}
+            JZ:   {je  $a $b 0}  {Jump to address *a* on *b* = 0}
+            JE:   {je  $a $b $c} {Jump to address *a* on *b* = *c*}
+            J:    {je  $a 0 0}   {Jump to address *a*}
+            INC:  {inc $a}       {Increment *a*}
+            DEC:  {dec $a}       {Decrement *a*}
+            CLR:  {set $a 0}     {Set *a* to 0}
+            CPY:  {set $a $b}    {Set *a* to *b*}
+            NOP   nop            {No operation}
         }
         my installRunMethod {
             registers {} {a list of initial register cells}
             ?start? {} {initial state}
         }
-        my graded "Register values" A -domain N
-        my graded "Flag symbols"    B -domain B
+        my graded "Flag symbols"    A -domain B
+        my graded "Register values" B -domain N -hide
         my graded "Instructions"    Q -domain N
         my graded "Erase symbol"    E -scalar -default 0
         my graded "Program start"   S -scalar
         my graded "Program end"     F
-        my graded "Operator list"   O -enum {INC DEC CLR CPY NOP}
-        my graded "Register index"  R -domain N
-        my table -as {Q A Q O R*}
+        my graded "Operations"      O -hide
+        my table -as {Q A Q O*}
         my id {
-            r A* "registers"
+            r B* "registers"
             i Q  "instruction pointer"
         }
 
@@ -70,39 +69,43 @@ Specify which actual instruction set to use when instantiating machine.
         #:
         set i 0
         set jumps [dict create]
-        set program [list]
+        set program [dict create]
         foreach token $tokens {
             if {[string match *: $token]} {
                 dict set jumps [string trimright $token :] $i
                 continue
             }
-            if {![regexp {([[:upper:]]+:)(.+)$} $token -> op regs]} {
+            if {![regexp {([[:upper:]]+:)(.+)$} $token -> op idxs]} {
                 if {$token eq "NOP"} {
                     set op $token
-                    set regs {}
+                    set idxs [list]
                 } else {
-                    return -code error [format {malformed token "%s"} $token]
+                    return -code error [format {syntax error: %s} $token]
                 }
             }
-            set regs [list {*}[string map {, { }} $regs]]
-            lappend program {*}[lmap b [my get B] {my GenOp $i $b $op $regs}]
+            dict set program $i idxs [list {*}[string map {, { }} $idxs]]
+            dict set program $i op $op
             incr i
         }
         my add S [lindex $jumps 1]
         my add F $i
+        log::log d \$jumps=$jumps 
         log::log d \$program=$program 
         # fix jumps
-        for {set i 0} {$i < [llength $program]} {incr i} {
-            lassign [lindex $program $i] q0 - q1
-            if {[regexp {^[-+]\d+$} $q1]} {
-                lset program $i 2 [expr $q0$q1]
-            } elseif {[dict exists $jumps $q1]} {
-                lset program $i 2 [dict get $jumps $q1]
+        for {set n 0} {$n < $i} {incr n} {
+            dict with program $n {
+                lassign $idxs a b c
+                log::log d \$idxs=$idxs 
+                if {[regexp {^[-+]\d+$} $a]} {
+                    set a [expr $n$a]
+                } elseif {[dict exists $jumps $a]} {
+                    set a [dict get $jumps $a]
+                }
+                set o [subst [my GenOp $op]]
+                foreach inp [my get A] {
+                    my add table $n $inp [if {$inp && [llength $idxs] > 0} {set a} {expr {$n + 1}}] $o
+                }
             }
-        }
-        # store program
-        foreach line $program {
-            my add table {*}$line
         }
     }
 

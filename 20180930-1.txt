@@ -1,101 +1,134 @@
-halt  00 Stop the program
-nop   01 No operation
-call  02 Go to subroutine
-ret   03 Return
-jz    10 Jump on zero
-j1    11 Jump on one
-je    12 Jump on equal
-j     13 Jump
-clear 20 set to 0
-store 21 store a number
-incr  22 increment
-decr  23 decrement
-copy  24 copy value from b to a
-test  30 facing-east
-test  31 facing-north
-test  32 facing-west
-test  33 facing-south
-test  34 front-is-clear
-test  35 left-is-clear
-test  36 right-is-clear
-test  37 next-to-a-beeper
-test  38 any-beepers-in-beeper-bag
-erase 40 erase
-print 41 print
-left  42 moves to the left
-right 43 moves to the right
-move  44 moves the robot one space forward
-turn  45 changes robot's facing cclockwards
-take  46 transfer a beeper from square to bag
-drop  47 transfer a beeper from bag to square
-upl   50 unary plus
-umn   51 unary minus
-bnot  52 bit. not
-lnot  53 log. not
-mul   62 multiplication
-div   63 division
-mod   64 modulo
-add   65 addition
-sub   66 subtraction
-lt    70 less than
-le    71 less than or equal to
-gt    72 greater than
-ge    73 greater than or equal to
-eq    74 string equality
-eql   75 num. equality
-neq   76 num. inequality
-band  80 bit. and
-bxor  81 bit. xor
-bor   82 bit. or
-land  90 log. and
-lxor  91 log. xor
-lor   92 log. or
+      O              description
+JZ:   {je   $a $b 0}  {Jump to address *a* on *b* = 0}
+J1:   {je   $a $b 1}  {Jump to address *a* on *b* = 1, only works if value is direct}
+JE:   {je   $a $b $c} {Jump to address *a* on *b* = *c*}
+JT:   {jt   $a}       {Jump to address *a* on <i>test</i> = 0}
+J:    {je   $a 0 0}   {Jump to address *a*}
+CALL: {call $a $m}    {Call to address *a*, sets flag}
+RET   ret             {Return to previous address, sets flag}
+HALT  halt            {Stop the program}
+NOP   nop             {No operation}
+MOVE  move            {Moves the robot one space forward}
+TURN  turn            {Changes robot's facing counter-clockwards}
+TEST: {test $d $e}    {Test}
+TEST: {test 0 0}      {Test facing-east}
+TEST: {test 0 1}      {Test facing-north}
+TEST: {test 0 2}      {Test facing-west}
+TEST: {test 0 3}      {Test facing-south}
+TEST: {test 1 0}      {Test not-facing-east}
+TEST: {test 1 1}      {Test not-facing-north}
+TEST: {test 1 2}      {Test not-facing-west}
+TEST: {test 1 3}      {Test not-facing-south}
+TEST: {test 2 0}      {Test front-is-clear}
+TEST: {test 2 1}      {Test front-is-blocked}
+TEST: {test 3 0}      {Test left-is-clear}
+TEST: {test 3 1}      {Test left-is-blocked}
+TEST: {test 4 0}      {Test right-is-clear}
+TEST: {test 4 1}      {Test right-is-blocked}
+TEST: {test 5 0}      {Test next-to-a-beeper}
+TEST: {test 6 0}      {Test not-next-to-a-beeper}
+TEST: {test 7 0}      {Test any-beepers-in-beeper-bag}
+TEST: {test 8 0}      {Test no-beepers-in-beeper-bag}
+TAKE  take            {Transfer a beeper from square to bag (does nothing)}
+DROP  drop            {Transfer a beeper from bag to square (does nothing)}
+erase 0       {tape 0 0}          {Erase (print symbol #0)}
+print 0       {tape 0 1}          {Print (print symbol #1)}
+left  0       {tape 1 0}          {Moves to the left}
+right 0       {tape 1 1}          {Moves to the right}
+CLR:  {set $a 0}     {Set *a* to 0}
+clear 0       {store $a 0}        {Set to 0}
+store 0       {store $a $b}       {Store a number}
+INC:  {inc $a}       {Increment *a*}
+incr  0       {store $a $a + 1}   {Increment}
+DEC:  {dec $a}       {Decrement *a*}
+decr  0       {store $a $a - 1}   {Decrement}
+CPY:  {set $a $b}    {Set *a* to *b*}
+copy  0       {store $a $b}       {Copy value from b to a}
+upl   0       {store $a $a + 0}   {Unary plus}
+umn   0       {store $a 0 - $a}   {Unary minus}
+bnot  0       {store $a ~ $a}     {Bit. not}
+lnot  0       {store $a ! $a}     {Log. not}
+mul   0       {store $a $b * $c}  {Multiplication}
+div   0       {store $a $b / $c}  {Division}
+mod   0       {store $a $b % $c}  {Modulo}
+add   0       {store $a $b + $c}  {Addition}
+sub   0       {store $a $b - $c}  {Subtraction}
+lt    0       {store $a $b < $c}  {Less than}
+le    0       {store $a $b <= $c} {Less than or equal to}
+gt    0       {store $a $b > $c}  {Greater than}
+ge    0       {store $a $b >= $c} {Greater than or equal to}
+eq    0       {store $a $b eq $c} {String equality}
+eql   0       {store $a $b == $c} {Num. equality}
+neq   0       {store $a $b != $c} {Num. inequality}
+band  0       {store $a $b & $c}  {Bit. and}
+bxor  0       {store $a $b ^ $c}  {Bit. xor}
+bor   0       {store $a $b | $c}  {Bit. or}
+land  0       {store $a $b && $c} {Log. and}
+lor   0       {store $a $b || $c} {Log. or}
+
+acc, cmp, call, ret, halt, robot, tape, store
 
 incr:a,b,c
+ incr $a $a
+ $a $a ++
+ add [list $a $a +1]
  CM  R/a: R/a + 1
  KTR 
  PTM T/H: T/H + 1
  SM  S/T: S/T + 1
 
-list $i $j [incr i] INC [list $a] ;# should be list $i $j [incr i] NOP [incr a] 
-
-
-list $i $j [incr i] INC  0
-
 clear:a,b,c
+ add $a 0 0
+ $a 0 .
+ store [list $a 0]
  CM  R/a: 0
  KTR 
  PTM T/H: 0
  SM  S/T: 0
 
 copy:a,b,c
+ add $a $b 0
+ $a $b + 0
+ store [list $a $b]
  CM  R/a: R/b
  KTR 
  PTM 
  SM  S/T: S/U
 
 dup:a,b,c
+ push 0
+ $_ 0 + 0
+ push [list 0]
  SM  push S/T
 
 eq:a,b,c
+ eq $a $b $c
+ $a $b eq $c
+ eq [list $a $b $c]
  SM  
  KTR 
  PTM 
  SM  V: pop S = pop S push V
 
 eql:a,b,c
+ eql $a $b $c
+ eql [list $a $b $c]
  SM  
  KTR 
  PTM 
  SM  V: pop S == pop S push V
 
 add:a,b,c
+ add $a $b $c
+ add [list $a $b $c]
  SM  
  KTR 
  PTM 
  SM  V: pop S + pop S push V
 
 mul:a,b,c
+ mul $a $b $c
+ mul [list $a $b $c]
  SM  
  KTR 
  PTM 
@@ -104,6 +137,8 @@ mul:a,b,c
 red: v: (take/last stack) * (take/last stack) append stack v
 
 jumpz:a,b,c
+ je $a 0 $b
+ je [list $a 0 $b]
  CM  either R/0 = R/a [IP: N][IP: b]
  KTR either 0 = Tflag [IP: N][IP: a]
  PTM either 0 = T/H   [IP: N][IP: a]
@@ -116,26 +151,38 @@ list $i $j [lindex [list [set b] [incr i]] $j] N N       ;# ? is [lindex $regs $
 list $i $j [lindex [list [set a] [incr i]] $j]     NOP 0 ;# ? is [lindex $stack 0]
 
 jump1:a,b,c
+ je $a 1 $b
+ je [list $a 1 $b]
  CM  
  KTR either 1 = Tflag [IP: N][IP: a]
  PTM either 1 = T/H   [IP: N][IP: a]
  SM  either 1 = S/T   [IP: N][IP: a]
 
 jumpe:a,b,c
+ je $a $b $c
+ je [list $a $b $c]
  CM  either R/a = R/b [IP: N][IP: c]
  KTR 
  PTM 
  SM  either S/T = S/U [IP: N][IP: a]
 
 jump:a,b,c
+ je $a 0 0
+ je [list 0 0 $a]
  CM  IP: a
  KTR IP: a
  PTM IP: a
  SM  IP: a
 
 call:a,b,c
+ call $a
+ call [list 0 0 $a]
  CM  
  KTR push IS next IP: a
  PTM 
  SM  ??
+
+ret
+ ret
+ ret [list]
 

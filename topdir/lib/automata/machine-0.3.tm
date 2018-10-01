@@ -1,5 +1,35 @@
 namespace eval automata {}
 
+oo::class create ::automata::Ev {
+    variable data
+    constructor args {
+        log::log d [info level 0] 
+        lassign $args data
+    }
+    method number {a args} {set a}
+    method cmp {a b args} {
+        log::log d \$data=$data 
+        expr {[my val $a] eq [my val $b]}}
+    method acc {a0 a1 a2 idx args} {lindex $args $idx}
+    method call {a0 a1 a2 args} {
+        upvar 1 i i
+        set i [linsert $i 0 $a0]
+        return $a2
+    }
+    method ret args {
+        upvar 1 i i
+        set i [lassign $i a]
+        return $a
+    }
+    method halt args {return -level 2}
+    method robot {a0 a1 a2 a b args} {}
+    method tape {a0 a1 a2 a b args} {}
+    method store {a0 a1 a2 a b op c} {
+        my val: $a [expr [my val $b] $op [my val $c]]
+    }
+    method vals args {set data}
+}
+
 oo::class create ::automata::Machine {
 
     constructor args {
@@ -216,14 +246,14 @@ oo::class create ::automata::Machine {
 
     method Print {varName h p} {
         log::log d [info level 0] 
-        upvar 1 $varName t
+        upvar 1 $varName tape
         switch $p {
             N  {}
-            E  { lset t $h [lindex [my get A] 0] }
-            P  { lset t $h [lindex [my get A] 1] }
+            E  { lset tape $h [lindex [my get A] 0] }
+            P  { lset tape $h [lindex [my get A] 1] }
             default {
                 if {[regexp {^P(.)$} $p -> s]} {
-                    lset t $h $s
+                    lset tape $h $s
                 }
             }
         }
@@ -231,17 +261,17 @@ oo::class create ::automata::Machine {
     }
 
     method Move {varName1 varName2 dir} {
-        upvar 1 $varName1 t $varName2 h
+        upvar 1 $varName1 tape $varName2 h
         switch $dir {
             L {
                 incr h
-                if {$h >= [expr {[llength $t] - 1}]} {
-                    lappend t [lindex [my get A] 0]
+                if {$h >= [expr {[llength $tape] - 1}]} {
+                    lappend tape [lindex [my get A] 0]
                 }
             }
             R {
                 if {$h < 1} {
-                    set t [linsert $t 0 [lindex [my get A] 0]]
+                    set tape [linsert $tape 0 [lindex [my get A] 0]]
                 } else {
                     incr h -1
                 }
@@ -257,6 +287,41 @@ oo::class create ::automata::Machine {
             if {[my in F $q]} {
                 return
             }
+            # should always be 0 or 1 tuples
+            if no {
+                set tuples [my get table $q [lindex $t $h]]
+                set ids [lmap tuple $tuples {
+                    lassign $tuple - - q1 O
+                    lassign $O tag a b c
+                    switch $tag {
+                        halt { return }
+                        turn { }
+                        default {
+                            ;
+                        }
+                    }
+                }]
+
+                if {$tag eq "je"} {
+                    set flag [expr [lindex $r $b] eq [lindex $r $c]]
+                } else {
+                    set flag 0
+                }
+                lassign [lindex $tuples $flag] - - i
+                # build new ID
+                switch $tag {
+                    halt { return }
+                    inc { lset r $a [expr {[lindex $r $a] + 1}] }
+                    dec { lset r $a [expr {[lindex $r $a] - 1}] }
+                    set { lset r $a [lindex $r $b] }
+                    nop {}
+                }
+                if {[lindex $r 0] ne 0} {
+                    return -code error [format {register 0 has been changed}]
+                }
+                set res [list [my add id $r $i]]
+            }
+
             set tuples [my get table $q [lindex $t $h]]
             # should always be 0 or 1 tuples
             set ids [lmap tuple $tuples {
@@ -267,12 +332,24 @@ oo::class create ::automata::Machine {
                 my Move t h $m
                 my add id $t $h $q1
             }]
+
         }
         return $ids
     }
 
+    method call {a0 a1 a2 args} {
+        upvar 1 i i
+        set i [linsert $i 0 $a0]
+        return $a2
+    }
+    method ret args {
+        upvar 1 i i
+        set i [lassign $i a]
+        return $a
+    }
+    method halt args {return -level 2}
+
     method ExecCounter id {
-        log::log d [info level 0] 
         # unpack ID
         dict with id {
             if {[my in F $i]} {
@@ -280,25 +357,28 @@ oo::class create ::automata::Machine {
             }
             # get move
             set tuples [my get table $i *]
-            lassign [lindex $tuples 0] - - - op regs
-            lassign $regs r0 r1 r2
-            set f [expr {[lindex $r $r0] == [lindex $r $r1]}]
-            lassign [lsearch -inline -index 1 $tuples $f] - - i1
-            switch $op {
-                INC { lset r $r0 [expr {[lindex $r $r0] + 1}] }
-                DEC { lset r $r0 [expr {[lindex $r $r0] - 1}] }
-                CLR { lset r $r0 0 }
-                CPY { lset r $r1 [lindex $r $r0] }
+            lassign [lindex $tuples 0] - - - O
+            lassign $O tag a b c
+            if {$tag eq "je"} {
+                set flag [expr [lindex $r $b] eq [lindex $r $c]]
+            } else {
+                set flag 0
             }
-            if {[lindex $r $r0] < 0} {
-                return -code error [format {negative value in register %d} $r0]
+            lassign [lindex $tuples $flag] - - i
+            # build new ID
+            switch $tag {
+                halt { return }
+                inc { lset r $a [expr {[lindex $r $a] + 1}] }
+                dec { lset r $a [expr {[lindex $r $a] - 1}] }
+                set { lset r $a [lindex $r $b] }
+                nop {}
             }
             if {[lindex $r 0] ne 0} {
                 return -code error [format {register 0 has been changed}]
             }
-            # build new ID
-            list [my add id $r $i1]
+            set res [list [my add id $r $i]]
         }
+        return $res
     }
 
     method ALU {op data args} {
@@ -407,40 +487,40 @@ oo::class create ::automata::Machine {
         return 0
     }
 
-    method Test {id index} {
+    method Test {id _a _b} {
         log::log d [info level 0] 
         dict with id {
-            switch [my GetTestLabel $index] {
-                front-is-clear {
+            switch [list $_a $_b] {
+                {2 0} {
                     expr {![my CheckCollision $w $h {*}[my Look $x $y $f] $a]}
                 }
-                front-is-blocked {
+                {2 1} {
                     my CheckCollision $w $h {*}[my Look $x $y $f] $a
                 }
-                left-is-clear {
+                {3 0} {
                     expr {![my CheckCollision $w $h {*}[my Look $x $y $f +1] $a]}
                 }
-                left-is-blocked {
+                {3 1} {
                     my CheckCollision $w $h {*}[my Look $x $y $f +1] $a
                 }
-                right-is-clear {
+                {4 0} {
                     expr {![my CheckCollision $w $h {*}[my Look $x $y $f -1] $a]}
                 }
-                right-is-blocked {
+                {4 1} {
                     my CheckCollision $w $h {*}[my Look $x $y $f -1] $a
                 }
-                next-to-a-beeper { my FindBeeper $x $y $b }
-                not-next-to-a-beeper { expr {![my FindBeeper $x $y $b]} }
-                facing-north { expr {$f eq 1} }
-                not-facing-north { expr {$f ne 1} }
-                facing-south { expr {$f eq 3} }
-                not-facing-south { expr {$f ne 3} }
-                facing-east { expr {$f eq 0} }
-                not-facing-east { expr {$f ne 0} }
-                facing-west { expr {$f eq 2} }
-                not-facing-west { expr {$f ne 2} }
-                any-beepers-in-beeper-bag { expr {$n > 0} }
-                no-beepers-in-beeper-bag { expr {$n < 1} }
+                {5 0} { my FindBeeper $x $y $b }
+                {6 0} { expr {![my FindBeeper $x $y $b]} }
+                {0 1} { expr {$f eq 1} }
+                {1 1} { expr {$f ne 1} }
+                {0 3} { expr {$f eq 3} }
+                {1 3} { expr {$f ne 3} }
+                {0 0} { expr {$f eq 0} }
+                {1 0} { expr {$f ne 0} }
+                {0 2} { expr {$f eq 2} }
+                {1 2} { expr {$f ne 2} }
+                {7 0} { expr {$n > 0} }
+                {8 0} { expr {$n < 1} }
             }
         }
     }
@@ -451,34 +531,33 @@ oo::class create ::automata::Machine {
         dict with id {
             # get move
             lassign $i q
-            log::log d [lindex [my get table $q $t] 0]
-            lassign [lindex [my get table $q $t] 0] - - i1 turn move op index
+            set tuples [my get table $q *]
+            lassign [lindex $tuples 0] - - - O
+            lassign $O tag _a _b _c
+            switch $tag {
+                je { set t [expr {$_b eq $_c}] }
+            }
+            lassign [lindex $tuples $t] - - i1
             set t 0
             lset i 0 $i1
-            log::log d \$i1=$i1 
-            log::log d \$i=$i 
-            if {$turn eq "L"} { my Turn f }
-            if {$move} { my RMove $w $h x y $f $a }
-            switch $op {
-                TAKE {}
-                DROP {}
-                TEST {
-                    set t [my Test $id $index]
-                    log::log d \$t=$t 
-                }
-                RET {
-                    set i [lrange $i 1 end]
-                }
-                GOSUB {
+            switch $tag {
+                halt { return }
+                turn { my Turn f}
+                move { my RMove $w $h x y $f $a }
+                take {}
+                drop {}
+                test { set t [my Test $id $_a $_b] }
+                ret  { set i [lrange $i 1 end] }
+                call {
                     lset i 0 [my succ Q $q]
-            log::log d \$i=$i 
                     set i [linsert $i 0 $i1]
-            log::log d \$i=$i 
                     set t 0
                 }
-                NOP {}
+                je   {}
+                jt   {}
+                nop  {}
                 default {
-                    error \$op=$op
+                    error \$tag=$tag
                 }
             }
         }

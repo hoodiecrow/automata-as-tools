@@ -17,12 +17,12 @@ test cm-1.0 {Implement a CPY operation} -setup {
     ::automata::CM create M
 } -body {
     M compile {
-        a:  JZ:2,b
+        a:  JZ:b,2
             DEC:2
             INC:3
             INC:1
             J:a
-        b:  JZ:1,z
+        b:  JZ:z,1
             DEC:1
             INC:2
             J:b
@@ -38,12 +38,12 @@ test cm-1.1 {print 1.0} -setup {
     ::automata::CM create M
 } -body {
     M compile {
-        a:  JZ:2,b
+        a:  JZ:b,2
             DEC:2
             INC:3
             INC:1
             J:a
-        b:  JZ:1,z
+        b:  JZ:z,1
             DEC:1
             INC:2
             J:b
@@ -53,106 +53,48 @@ test cm-1.1 {print 1.0} -setup {
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -output {Register values A = {0, 1}
-Flag symbols    B = {0, 1}
+} -output {Flag symbols    A = {0, 1}
 Instructions    Q = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 Erase symbol    E = 0
 Program start   S = 0
 Program end     F = {10}
-Operator list   O = {INC, DEC, CLR, CPY, NOP}
-Register index  R = {0, 1, 2, 3}
 Transitions
 q0    inp   q1    out
-0     0     1     NOP {0 2}
-0     1     5     NOP {0 2}
-1     0     2     DEC 2
-1     1     2     DEC 2
-2     0     3     INC 3
-2     1     3     INC 3
-3     0     4     INC 1
-3     1     4     INC 1
-4     0     0     NOP {}
-4     1     0     NOP {}
-5     0     6     NOP {0 1}
-5     1     9     NOP {0 1}
-6     0     7     DEC 1
-6     1     7     DEC 1
-7     0     8     INC 2
-7     1     8     INC 2
-8     0     5     NOP {}
-8     1     5     NOP {}
-9     0     10    NOP {}
-9     1     10    NOP {}
+0     0     1     {je 5 2 0}
+0     1     5     {je 5 2 0}
+1     0     2     {dec 2}
+1     1     2     {dec 2}
+2     0     3     {inc 3}
+2     1     3     {inc 3}
+3     0     4     {inc 1}
+3     1     1     {inc 1}
+4     0     5     {je 0 0 0}
+4     1     0     {je 0 0 0}
+5     0     6     {je 9 1 0}
+5     1     9     {je 9 1 0}
+6     0     7     {dec 1}
+6     1     1     {dec 1}
+7     0     8     {inc 2}
+7     1     2     {inc 2}
+8     0     9     {je 5 0 0}
+8     1     5     {je 5 0 0}
+9     0     10    nop
+9     1     10    nop
 }
 
-test cm-2.0 {Calculate r(2) + r(3) -> r(4)} -constraints CM_ALU -setup {
-    ::automata::CM create M
-} -body {
-    M compile {
-        a:  JZ:2,b
-            ADD:2,3,4
-            J:z
-        b:  JZ:3,z
-            CPY:3,4
-        z:  NOP
-    }
-    set res {}
-    lappend res [M run {0 0 2 5 0}]
-    lappend res [M run {0 0 0 5 0}]
-    lappend res [M run {0 0 0 0 0}]
-    set res
-} -cleanup {
-    M destroy
-    log::lvSuppressLE i 1
-} -result {{{0 0 2 5 7} 5 1} {{0 0 0 5 5} 5 1} {{0 0 0 0 0} 5 1}}
-
-test cm-2.1 {Print 2.0} -constraints CM_ALU -setup {
-    ::automata::CM create M
-} -body {
-    M compile {
-        a:  JZ:2,b
-            ADD:2,3,4
-            J:z
-        b:  JZ:3,z
-            CPY:3,4
-        z:  NOP
-    }
-    M print
-} -cleanup {
-    M destroy
-    log::lvSuppressLE i 1
-} -output {Flag symbols    A = {0, 1}
-Instructions    Q = {0, 1, 2, 3, 4, 5, 6}
-Program start   S = 0
-Transitions
-q0    inp   q1    out
-0     0     3     JZ 2 {}
-0     1     1     JZ 2 {}
-1     0     2     ADD 2 3 4
-1     1     2     ADD 2 3 4
-2     0     5     JZ 0 {}
-2     1     3     JZ 0 {}
-3     0     5     JZ 3 {}
-3     1     4     JZ 3 {}
-4     0     5     CPY 3 4
-4     1     5     CPY 3 4
-5     0     6     NOP
-5     1     6     NOP
-}
-
-test cm-3.0 {Implement a DEC operation using instruction set 2} -setup {
+test cm-2.0 {Implement a DEC operation using instruction set 2} -setup {
     ::automata::CM create M -instructionset 2
 } -body {
     M compile {
         _:  INC:1
-        a:  JE:2,3,b
+        a:  JE:b,2,3
             INC:3
-            JE:0,0,a
+            JE:a,0,0
         b:  CLR:2
-        c:  JE:1,3,z
+        c:  JE:z,1,3
             INC:1
             INC:2
-            JE:0,0,c
+            JE:c,0,0
         z:  NOP
     }
     # in a real program there would be cleanup

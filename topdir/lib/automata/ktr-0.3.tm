@@ -8,8 +8,6 @@ namespace eval automata {}
 oo::class create ::automata::KTR {
     mixin ::automata::Configuration ::automata::Machine
 
-    variable testlabels
-
     constructor args {
         my add doc preamble {
 This is a very limited Karel the Robot that can only walk around, not interact with beepers.
@@ -29,18 +27,18 @@ Test numbers:
 | 17     | any-beepers-in-beeper-bag |
 | 18     | no-beepers-in-beeper-bag  |
         }
-        my installOperations {turnoff turnleft move pickbeeper putbeeper RET TEST: JUMPZ: JUMP: GOSUB:} {
-            turnoff    {list $i $j END_OF_CODE                N 0 NOP   0 } {shut down the robot (and end the program)}
-            turnleft   {list $i $j [incr i]                   L 0 NOP   0 } {turn the robot left}
-            move       {list $i $j [incr i]                   N 1 NOP   0 } {move the robot forward}
-            pickbeeper {list $i $j [incr i]                   N 0 TAKE  0 } {pick up a beeper (does nothing)}
-            putbeeper  {list $i $j [incr i]                   N 0 DROP  0 } {place a beeper (does nothing)}
-            RET        {list $i $j [incr i]                   N 0 RET   0 } {return from a subroutine}
-            TEST:      {list $i $j [incr i]                   N 0 TEST  $a} {perform test *a*}
-            JUMPZ:     {list $i $j [if {$j} {set a} {incr i}] N 0 NOP   0 } {jump on (test flag =) zero to address *a*}
-            JUMP:      {list $i $j $a                         N 0 NOP   0 } {jump unconditionally to address *a*}
-            GOSUB:     {list $i $j $a                         N 0 GOSUB 0 } {jump to subroutine at address *a*}
-            NOP        {list $i $j [incr i]                   N 0 NOP   0 } {no operation}
+        my installOperations {HALT TURN MOVE DROP RET TEST: JT: J: CALL:} {
+            HALT  halt            {Stop the program}
+            TURN  turn            {Changes robot's facing counter-clockwards}
+            MOVE  move            {Moves the robot one space forward}
+            TAKE  take            {Transfer a beeper from square to bag (does nothing)}
+            DROP  drop            {Transfer a beeper from bag to square (does nothing)}
+            RET   ret             {Return to previous address, sets flag}
+            TEST: {test $d $e}    {Test}
+            JT:   {jt   $a}       {Jump to address *a* on <i>test</i> = 0}
+            J:    {je   $a 0 0}   {Jump to address *a*}
+            CALL: {call $a $m}    {Call to address *a*, sets flag}
+            NOP   nop             {No operation}
         }
         my installRunMethod {
             world   {} {a list of width, height values (integer)}
@@ -52,16 +50,11 @@ Test numbers:
         my graded "Flag symbols"    A -domain B
         my graded "Lengths/Amounts" B -domain N -hide
         my graded "Facing"          C -enum {0 1 2 3}
-        my graded "Turn symbols"    L -enum {L N} -hide
-        my graded "Move flag"       M -domain B -hide
         my graded "Instructions"    Q -domain N
         my graded "Program start"   S -scalar
         my graded "Program end"     F
-        my graded "Operator list"   O -enum {
-            TAKE DROP TEST RET GOSUB NOP
-        }
-        my graded "Test numbers"    T -domain N -hide
-        my table -as {Q A Q L M O B}
+        my graded "Operations"      O -hide
+        my table -as {Q A Q O*}
         my id {
             w B  "world width"
             h B  "world height"
@@ -73,27 +66,6 @@ Test numbers:
             t A  "test state"
             b B* "beeper coords"
             a B* "wall coords"
-        }
-        set testlabels {
-            {}
-            front-is-clear
-            front-is-blocked
-            left-is-clear
-            left-is-blocked
-            right-is-clear
-            right-is-blocked
-            next-to-a-beeper
-            not-next-to-a-beeper
-            facing-north
-            not-facing-north
-            facing-south
-            not-facing-south
-            facing-east
-            not-facing-east
-            facing-west
-            not-facing-west
-            any-beepers-in-beeper-bag
-            no-beepers-in-beeper-bag
         }
     }
 
@@ -109,45 +81,110 @@ Test numbers:
                 dict set jumps [string trimright $token :] $i
                 continue
             }
-            if {$token eq "turnoff"} {
-                set op $token
-                set val 0
-                my add F $i
-            } elseif {$token in {turnleft move pickbeeper putbeeper RET NOP}} {
-                set op $token
-                set val 0
-            } elseif {[regexp {(TEST:)(.*)$} $token -> op label]} {
-                set val [my GetTestNumber $label]
-            } elseif {![regexp {([[:upper:]]+:)(.*)$} $token -> op val]} {
-                error \$token=$token
+            if {[regexp {(\w+:?)(.*)} $token -> command label]} {
+                log::log d \$token=$token 
+                set a 0
+                set b 0
+                set c 0
+                switch $command {
+                    turnoff    { set op HALT }
+                    turnleft   { set op TURN }
+                    move       { set op MOVE }
+                    pickbeeper { set op TAKE }
+                    putbeeper  { set op DROP }
+                    RET        { set op RET }
+                    TEST:      {
+                        set op TEST:
+                        set e 0
+                        switch -regexp -matchvar m $label {
+                            {^facing-(\w+)}     { set d 0 }
+                            {^not-facing-(\w+)} { set d 1 }
+                            {^front-is-(\w+)}   { set d 2 }
+                            {^left-is-(\w+)}    { set d 3 }
+                            {^right-is-(\w+)}   { set d 4 }
+                            {^next-}            { set d 5 }
+                            {^not-next-}        { set d 6 }
+                            {^any-}             { set d 7 }
+                            {^no-}              { set d 8 }
+                            default {
+                                return -code error [format {syntax error: %s} $token]
+                            }
+                        }
+                        if {[llength $m] > 1} {
+                            switch [lindex $m 1] {
+                                east    { set e 0 }
+                                north   { set e 1 }
+                                west    { set e 2 }
+                                south   { set e 3 }
+                                clear   { set e 0 }
+                                blocked { set e 1 }
+                                default { set e 0 }
+                            }
+                        }
+                    }
+                    JUMPZ:     {
+                        set op JT:
+                        set a $label
+                    }
+                    JUMP:      {
+                        set op J:
+                        set a $label
+                    }
+                    CALL:      {
+                        set op CALL:
+                        set a $label
+                    }
+                    NOP        { set op NOP }
+                    default {
+                        return -code error [format {syntax error: %s} $token]
+                    }
+                }
+            } else {
+                return -code error [format {syntax error: %s} $token]
             }
-            lappend program {*}[lmap a [my get A] {my GenOp $i $a $op $val}]
+            dict set program $i idxs [list $a $b $c $d $e]
+            dict set program $i op $op
             incr i
         }
         dict set jumps END_OF_CODE $i
         my add S [lindex $jumps 1]
         my add F $i
+        log::log d \$jumps=$jumps 
         # fix jumps
-        for {set i 0} {$i < [llength $program]} {incr i} {
-            lassign [lindex $program $i] q0 - q1
-            if {[regexp {^[-+]\d+$} $q1]} {
-                lset program $i 2 [expr $q0$q1]
-            } elseif {[dict exists $jumps $q1]} {
-                lset program $i 2 [dict get $jumps $q1]
+        for {set n 1} {$n < $i} {incr n} {
+            dict with program $n {
+                lassign $idxs a b c d e
+                set m [expr {$n + 1}]
+                log::log d \$idxs=$idxs 
+                if {[regexp {^[-+]\d+$} $a]} {
+                    set a [expr $n$a]
+                } elseif {[dict exists $jumps $a]} {
+                    set a [dict get $jumps $a]
+                }
+                set _op [my GenOp $op]
+                log::log d \$_op=$_op 
+                switch -glob $_op {
+                    test* {
+                        set o [list test $d $e]
+                        set a $m
+                    }
+                    call* {
+                        set o [subst $_op]
+                        set m $a
+                    }
+                    turn - halt - ret - move {
+                        set o [subst $_op]
+                        set a $m
+                    }
+                    default {
+                        set o [subst $_op]
+                    }
+                }
+                foreach inp [my get A] {
+                    my add table $n $inp [if {$inp && [llength $idxs] > 0} {set a} {set m}] $o
+                }
             }
         }
-        # store program
-        foreach line $program {
-            my add table {*}$line
-        }
-    }
-
-    method GetTestNumber label {
-        lsearch $testlabels $label
-    }
-
-    method GetTestLabel index {
-        lindex $testlabels $index
     }
 
     method Run {world robot beepers walls {s {}}} {

@@ -223,9 +223,12 @@ oo::class create ::automata::Configuration {
     }
 
     method GetTable {q s} {
+        log::log d [info level 0] 
         dict with components table {
+            log::log d \$value=$value 
             set v [lsearch -all -inline -index 0 $value $q]
         }
+        log::log d \$v=$v 
         return [lsearch -all -inline -index 1 $v $s]
     }
 
@@ -253,7 +256,7 @@ oo::class create ::automata::Configuration {
             } else {
                 return -code error [format {can't add "%s" to %s} $syms $name]
             }
-        }
+                }
     }
 
     method AddGradedValue {name syms} {
@@ -265,12 +268,12 @@ oo::class create ::automata::Configuration {
                     set value $sym
                 }
             } else {
-                foreach sym $syms {
-                    if {$sym ne {}} {
-                        apply $insert $sym
-                        lappend value $sym
+                    foreach sym $syms {
+                        if {$sym ne {}} {
+                            apply $insert $sym
+                            lappend value $sym
+                        }
                     }
-                }
                 my Arrange value $sorted
             }
         }
@@ -278,6 +281,7 @@ oo::class create ::automata::Configuration {
 
 
     method FitsGraded {name varName args} {
+        log::log d [info level 0] 
         upvar 1 $varName syms
         set syms [list]
         dict with components $name {
@@ -312,6 +316,7 @@ oo::class create ::automata::Configuration {
                     return 0
                 }
                 set sym [apply $epsilon $sym]
+                log::log d \$sym=$sym 
                 lappend syms $sym
             }
         }
