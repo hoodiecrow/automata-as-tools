@@ -1,35 +1,5 @@
 namespace eval automata {}
 
-oo::class create ::automata::Ev {
-    variable data
-    constructor args {
-        log::log d [info level 0] 
-        lassign $args data
-    }
-    method number {a args} {set a}
-    method cmp {a b args} {
-        log::log d \$data=$data 
-        expr {[my val $a] eq [my val $b]}}
-    method acc {a0 a1 a2 idx args} {lindex $args $idx}
-    method call {a0 a1 a2 args} {
-        upvar 1 i i
-        set i [linsert $i 0 $a0]
-        return $a2
-    }
-    method ret args {
-        upvar 1 i i
-        set i [lassign $i a]
-        return $a
-    }
-    method halt args {return -level 2}
-    method robot {a0 a1 a2 a b args} {}
-    method tape {a0 a1 a2 a b args} {}
-    method store {a0 a1 a2 a b op c} {
-        my val: $a [expr [my val $b] $op [my val $c]]
-    }
-    method vals args {set data}
-}
-
 oo::class create ::automata::Machine {
 
     constructor args {
@@ -288,42 +258,7 @@ oo::class create ::automata::Machine {
                 return
             }
             # should always be 0 or 1 tuples
-            if no {
-                set tuples [my get table $q [lindex $t $h]]
-                set ids [lmap tuple $tuples {
-                    lassign $tuple - - q1 O
-                    lassign $O tag a b c
-                    switch $tag {
-                        halt { return }
-                        turn { }
-                        default {
-                            ;
-                        }
-                    }
-                }]
-
-                if {$tag eq "je"} {
-                    set flag [expr [lindex $r $b] eq [lindex $r $c]]
-                } else {
-                    set flag 0
-                }
-                lassign [lindex $tuples $flag] - - i
-                # build new ID
-                switch $tag {
-                    halt { return }
-                    inc { lset r $a [expr {[lindex $r $a] + 1}] }
-                    dec { lset r $a [expr {[lindex $r $a] - 1}] }
-                    set { lset r $a [lindex $r $b] }
-                    nop {}
-                }
-                if {[lindex $r 0] ne 0} {
-                    return -code error [format {register 0 has been changed}]
-                }
-                set res [list [my add id $r $i]]
-            }
-
             set tuples [my get table $q [lindex $t $h]]
-            # should always be 0 or 1 tuples
             set ids [lmap tuple $tuples {
                 log::log d \$tuple=$tuple 
                 lassign $tuple - - q1 p m
@@ -336,18 +271,6 @@ oo::class create ::automata::Machine {
         }
         return $ids
     }
-
-    method call {a0 a1 a2 args} {
-        upvar 1 i i
-        set i [linsert $i 0 $a0]
-        return $a2
-    }
-    method ret args {
-        upvar 1 i i
-        set i [lassign $i a]
-        return $a
-    }
-    method halt args {return -level 2}
 
     method ExecCounter id {
         # unpack ID

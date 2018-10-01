@@ -5,12 +5,6 @@ namespace import ::tcltest::*
 
 ::tcltest::loadTestedCommands
 
-cleanupTests ; return ; # ---------------------------------
-cleanupTests ; return ; # ---------------------------------
-cleanupTests ; return ; # ---------------------------------
-cleanupTests ; return ; # ---------------------------------
-cleanupTests ; return ; # ---------------------------------
-
 package require automata::btm
 
 set mc BTM
