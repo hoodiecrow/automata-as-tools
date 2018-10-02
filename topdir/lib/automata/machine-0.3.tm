@@ -7,7 +7,6 @@ oo::class create ::automata::Machine {
     }
 
     method search {id fn {steps {}}} {
-        log::log d [info level 0] 
         if {$steps ne {}} {
             if {$steps <= 0} {
                 return [list $id]
@@ -19,10 +18,8 @@ oo::class create ::automata::Machine {
         if {[llength $ids] eq 0} {
             return [list $id]
         }
-        log::log d \$ids=$ids 
         set ids [lsort -unique $ids]
         return [concat {*}[lmap id $ids {
-            log::log d search2
             my search $id $fn $steps
         }]]
     }
@@ -218,7 +215,6 @@ oo::class create ::automata::Machine {
     #: emits R for L and L for R.
 
     method Print {varName h p} {
-        log::log d [info level 0] 
         upvar 1 $varName tape
         switch $p {
             N  {}
@@ -255,7 +251,6 @@ oo::class create ::automata::Machine {
     }
 
     method PTM-exec id {
-        log::log d [info level 0] 
         # unpack ID
         dict with id {
             if {[my in F $q]} {
@@ -267,18 +262,14 @@ oo::class create ::automata::Machine {
                 return
             }
             set tuple [lindex $tuples 0]
-            log::log d \$tuple=$tuple 
             lassign $tuple - - q code
             lassign $code tag a b
-            log::log d \$t=$t,\ \$h=$h,\ \$q=$q
             switch $tag {
                 HALT  {
                     return
                 }
                 PRINT: {
-                    log::log d \$t=$t 
                     lset t $h [lindex [my get A] $a]
-                    log::log d \$t=$t 
                 }
                 ROLL: {
                     # PTM has reversed sense of movement
@@ -300,9 +291,7 @@ oo::class create ::automata::Machine {
             # should always be 0 or 1 tuples
             set tuples [my get table $q [lindex $t $h]]
             set ids [lmap tuple $tuples {
-                log::log d \$tuple=$tuple 
                 lassign $tuple - - q1 p m
-                log::log d \$p=$p 
                 my Print t $h $p
                 my Move t h $m
                 my add id $t $h $q1
@@ -327,10 +316,7 @@ oo::class create ::automata::Machine {
                     set flag 0
                 }
             }
-            log::log d \$i=$i 
-            log::log d "[my get table $i $flag]"
             lassign [lindex [my get table $i $flag] 0] - - i
-            log::log d \$i=$i 
             # build new ID
             switch $tag {
                 HALT { return }
@@ -373,29 +359,34 @@ oo::class create ::automata::Machine {
         return $res
     }
 
-    method ExecStack id {
-        log::log d [info level 0] 
+    method SM-exec id {
         # unpack ID
         dict with id {
             if {[my in F $i]} {
                 return
             }
+            lassign [lindex [my get table $i 0] 0] - - - code
+            lassign $code tag a b c d e f
             lassign $s TOP
+            if {$tag in {JE: JZ:}} {
+                set flag [expr {$TOP == 0}]
+            } else {
+                set flag 0
+            }
+            lassign [lindex [my get table $i $flag] 0] - - i
             # get move
-            set flag [expr {$TOP != 0}]
-            lassign [lindex [my get table $i $flag] 0] - - i1 op val
-            switch $op {
+            switch $tag {
                 PUSH {
-                    set s [linsert $s 0 $val]
+                    set s [linsert $s 0 $a]
                 }
                 INC - DEC - CLR {
-                    lset s 0 [my ALU $op $s 0]
+                    lset s 0 [my ALU $tag $s 0]
                 }
                 DUP {
                     set s [linsert $s 0 $TOP]
                 }
                 EQ - EQL - ADD - MUL {
-                    set v [my ALU $op $s 0 1]
+                    set v [my ALU $tag $s 0 1]
                     set s [lreplace $s 0 1 $v]
                 }
             }
@@ -403,12 +394,11 @@ oo::class create ::automata::Machine {
                 return -code error [format {negative value in top of stack}]
             }
             # build new ID
-            list [my add id $s $i1]
+            list [my add id $s $i]
         }
     }
 
     method Turn {varName {a 1}} {
-        log::log d [info level 0] 
         upvar 1 $varName f
         set f [expr {($f + $a + 4) % 4}]
     }
@@ -446,7 +436,6 @@ oo::class create ::automata::Machine {
     }
 
     method CheckCollision {w h x y a} {
-        log::log d [info level 0] 
         set _a [list 0 $y [expr {$w + 1}] $y $x 0 $x [expr {$h + 1}]]
         foreach {X Y} [concat $_a $a] {
             if {$X eq $x && $Y eq $y} {return 1}
@@ -455,7 +444,6 @@ oo::class create ::automata::Machine {
     }
 
     method Test {id idx} {
-        log::log d [info level 0] 
         dict with id {
             set label [lindex {
                 front-is-clear
@@ -489,7 +477,6 @@ oo::class create ::automata::Machine {
     }
 
     method KTR-exec id {
-        log::log d [info level 0] 
         # unpack ID
         dict with id {
             # get move
@@ -503,7 +490,6 @@ oo::class create ::automata::Machine {
                 set flag 0
             }
             set t 0
-            log::log d "tuple = [lindex [my get table $q $flag] 0]"
             lassign [lindex [my get table $q $flag] 0] - - q
             switch $tag {
                 HALT  {

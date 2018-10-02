@@ -206,6 +206,9 @@ oo::class create ::automata::Configuration {
             doc {
                 my GetDoc {*}$args
             }
+            operations {
+                my GetOps {*}$args
+            }
             default {
                 my GetGraded $what {*}$args
             }
@@ -223,12 +226,9 @@ oo::class create ::automata::Configuration {
     }
 
     method GetTable {q s} {
-        log::log d [info level 0] 
         dict with components table {
-            #log::log d \$value=$value 
             set v [lsearch -all -inline -index 0 $value $q]
         }
-        log::log d \$v=$v 
         return [lsearch -all -inline -index 1 $v $s]
     }
 
@@ -243,8 +243,149 @@ oo::class create ::automata::Configuration {
             doc {
                 my AddDoc {*}$args
             }
+            operation {
+                my AddOp {*}$args
+            }
             default {
                 my AddGraded $what {*}$args
+            }
+        }
+    }
+
+    method AddOp {varName token} {
+        upvar 2 $varName addr
+        variable program
+        variable jumps
+        if {![info exists jumps]} {
+            dict set jumps BEG_OF_CODE $addr
+        }
+        if {![regexp {(\w+:?)(.*)} $token -> cmd lbl]} {
+            return -code error [format {syntax error: %s} $token]
+        }
+        set lblargs [regexp -all -inline {[-+\w]+} $lbl]
+        if {[string match *: $cmd] && [llength $lblargs] eq 0} {
+            dict set jumps [string trimright $cmd :] $addr
+        } else {
+            dict set program $addr cmd $cmd
+            dict set program $addr lbl $lblargs
+            dict set jumps END_OF_CODE [incr addr]
+        }
+    }
+
+    method GetOps {} {
+        variable program
+        variable jumps
+        my add S [dict get $jumps BEG_OF_CODE]
+        my add F [dict get $jumps END_OF_CODE]
+        dict for {addr data} $program {
+            dict with data {
+                lassign $lbl a b c d e f
+                set next [expr {$addr + 1}]
+                if {[regexp {^[-+]\d+$} $a]} {
+                    set a [expr $addr$a]
+                } elseif {[dict exists $jumps $a]} {
+                    set a [dict get $jumps $a]
+                }
+                switch $cmd {
+                    JE: - JZ: {
+                        # JE has two valid args, JZ one
+                        set addresses [list $next $a]
+                        set code [list $cmd $b $c]
+                    }
+                    JT: {
+                        set addresses [list $next $a]
+                        set code NOP
+                    }
+                    JNE: - JNZ: {
+                        set addresses [list $a $next]
+                        set code [list J[string index $cmd end] $b $c]
+                    }
+                    JNT: {
+                        set addresses [list $a $next]
+                        set code NOP
+                    }
+                    J: {
+                        set addresses [list $a $a]
+                        set code NOP
+                    }
+                    CALL: {
+                        set addresses [list $a $a]
+                        set code $cmd
+                    }
+                    TEST: {
+                        set addresses [list $next $next]
+                        set code [list $cmd [lsearch -exact {
+                            front-is-clear
+                            left-is-clear
+                            right-is-clear
+                            next-to-a-beeper
+                            facing-north
+                            facing-south
+                            facing-east
+                            facing-west
+                            any-beepers-in-beeper-bag
+                        } $lbl]]
+                    }
+                    PRINT {
+                        set addresses [list $next $next]
+                        set code [list PRINT: 1]
+                    }
+                    ERASE {
+                        set addresses [list $next $next]
+                        set code [list PRINT: 0]
+                    }
+                    ROLL: {
+                        set addresses [list $next $next]
+                        set code [list ROLL: $a]
+                    }
+                    INC - DEC {
+                        set addresses [list $next $next]
+                        set code $cmd
+                    }
+                    INC: - DEC: - CLR: {
+                        set addresses [list $next $next]
+                        set code [list $cmd $a]
+                    }
+                    CPY: {
+                        set addresses [list $next $next]
+                        set code [list $cmd $a $b]
+                    }
+                    EQ {
+                        set addresses [list $next $next]
+                        set code EQ
+                    }
+                    EQL {
+                        set addresses [list $next $next]
+                        set code EQL
+                    }
+                    ADD {
+                        set addresses [list $next $next]
+                        set code ADD
+                    }
+                    MUL {
+                        set addresses [list $next $next]
+                        set code MUL
+                    }
+                    default {
+                        if {[string is entier -strict $cmd]} {
+                            set addresses [list $next $next]
+                            set code [list PUSH $cmd]
+                        } else {
+                            set addresses [list $next $next]
+                            set code $cmd
+                        }
+                    }
+                }
+                set code [lmap c $code {
+                    if {$c eq {}} {
+                        continue
+                    } else {
+                        set c
+                    }
+                }]
+                foreach inp [my get A] next $addresses {
+                    my add table $addr $inp $next $code
+                }
             }
         }
     }
@@ -281,7 +422,6 @@ oo::class create ::automata::Configuration {
 
 
     method FitsGraded {name varName args} {
-        log::log d [info level 0] 
         upvar 1 $varName syms
         set syms [list]
         dict with components $name {
@@ -316,7 +456,6 @@ oo::class create ::automata::Configuration {
                     return 0
                 }
                 set sym [apply $epsilon $sym]
-                log::log d \$sym=$sym 
                 lappend syms $sym
             }
         }

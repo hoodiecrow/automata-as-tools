@@ -12,7 +12,7 @@ oo::class create ::automata::SM {
         my add doc preamble {
 A simple sort of virtual Stack Machine.
         }
-        my installOperations {INC DEC CLR J: JZ: EQ EQL ADD MUL eq == + * PUSH NOP}
+        my installOperations {INC DEC CLR J: JZ: EQ EQL ADD MUL PUSH NOP}
         if no {
             INC      {list $i $j [incr i] INC  0}  {<i>ToS</i> ← [<i>ToS</i>] + 1}
             DEC      {list $i $j [incr i] DEC  0}  {<i>ToS</i> ← [<i>ToS</i>] - 1}
@@ -39,8 +39,8 @@ A simple sort of virtual Stack Machine.
         my graded "Instructions"  Q -domain N
         my graded "Program start" S -scalar
         my graded "End points"    F
-        my graded "Operators"     O -enum {PUSH INC DEC CLR NOP EQ EQL ADD MUL eq == + *}
-        my table -as {Q A Q O B}
+        my graded "Operators"     O -hide
+        my table -as {Q A Q O*}
         my id {
             s B* "current stack"
             i Q  "instruction pointer"
@@ -49,50 +49,13 @@ A simple sort of virtual Stack Machine.
 
     method compile tokens {
         #: Convert source code to transition configuration.
-        set i 0
-        set jumps [dict create]
-        set program [list]
+        #:
+        # address 0 is invalid
+        set firstAddr 1
         foreach token $tokens {
-            if {[string match *: $token]} {
-                dict set jumps [string trimright $token :] $i
-                continue
-            }
-            set val 0
-            switch $token {
-                INC - DEC -
-                NOP { set op $token }
-                EQ - eq   { set op EQ }
-                EQL - ==  { set op EQL }
-                ADD - +   { set op ADD }
-                MUL - *   { set op MUL }
-                default {
-                    if {[string is entier -strict $token]} {
-                        set op PUSH
-                        set val [expr {$token}]
-                    } elseif {![regexp {([[:upper:]]+:)(.*)$} $token -> op val]} {
-                        error \$token=$token
-                    }
-                }
-            }
-            lappend program {*}[lmap a [my get A] {my GenOp $i $a $op $val}]
-            incr i
+            my add operation firstAddr $token
         }
-        lappend program {*}[lmap a [my get A] {my GenOp $i $a NOP 0}]
-        my add F $i
-        # fix jumps
-        for {set i 0} {$i < [llength $program]} {incr i} {
-            lassign [lindex $program $i] q0 - q1
-            if {[regexp {^[-+]\d+$} $q1]} {
-                lset program $i 2 [expr $q0$q1]
-            } elseif {[dict exists $jumps $q1]} {
-                lset program $i 2 [dict get $jumps $q1]
-            }
-        }
-        # store program
-        foreach line $program {
-            my add table {*}$line
-        }
-        my add S [lindex [my get Q] 0]
+        my get operations
     }
 
     method Run {stack {s {}}} {
@@ -101,7 +64,7 @@ A simple sort of virtual Stack Machine.
             my set S $s
         }
         set id [my AddID $stack [my get S]]
-        set results [my search $id ExecStack]
+        set results [my search $id SM-exec]
         dict values [lindex $results 0]
     }
 
