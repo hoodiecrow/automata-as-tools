@@ -5,51 +5,34 @@ package require fileutil
 namespace eval automata {
 
     variable operations {
-        JE:    {je   $a $b $c}     {Jump to address *a* on *b* = *c*}
-        JNE:   {jne  $a $b $c}     {Jump to address *a* on *b* ≠ *c*}
-        JZ:    {jz   $a $b}        {Jump to address *a* on *b* = 0}
-        JNZ:   {jnz  $a $b}        {Jump to address *a* on *b* ≠ 0}
-        JT:    {jt   $a}           {Jump to address *a* on <i>test</i> = 0}
-        JNT:   {jnt  $a}           {Jump to address *a* on <i>test</i> ≠ 0}
-        J:     {j    $a}           {Jump to address *a*}
-        CALL:  {call $a $m}        {Call to address *a*, sets flag}
-        RET    ret                 {Return to previous address, sets flag}
-        HALT   halt                {Stop the program}
-        NOP    nop                 {No operation}
-        MOVE   move                {Moves the robot one space forward}
-        TURN   turn                {Changes robot's facing counter-clockwards}
-        TEST:  test               {Test by parameters *d* and *e*}
-        TAKE   take                {Transfer a beeper from square to bag (does nothing)}
-        DROP   drop                {Transfer a beeper from bag to square (does nothing)}
-        PRINT: {print $a}          {Print symbol # *a* on tape}
-        PRINT  print               {Print symbol # *a* on tape}
-        ROLL   {roll $a}           {Roll tape to the left (L) or right (R)}
-        CLR:   {set $a 0}          {Set *a* to 0}
-        store  {store $a $b}       {Store a number}
-        INC:   {inc $a}            {Increment *a*}
-        DEC:   {dec $a}            {Decrement *a*}
-        CPY:   {set $a $b}         {Set *a* to *b*}
-        upl    {store $a $a + 0}   {Unary plus}
-        umn    {store $a 0 - $a}   {Unary minus}
-        bnot   {store $a ~ $a}     {Bit. not}
-        lnot   {store $a ! $a}     {Log. not}
-        mul    {store $a $b * $c}  {Multiplication}
-        div    {store $a $b / $c}  {Division}
-        mod    {store $a $b % $c}  {Modulo}
-        add    {store $a $b + $c}  {Addition}
-        sub    {store $a $b - $c}  {Subtraction}
-        lt     {store $a $b < $c}  {Less than}
-        le     {store $a $b <= $c} {Less than or equal to}
-        gt     {store $a $b > $c}  {Greater than}
-        ge     {store $a $b >= $c} {Greater than or equal to}
-        eq     {store $a $b eq $c} {String equality}
-        eql    {store $a $b == $c} {Num. equality}
-        neq    {store $a $b != $c} {Num. inequality}
-        band   {store $a $b & $c}  {Bit. and}
-        bxor   {store $a $b ^ $c}  {Bit. xor}
-        bor    {store $a $b | $c}  {Bit. or}
-        land   {store $a $b && $c} {Log. and}
-        lor    {store $a $b || $c} {Log. or}
+        JE:    {Jump to address *a* on *b* = *c*}
+        JNE:   {Jump to address *a* on *b* ≠ *c*}
+        JZ:    {Jump to address *a* on *b* = 0}
+        JNZ:   {Jump to address *a* on *b* ≠ 0}
+        JT:    {Jump to address *a* on <i>test</i> = 0}
+        JNT:   {Jump to address *a* on <i>test</i> ≠ 0}
+        J:     {Jump to address *a*}
+        CALL:  {Call to address *a*}
+        RET    {Return to previous address}
+        HALT   {Stop the program}
+        NOP    {No operation}
+        MOVE   {Moves the robot one space forward}
+        TURN   {Changes robot's facing counter-clockwards}
+        TEST:  {Test some condition of the robot's world according to *label*}
+        TAKE   {Transfer a beeper from square to bag (does nothing)}
+        DROP   {Transfer a beeper from bag to square (does nothing)}
+        PRINT: {Print symbol # *a* on tape}
+        PRINT  {Print symbol #1 on tape}
+        ERASE  {Print symbol #0 on tape}
+        ROLL   {Roll tape to the left (L) or right (R)}
+        CLR:   {Set *a* to 0}
+        INC:   {Increment *a*}
+        DEC:   {Decrement *a*}
+        CPY:   {Set *a* to *b*}
+        EQ     {<i>ToS<sub>0,1</sub></i> ← [<i>ToS<sub>0</sub></i>] eq [<i>ToS<sub>1</sub></i>]}
+        EQL    {<i>ToS<sub>0,1</sub></i> ← [<i>ToS<sub>0</sub></i>] == [<i>ToS<sub>1</sub></i>]}
+        MUL    {<i>ToS<sub>0,1</sub></i> ← [<i>ToS<sub>0</sub></i>] * [<i>ToS<sub>1</sub></i>]}
+        ADD    {<i>ToS<sub>0,1</sub></i> ← [<i>ToS<sub>0</sub></i>] + [<i>ToS<sub>1</sub></i>]}
     }
 }
 
@@ -58,10 +41,10 @@ oo::class create ::automata::Documentation {
 
     method AddDoc {what args} {
         switch $what {
-            preamble - language {
+            preamble {
                 dict set doc $what [lindex $args 0]
             }
-            option - argument {
+            option - argument - language {
                 dict lappend doc $what $args
             }
             default {
@@ -79,11 +62,8 @@ oo::class create ::automata::Documentation {
             language {
                 append res "\n| Instruction | Arguments | Description |\n"
                 append res "| :--- | :---: | :--- |\n"
-                foreach {code arg desc} [dict get $doc $what] {
-                    append res [format "| `%s` | %s | %s |\n" \
-                        $code \
-                        $arg \
-                        $desc]
+                foreach operation [dict get $doc $what] {
+                    append res [format "| `%s` | %s | %s |\n" {*}$operation]
                 }
             }
             option {
@@ -141,26 +121,12 @@ oo::class create ::automata::Documentation {
     }
 
     method installOperations instructionSet {
-        set lang [list]
-        set actions [list]
-        foreach {op o desc} $::automata::operations {
-            lappend lang $op [join [lsort -unique [regexp -all -inline {\*\w\*} $desc]] ,] $desc
-            if {$op eq "<number>"} {
-                set op PUSH
-            }
+        foreach {op desc} $::automata::operations {
+            set parms [join [lsort -unique [regexp -all -inline {\*\w\*} $desc]] ,]
             if {$op in [list {*}$instructionSet NOP]} {
-                lappend actions $op [format {lindex {%s}} $o]
+                my add doc language $op $parms $desc
             }
         }
-        if {![dict exists $actions PUSH]} {
-            lappend actions PUSH {}
-        }
-        lappend actions default {error [info level 0]}
-        log::log d \$actions=$actions 
-        my add doc language $lang
-        oo::objdefine [self] method GenOp op [format {
-            switch $op {%s}
-        } $actions]
     }
 
     method doc fn {
@@ -245,15 +211,6 @@ oo::class create ::automata::Documentation {
         }
         if {[dict exists $doc language]} {
             append docstr "\n## Language\n"
-            if no {
-                append docstr "\n| :--- | :---: | :--- |\n"
-                foreach {code arg desc} [dict get $doc language] {
-                    append docstr [format "| `%s` | %s | %s |\n" \
-                    $code \
-                    $arg \
-                    $desc]
-                }
-            }
             append docstr [my get doc language]
         }
         append docstr "\n## Usage\n"
