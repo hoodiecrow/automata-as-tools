@@ -26,7 +26,7 @@ Test numbers:
 | 7  | facing-south         |
 | 8     | any-beepers-in-beeper |
         }
-        my installOperations {HALT TURN MOVE DROP RET TEST: JT: J: CALL:}
+        my installOperations {JT: J: HALT TURN MOVE TAKE DROP TEST: RET CALL:}
         my installRunMethod {
             world   {} {a list of width, height values (integer)}
             robot   {} {a list of x, y, n, f values (integer)}

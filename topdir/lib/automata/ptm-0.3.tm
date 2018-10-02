@@ -14,7 +14,7 @@ A Post-Turing Machine is essentially a TM. The transition matrix
 is set by compiling a program.  The tape uses a binary symbol set
 (here, 0, 1).
         }
-        my installOperations {PRINT ERASE ROLL NOP HALT J: JNT: JT:}
+        my installOperations {JZ: JNZ: J: PRINT ERASE ROLL: NOP HALT}
         my installRunMethod {
             tape {} {a list of initial tape symbols}
             ?head? {} {initial head position}

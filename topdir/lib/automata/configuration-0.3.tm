@@ -287,18 +287,20 @@ oo::class create ::automata::Configuration {
                     set a [dict get $jumps $a]
                 }
                 switch $cmd {
-                    JE: - JZ: {
-                        # JE has two valid args, JZ one
+                    JE: - JZ: - JSE: - JSZ: {
+                        # JE has two valid args,
+                        # JZ one,
+                        # JSE and JSZ zero
                         set addresses [list $next $a]
                         set code [list $cmd $b $c]
+                    }
+                    JNE: - JNZ: - JSNE - JSNZ: {
+                        set addresses [list $a $next]
+                        set code [string map {N {}} $cmd] $b $c]
                     }
                     JT: {
                         set addresses [list $next $a]
                         set code NOP
-                    }
-                    JNE: - JNZ: {
-                        set addresses [list $a $next]
-                        set code [list J[string index $cmd end] $b $c]
                     }
                     JNT: {
                         set addresses [list $a $next]

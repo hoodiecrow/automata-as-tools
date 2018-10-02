@@ -12,7 +12,7 @@ oo::class create ::automata::SM {
         my add doc preamble {
 A simple sort of virtual Stack Machine.
         }
-        my installOperations {INC DEC CLR J: JZ: EQ EQL ADD MUL PUSH NOP}
+        my installOperations {JSZ: JSNZ: JSE: JSNE: J: PUSH INC DEC CLR DUP EQ EQL ADD MUL}
         my installRunMethod {
             stack {} {a list of initial stack symbols}
             ?start? {} {initial state}

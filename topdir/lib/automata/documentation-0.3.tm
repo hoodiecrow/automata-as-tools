@@ -9,6 +9,10 @@ namespace eval automata {
         JNE:   {Jump to address *a* on *b* ≠ *c*}
         JZ:    {Jump to address *a* on *b* = 0}
         JNZ:   {Jump to address *a* on *b* ≠ 0}
+        JSE:   {Jump to address *a* on [<i>ToS<sub>0</sub></i>] = [<i>ToS<sub>1</sub></i>]}
+        JSNE:  {Jump to address *a* on [<i>ToS<sub>0</sub></i>] ≠ [<i>ToS<sub>1</sub></i>]}
+        JSZ:   {Jump to address *a* on <i>ToS</i> = 0}
+        JSNZ:  {Jump to address *a* on <i>ToS</i> ≠ 0}
         JT:    {Jump to address *a* on <i>test</i> = 0}
         JNT:   {Jump to address *a* on <i>test</i> ≠ 0}
         J:     {Jump to address *a*}
@@ -24,11 +28,16 @@ namespace eval automata {
         PRINT: {Print symbol # *a* on tape}
         PRINT  {Print symbol #1 on tape}
         ERASE  {Print symbol #0 on tape}
-        ROLL   {Roll tape to the left (L) or right (R)}
+        ROLL:  {Roll tape to the left (*a* = L) or right (*a* = R)}
         CLR:   {Set *a* to 0}
         INC:   {Increment *a*}
         DEC:   {Decrement *a*}
         CPY:   {Set *a* to *b*}
+        PUSH   {Increment ToS, <i>ToS</i> ← <i>value</i>}
+        INC    {Increment <i>ToS</i>}
+        DEC    {Decrement <i>ToS</i>}
+        CLR    {Set <i>ToS</i> to 0}
+        DUP    {Increment ToS, <i>ToS<sub>0</sub></i> ← <i>ToS<sub>1</sub></i>}
         EQ     {<i>ToS<sub>0,1</sub></i> ← [<i>ToS<sub>0</sub></i>] eq [<i>ToS<sub>1</sub></i>]}
         EQL    {<i>ToS<sub>0,1</sub></i> ← [<i>ToS<sub>0</sub></i>] == [<i>ToS<sub>1</sub></i>]}
         MUL    {<i>ToS<sub>0,1</sub></i> ← [<i>ToS<sub>0</sub></i>] * [<i>ToS<sub>1</sub></i>]}

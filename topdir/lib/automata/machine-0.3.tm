@@ -319,7 +319,6 @@ oo::class create ::automata::Machine {
             lassign [lindex [my get table $i $flag] 0] - - i
             # build new ID
             switch $tag {
-                HALT { return }
                 INC: { lset r $a [expr {[lindex $r $a] + 1}] }
                 DEC: { lset r $a [expr {[lindex $r $a] - 1}] }
                 CLR: { lset r $a [lindex $r 0] }
@@ -368,10 +367,16 @@ oo::class create ::automata::Machine {
             lassign [lindex [my get table $i 0] 0] - - - code
             lassign $code tag a b c d e f
             lassign $s TOP
-            if {$tag in {JE: JZ:}} {
-                set flag [expr {$TOP == 0}]
-            } else {
-                set flag 0
+            switch $tag {
+                JSZ: {
+                    set flag [expr {$TOP == 0}]
+                }
+                JSE: {
+                    set flag [expr {$TOP == [lindex $s 1]}]
+                }
+                default {
+                    set flag 0
+                }
             }
             lassign [lindex [my get table $i $flag] 0] - - i
             # get move
@@ -492,6 +497,9 @@ oo::class create ::automata::Machine {
             set t 0
             lassign [lindex [my get table $q $flag] 0] - - q
             switch $tag {
+                JT: - NOP {
+                    lset i 0 $q
+                }
                 HALT  {
                     return
                 }
@@ -517,9 +525,6 @@ oo::class create ::automata::Machine {
                     lset i 0 [my succ Q [lindex $i 0]]
                     set i [linsert $i 0 $q]
                     set t 0
-                }
-                JE: - JT: - NOP {
-                    lset i 0 $q
                 }
             }
         }

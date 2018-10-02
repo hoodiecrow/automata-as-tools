@@ -58,7 +58,7 @@ test sm-2.0 {Implement a CLR operation} -setup {
 } -body {
     M compile {
             3
-    a:      JZ:end
+    a:      JSZ:end
             DEC
             J:a
     end:    NOP
@@ -74,7 +74,7 @@ test sm-2.1 {Print 2.0} -setup {
 } -body {
     M compile {
             3
-    a:      JZ:end
+    a:      JSZ:end
             DEC
             J:a
     end:    NOP
@@ -91,8 +91,8 @@ Transitions
 q0    inp   q1    out
 1     0     2     {PUSH 3}
 1     1     2     {PUSH 3}
-2     0     3     JZ:
-2     1     5     JZ:
+2     0     3     JSZ:
+2     1     5     JSZ:
 3     0     4     DEC
 3     1     4     DEC
 4     0     2     NOP
