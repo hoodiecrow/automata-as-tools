@@ -1,6 +1,57 @@
 package require fileutil
 
-namespace eval automata {}
+# TODO need a better value transfer method
+
+namespace eval automata {
+
+    variable operations {
+        JE:    {je   $a $b $c}     {Jump to address *a* on *b* = *c*}
+        JNE:   {jne  $a $b $c}     {Jump to address *a* on *b* ≠ *c*}
+        JZ:    {jz   $a $b}        {Jump to address *a* on *b* = 0}
+        JNZ:   {jnz  $a $b}        {Jump to address *a* on *b* ≠ 0}
+        JT:    {jt   $a}           {Jump to address *a* on <i>test</i> = 0}
+        JNT:   {jnt  $a}           {Jump to address *a* on <i>test</i> ≠ 0}
+        J:     {j    $a}           {Jump to address *a*}
+        CALL:  {call $a $m}        {Call to address *a*, sets flag}
+        RET    ret                 {Return to previous address, sets flag}
+        HALT   halt                {Stop the program}
+        NOP    nop                 {No operation}
+        MOVE   move                {Moves the robot one space forward}
+        TURN   turn                {Changes robot's facing counter-clockwards}
+        TEST:  test               {Test by parameters *d* and *e*}
+        TAKE   take                {Transfer a beeper from square to bag (does nothing)}
+        DROP   drop                {Transfer a beeper from bag to square (does nothing)}
+        PRINT: {print $a}          {Print symbol # *a* on tape}
+        PRINT  print               {Print symbol # *a* on tape}
+        ROLL   {roll $a}           {Roll tape to the left (L) or right (R)}
+        CLR:   {set $a 0}          {Set *a* to 0}
+        store  {store $a $b}       {Store a number}
+        INC:   {inc $a}            {Increment *a*}
+        DEC:   {dec $a}            {Decrement *a*}
+        CPY:   {set $a $b}         {Set *a* to *b*}
+        upl    {store $a $a + 0}   {Unary plus}
+        umn    {store $a 0 - $a}   {Unary minus}
+        bnot   {store $a ~ $a}     {Bit. not}
+        lnot   {store $a ! $a}     {Log. not}
+        mul    {store $a $b * $c}  {Multiplication}
+        div    {store $a $b / $c}  {Division}
+        mod    {store $a $b % $c}  {Modulo}
+        add    {store $a $b + $c}  {Addition}
+        sub    {store $a $b - $c}  {Subtraction}
+        lt     {store $a $b < $c}  {Less than}
+        le     {store $a $b <= $c} {Less than or equal to}
+        gt     {store $a $b > $c}  {Greater than}
+        ge     {store $a $b >= $c} {Greater than or equal to}
+        eq     {store $a $b eq $c} {String equality}
+        eql    {store $a $b == $c} {Num. equality}
+        neq    {store $a $b != $c} {Num. inequality}
+        band   {store $a $b & $c}  {Bit. and}
+        bxor   {store $a $b ^ $c}  {Bit. xor}
+        bor    {store $a $b | $c}  {Bit. or}
+        land   {store $a $b && $c} {Log. and}
+        lor    {store $a $b || $c} {Log. or}
+    }
+}
 
 oo::class create ::automata::Documentation {
     variable components doc
@@ -89,10 +140,10 @@ oo::class create ::automata::Documentation {
         }
     }
 
-    method installOperations {instructionSet ops} {
+    method installOperations instructionSet {
         set lang [list]
         set actions [list]
-        foreach {op o desc} $ops {
+        foreach {op o desc} $::automata::operations {
             lappend lang $op [join [lsort -unique [regexp -all -inline {\*\w\*} $desc]] ,] $desc
             if {$op eq "<number>"} {
                 set op PUSH

@@ -60,26 +60,26 @@ Program start   S = 0
 Program end     F = {10}
 Transitions
 q0    inp   q1    out
-0     0     1     {je 5 2 0}
-0     1     5     {je 5 2 0}
-1     0     2     {dec 2}
-1     1     2     {dec 2}
-2     0     3     {inc 3}
-2     1     3     {inc 3}
-3     0     4     {inc 1}
-3     1     1     {inc 1}
-4     0     5     {je 0 0 0}
-4     1     0     {je 0 0 0}
-5     0     6     {je 9 1 0}
-5     1     9     {je 9 1 0}
-6     0     7     {dec 1}
-6     1     1     {dec 1}
-7     0     8     {inc 2}
-7     1     2     {inc 2}
-8     0     9     {je 5 0 0}
-8     1     5     {je 5 0 0}
-9     0     10    nop
-9     1     10    nop
+0     0     1     {JZ: 2}
+0     1     5     {JZ: 2}
+1     0     2     {DEC: 2}
+1     1     2     {DEC: 2}
+2     0     3     {INC: 3}
+2     1     3     {INC: 3}
+3     0     4     {INC: 1}
+3     1     4     {INC: 1}
+4     0     0     NOP
+4     1     0     NOP
+5     0     6     {JZ: 1}
+5     1     9     {JZ: 1}
+6     0     7     {DEC: 1}
+6     1     7     {DEC: 1}
+7     0     8     {INC: 2}
+7     1     8     {INC: 2}
+8     0     5     NOP
+8     1     5     NOP
+9     0     10    NOP
+9     1     10    NOP
 }
 
 test cm-2.0 {Implement a DEC operation using instruction set 2} -setup {

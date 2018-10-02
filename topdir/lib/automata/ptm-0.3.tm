@@ -14,29 +14,18 @@ A Post-Turing Machine is essentially a TM. The transition matrix
 is set by compiling a program.  The tape uses a binary symbol set
 (here, 0, 1).
         }
-        my installOperations {P E L R N H J: J0: J1:} {
-            P   {list $i $j [incr i]                    P N} {print to current cell}
-            E   {list $i $j [incr i]                    E N} {erase the current cell}
-            L   {list $i $j [incr i]                    N R} {move head left}
-            R   {list $i $j [incr i]                    N L} {move head right}
-            N   {list $i $j [incr i]                    N N} {no operation}
-            H   {list $i $j END_OF_CODE                 N N} {halt}
-            J:  {list $i $j $a                          N N} {jump unconditionally to address *a*}
-            J0: {list $i $j [if {!$j} {set a} {incr i}] N N} {jump on (<i>input</i> = 0) to address *a*}
-            J1: {list $i $j [if {$j} {set a} {incr i}]  N N} {jump on (<i>input</i> = 1) to address *a*}
-        }
+        my installOperations {PRINT ERASE ROLL NOP HALT J: JNT: JT:}
         my installRunMethod {
             tape {} {a list of initial tape symbols}
             ?head? {} {initial head position}
         }
         my graded "Tape symbols"  A -domain B
-        my graded "Print symbols" B -enum {E P N}
-        my graded "Move symbols"  C -enum {L R N}
         my graded "Instructions"  Q -domain N
         my graded "Program start" S -scalar
         my graded "Program end"   F
-        my graded "Head position" H -domain N -default 0 -scalar
-        my table -as {Q A Q B C}
+        my graded "Head position" H -domain N -default 0 -scalar -hide
+        my graded "Operations"    O -hide
+        my table -as {Q A Q O*}
         my id {
             t A* "tape"
             h H  "current cell"
@@ -47,7 +36,8 @@ is set by compiling a program.  The tape uses a binary symbol set
     method compile tokens {
         #: Create a transition matrix from a sequence of operation tokens.
         #:
-        set i 1
+        set firstAddr 1
+        set i $firstAddr
         set jumps [dict create]
         set program [list]
         foreach token $tokens {
@@ -55,15 +45,11 @@ is set by compiling a program.  The tape uses a binary symbol set
                 dict set jumps [string trimright $token :] $i
                 continue
             }
-            if {![regexp {^([[:upper:]]\d?:)(.+)$} $token -> op offset]} {
-                if {[regexp {^[[:upper:]]$} $token]} {
-                    set op $token
-                    set offset {}
-                } else {
-                    return -code error [format {malformed token "%s"} $token]
-                }
+            if {![regexp {(\w+:?)(.*)} $token -> command label]} {
+                return -code error [format {syntax error: %s} $token]
             }
-            lappend program {*}[lmap a [my get A] {my GenOp $i $a $op $offset}]
+            dict set program $i label [list {*}[string map {, { }} $label]]
+            dict set program $i command $command
             incr i
         }
         dict set jumps END_OF_CODE $i
@@ -71,17 +57,79 @@ is set by compiling a program.  The tape uses a binary symbol set
         my add S [lindex $jumps 1]
         my add F $i
         # fix jumps
-        for {set i 0} {$i < [llength $program]} {incr i} {
-            lassign [lindex $program $i] q0 - q1
-            if {[regexp {^[-+]\d+$} $q1]} {
-                lset program $i 2 [expr $q0$q1]
-            } elseif {[dict exists $jumps $q1]} {
-                lset program $i 2 [dict get $jumps $q1]
+        for {set n $firstAddr} {$n < $i} {incr n} {
+            dict with program $n {
+                lassign $label a b
+                set m [expr {$n + 1}]
+                log::log d \$label=$label 
+                if {[regexp {^[-+]\d+$} $a]} {
+                    set a [expr $n$a]
+                } elseif {[dict exists $jumps $a]} {
+                    set a [dict get $jumps $a]
+                }
+                set next [expr {$n + 1}]
+                switch $command {
+                    JE: - JZ: {
+                        # JE has two valid args, JZ one
+                        set addresses [list $next $a]
+                        set code [list $command $b $c]
+                    }
+                    JT: {
+                        set addresses [list $next $a]
+                        set code NOP
+                    }
+                    JNE: - JNZ: {
+                        set addresses [list $a $next]
+                        set code [list J[string index $command end] $b $c]
+                    }
+                    JNT: {
+                        set addresses [list $a $next]
+                        set code NOP
+                    }
+                    J: {
+                        set addresses [list $a $a]
+                        set code NOP
+                    }
+                    CALL: {
+                        set addresses [list $a $a]
+                        set code $command
+                    }
+                    PRINT {
+                        set addresses [list $next $next]
+                        set code [list PRINT: 1]
+                    }
+                    ERASE {
+                        set addresses [list $next $next]
+                        set code [list PRINT: 0]
+                    }
+                    ROLL: {
+                        set addresses [list $next $next]
+                        set code [list ROLL: $a]
+                    }
+                    INC: - DEC: - CLR: {
+                        set addresses [list $next $next]
+                        set code [list $command $a]
+                    }
+                    CPY: {
+                        set addresses [list $next $next]
+                        set code [list $command $a $b]
+                    }
+                    default {
+                        set addresses [list $next $next]
+                        set code [list $command]
+                    }
+                }
+                set code [lmap c $code {
+                    if {$c eq {}} {
+                        continue
+                    } else {
+                        set c
+                    }
+                }]
+                foreach inp [my get A] addr $addresses {
+                    my add table $n $inp $addr $code
+                }
             }
-        }
-        # store program
-        foreach line $program {
-            my add table {*}$line
         }
     }
 
@@ -95,16 +143,10 @@ is set by compiling a program.  The tape uses a binary symbol set
             my AddID $tape [my get H] $q
         }]
         set results [concat {*}[lmap id $ids {
-            my search $id process
+            my search $id PTM-exec
         }]]
         lmap result $results {
-            dict with result {
-                if {[my in F $q]} {
-                    dict values $result
-                } else {
-                    continue
-                }
-            }
+            dict values $result
         }
     }
 

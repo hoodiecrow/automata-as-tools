@@ -7,6 +7,7 @@ oo::class create ::automata::Machine {
     }
 
     method search {id fn {steps {}}} {
+        log::log d [info level 0] 
         if {$steps ne {}} {
             if {$steps <= 0} {
                 return [list $id]
@@ -18,8 +19,10 @@ oo::class create ::automata::Machine {
         if {[llength $ids] eq 0} {
             return [list $id]
         }
+        log::log d \$ids=$ids 
         set ids [lsort -unique $ids]
         return [concat {*}[lmap id $ids {
+            log::log d search2
             my search $id $fn $steps
         }]]
     }
@@ -251,6 +254,43 @@ oo::class create ::automata::Machine {
         return
     }
 
+    method PTM-exec id {
+        log::log d [info level 0] 
+        # unpack ID
+        dict with id {
+            if {[my in F $q]} {
+                return
+            }
+            # should always be 0 or 1 tuples
+            set tuples [my get table $q [lindex $t $h]]
+            if {[llength $tuples] eq 0} {
+                return
+            }
+            set tuple [lindex $tuples 0]
+            log::log d \$tuple=$tuple 
+            lassign $tuple - - q code
+            lassign $code tag a b
+            log::log d \$t=$t,\ \$h=$h,\ \$q=$q
+            switch $tag {
+                HALT  {
+                    return
+                }
+                PRINT: {
+                    log::log d \$t=$t 
+                    lset t $h [lindex [my get A] $a]
+                    log::log d \$t=$t 
+                }
+                ROLL: {
+                    # PTM has reversed sense of movement
+                    my Move t h [string map {R L L R} $a]
+                }
+                NOP {}
+            }
+            set ids [list [my add id $t $h $q]]
+        }
+        return $ids
+    }
+
     method process id {
         # unpack ID
         dict with id {
@@ -267,34 +307,38 @@ oo::class create ::automata::Machine {
                 my Move t h $m
                 my add id $t $h $q1
             }]
-
         }
         return $ids
     }
 
-    method ExecCounter id {
+    method CM-exec id {
         # unpack ID
         dict with id {
             if {[my in F $i]} {
                 return
             }
             # get move
-            set tuples [my get table $i *]
-            lassign [lindex $tuples 0] - - - O
-            lassign $O tag a b c
-            if {$tag eq "je"} {
-                set flag [expr [lindex $r $b] eq [lindex $r $c]]
-            } else {
-                set flag 0
+            lassign [lindex [my get table $i 0] 0] - - - code
+            lassign $code tag a b
+            switch $tag {
+                JE: { set flag [expr [lindex $r $a] eq [lindex $r $b]] }
+                JZ: { set flag [expr [lindex $r $a] eq [lindex $r 0]] }
+                default {
+                    set flag 0
+                }
             }
-            lassign [lindex $tuples $flag] - - i
+            log::log d \$i=$i 
+            log::log d "[my get table $i $flag]"
+            lassign [lindex [my get table $i $flag] 0] - - i
+            log::log d \$i=$i 
             # build new ID
             switch $tag {
-                halt { return }
-                inc { lset r $a [expr {[lindex $r $a] + 1}] }
-                dec { lset r $a [expr {[lindex $r $a] - 1}] }
-                set { lset r $a [lindex $r $b] }
-                nop {}
+                HALT { return }
+                INC: { lset r $a [expr {[lindex $r $a] + 1}] }
+                DEC: { lset r $a [expr {[lindex $r $a] - 1}] }
+                CLR: { lset r $a [lindex $r 0] }
+                CPY: { lset r $a [lindex $r $b] }
+                NOP  {}
             }
             if {[lindex $r 0] ne 0} {
                 return -code error [format {register 0 has been changed}]
@@ -410,77 +454,86 @@ oo::class create ::automata::Machine {
         return 0
     }
 
-    method Test {id _a _b} {
+    method Test {id idx} {
         log::log d [info level 0] 
         dict with id {
-            switch [list $_a $_b] {
-                {2 0} {
+            set label [lindex {
+                front-is-clear
+                left-is-clear
+                right-is-clear
+                next-to-a-beeper
+                facing-north
+                facing-south
+                facing-east
+                facing-west
+                any-beepers-in-beeper-bag
+            } $idx]
+            switch $label {
+                front-is-clear {
                     expr {![my CheckCollision $w $h {*}[my Look $x $y $f] $a]}
                 }
-                {2 1} {
-                    my CheckCollision $w $h {*}[my Look $x $y $f] $a
-                }
-                {3 0} {
+                left-is-clear {
                     expr {![my CheckCollision $w $h {*}[my Look $x $y $f +1] $a]}
                 }
-                {3 1} {
-                    my CheckCollision $w $h {*}[my Look $x $y $f +1] $a
-                }
-                {4 0} {
+                right-is-clear {
                     expr {![my CheckCollision $w $h {*}[my Look $x $y $f -1] $a]}
                 }
-                {4 1} {
-                    my CheckCollision $w $h {*}[my Look $x $y $f -1] $a
-                }
-                {5 0} { my FindBeeper $x $y $b }
-                {6 0} { expr {![my FindBeeper $x $y $b]} }
-                {0 1} { expr {$f eq 1} }
-                {1 1} { expr {$f ne 1} }
-                {0 3} { expr {$f eq 3} }
-                {1 3} { expr {$f ne 3} }
-                {0 0} { expr {$f eq 0} }
-                {1 0} { expr {$f ne 0} }
-                {0 2} { expr {$f eq 2} }
-                {1 2} { expr {$f ne 2} }
-                {7 0} { expr {$n > 0} }
-                {8 0} { expr {$n < 1} }
+                next-to-a-beeper { my FindBeeper $x $y $b }
+                facing-east  { expr {$f eq 0} }
+                facing-north { expr {$f eq 1} }
+                facing-west  { expr {$f eq 2} }
+                facing-south { expr {$f eq 3} }
+                any-beepers-in-beeper-bag { expr {$n > 0} }
             }
         }
     }
 
-    method exec id {
+    method KTR-exec id {
         log::log d [info level 0] 
         # unpack ID
         dict with id {
             # get move
             lassign $i q
-            set tuples [my get table $q *]
-            lassign [lindex $tuples 0] - - - O
-            lassign $O tag _a _b _c
-            switch $tag {
-                je { set t [expr {$_b eq $_c}] }
+            lassign [lindex [my get table $q 0] 0] - - - code
+            lassign $code tag _a _b _c _d _e
+            # test-sensitive jumps are coded as NOP
+            if {$tag eq "NOP"} {
+                set flag $t
+            } else {
+                set flag 0
             }
-            lassign [lindex $tuples $t] - - i1
             set t 0
-            lset i 0 $i1
+            log::log d "tuple = [lindex [my get table $q $flag] 0]"
+            lassign [lindex [my get table $q $flag] 0] - - q
             switch $tag {
-                halt { return }
-                turn { my Turn f}
-                move { my RMove $w $h x y $f $a }
-                take {}
-                drop {}
-                test { set t [my Test $id $_a $_b] }
-                ret  { set i [lrange $i 1 end] }
-                call {
-                    lset i 0 [my succ Q $q]
-                    set i [linsert $i 0 $i1]
+                HALT  {
+                    return
+                }
+                TURN  {
+                    my Turn f
+                    lset i 0 $q
+                }
+                MOVE  {
+                    my RMove $w $h x y $f $a
+                    lset i 0 $q
+                }
+                TAKE - DROP {
+                    lset i 0 $q
+                }
+                TEST: {
+                    set t [my Test $id $_a]
+                    lset i 0 $q
+                }
+                RET   {
+                    set i [lrange $i 1 end]
+                }
+                CALL: {
+                    lset i 0 [my succ Q [lindex $i 0]]
+                    set i [linsert $i 0 $q]
                     set t 0
                 }
-                je   {}
-                jt   {}
-                nop  {}
-                default {
-                    error \$tag=$tag
+                JE: - JT: - NOP {
+                    lset i 0 $q
                 }
             }
         }

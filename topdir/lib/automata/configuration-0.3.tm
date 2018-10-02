@@ -225,7 +225,7 @@ oo::class create ::automata::Configuration {
     method GetTable {q s} {
         log::log d [info level 0] 
         dict with components table {
-            log::log d \$value=$value 
+            #log::log d \$value=$value 
             set v [lsearch -all -inline -index 0 $value $q]
         }
         log::log d \$v=$v 

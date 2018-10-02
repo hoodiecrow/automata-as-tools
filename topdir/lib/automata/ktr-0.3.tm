@@ -16,30 +16,17 @@ Test numbers:
 
 | Number | Test                      |
 | :---:  | :---                      |
-| 1/2    | front-is-clear/blocked    |
-| 3/4    | left-is-clear/blocked     |
-| 5/6    | right-is-clear/blocked    |
-| 7/8    | next-to-a-beeper/not-     |
-| 9/10   | facing-north/not-         |
-| 11/12  | facing-south/not-         |
-| 13/14  | facing-east/not-          |
-| 15/16  | facing-west/not-          |
-| 17     | any-beepers-in-beeper-bag |
-| 18     | no-beepers-in-beeper-bag  |
+| 0    | front-is-clear    |
+| 1    | left-is-clear     |
+| 2    | right-is-clear    |
+| 3    | next-to-a-beeper     |
+| 4  | facing-east          |
+| 5   | facing-north         |
+| 6  | facing-west          |
+| 7  | facing-south         |
+| 8     | any-beepers-in-beeper |
         }
-        my installOperations {HALT TURN MOVE DROP RET TEST: JT: J: CALL:} {
-            HALT  halt            {Stop the program}
-            TURN  turn            {Changes robot's facing counter-clockwards}
-            MOVE  move            {Moves the robot one space forward}
-            TAKE  take            {Transfer a beeper from square to bag (does nothing)}
-            DROP  drop            {Transfer a beeper from bag to square (does nothing)}
-            RET   ret             {Return to previous address, sets flag}
-            TEST: {test $d $e}    {Test}
-            JT:   {jt   $a}       {Jump to address *a* on <i>test</i> = 0}
-            J:    {je   $a 0 0}   {Jump to address *a*}
-            CALL: {call $a $m}    {Call to address *a*, sets flag}
-            NOP   nop             {No operation}
-        }
+        my installOperations {HALT TURN MOVE DROP RET TEST: JT: J: CALL:}
         my installRunMethod {
             world   {} {a list of width, height values (integer)}
             robot   {} {a list of x, y, n, f values (integer)}
@@ -49,7 +36,7 @@ Test numbers:
         }
         my graded "Flag symbols"    A -domain B
         my graded "Lengths/Amounts" B -domain N -hide
-        my graded "Facing"          C -enum {0 1 2 3}
+        my graded "Facing"          C -enum {0 1 2 3} -hide
         my graded "Instructions"    Q -domain N
         my graded "Program start"   S -scalar
         my graded "Program end"     F
@@ -73,7 +60,8 @@ Test numbers:
         #: Convert source code to transition configuration.
         #:
         # address 0 is invalid
-        set i 1
+        set firstAddr 1
+        set i $firstAddr
         set jumps [dict create]
         set program [list]
         foreach token $tokens {
@@ -81,69 +69,12 @@ Test numbers:
                 dict set jumps [string trimright $token :] $i
                 continue
             }
-            if {[regexp {(\w+:?)(.*)} $token -> command label]} {
-                log::log d \$token=$token 
-                set a 0
-                set b 0
-                set c 0
-                switch $command {
-                    turnoff    { set op HALT }
-                    turnleft   { set op TURN }
-                    move       { set op MOVE }
-                    pickbeeper { set op TAKE }
-                    putbeeper  { set op DROP }
-                    RET        { set op RET }
-                    TEST:      {
-                        set op TEST:
-                        set e 0
-                        switch -regexp -matchvar m $label {
-                            {^facing-(\w+)}     { set d 0 }
-                            {^not-facing-(\w+)} { set d 1 }
-                            {^front-is-(\w+)}   { set d 2 }
-                            {^left-is-(\w+)}    { set d 3 }
-                            {^right-is-(\w+)}   { set d 4 }
-                            {^next-}            { set d 5 }
-                            {^not-next-}        { set d 6 }
-                            {^any-}             { set d 7 }
-                            {^no-}              { set d 8 }
-                            default {
-                                return -code error [format {syntax error: %s} $token]
-                            }
-                        }
-                        if {[llength $m] > 1} {
-                            switch [lindex $m 1] {
-                                east    { set e 0 }
-                                north   { set e 1 }
-                                west    { set e 2 }
-                                south   { set e 3 }
-                                clear   { set e 0 }
-                                blocked { set e 1 }
-                                default { set e 0 }
-                            }
-                        }
-                    }
-                    JUMPZ:     {
-                        set op JT:
-                        set a $label
-                    }
-                    JUMP:      {
-                        set op J:
-                        set a $label
-                    }
-                    CALL:      {
-                        set op CALL:
-                        set a $label
-                    }
-                    NOP        { set op NOP }
-                    default {
-                        return -code error [format {syntax error: %s} $token]
-                    }
-                }
-            } else {
+            log::log d \$token=$token 
+            if {![regexp {(\w+:?)(.*)} $token -> command label]} {
                 return -code error [format {syntax error: %s} $token]
             }
-            dict set program $i idxs [list $a $b $c $d $e]
-            dict set program $i op $op
+            dict set program $i label [list {*}[string map {, { }} $label]]
+            dict set program $i command $command
             incr i
         }
         dict set jumps END_OF_CODE $i
@@ -151,37 +82,81 @@ Test numbers:
         my add F $i
         log::log d \$jumps=$jumps 
         # fix jumps
-        for {set n 1} {$n < $i} {incr n} {
+        for {set n $firstAddr} {$n < $i} {incr n} {
             dict with program $n {
-                lassign $idxs a b c d e
-                set m [expr {$n + 1}]
-                log::log d \$idxs=$idxs 
+                lassign $label a b c d e
+                log::log d \$label=$label 
                 if {[regexp {^[-+]\d+$} $a]} {
                     set a [expr $n$a]
                 } elseif {[dict exists $jumps $a]} {
                     set a [dict get $jumps $a]
                 }
-                set _op [my GenOp $op]
-                log::log d \$_op=$_op 
-                switch -glob $_op {
-                    test* {
-                        set o [list test $d $e]
-                        set a $m
+                set next [expr {$n + 1}]
+                switch $command {
+                    JE: - JZ: {
+                        # JE has two valid args, JZ one
+                        set addresses [list $next $a]
+                        set code [list $command $b $c]
                     }
-                    call* {
-                        set o [subst $_op]
-                        set m $a
+                    JT: {
+                        set addresses [list $next $a]
+                        set code NOP
                     }
-                    turn - halt - ret - move {
-                        set o [subst $_op]
-                        set a $m
+                    JNE: - JNZ: {
+                        set addresses [list $a $next]
+                        set code [list J[string index $command end] $b $c]
+                    }
+                    JNT: {
+                        set addresses [list $a $next]
+                        set code NOP
+                    }
+                    J: {
+                        set addresses [list $a $a]
+                        set code NOP
+                    }
+                    CALL: {
+                        set addresses [list $a $a]
+                        set code $command
+                    }
+                    TEST: {
+                        set addresses [list $next $next]
+                        set code [list $command [lsearch -exact {
+                            front-is-clear
+                            left-is-clear
+                            right-is-clear
+                            next-to-a-beeper
+                            facing-north
+                            facing-south
+                            facing-east
+                            facing-west
+                            any-beepers-in-beeper-bag
+                        } $label]]
+                    }
+                    INC: - DEC: - CLR: {
+                        set addresses [list $next $next]
+                        set code [list $command $a]
+                    }
+                    CPY: {
+                        set addresses [list $next $next]
+                        set code [list $command $a $b]
                     }
                     default {
-                        set o [subst $_op]
+                        set addresses [list $next $next]
+                        set code [list $command]
                     }
                 }
-                foreach inp [my get A] {
-                    my add table $n $inp [if {$inp && [llength $idxs] > 0} {set a} {set m}] $o
+                if {![info exists code]} {
+                    error [list $command $label]
+                }
+                set code [lmap c $code {
+                    if {$c eq {}} {
+                        continue
+                    } else {
+                        set c
+                    }
+                }]
+                foreach inp [my get A] addr $addresses {
+                    my add table $n $inp $addr $code
                 }
             }
         }
@@ -198,7 +173,7 @@ Test numbers:
         lappend id 0
         lappend id $beepers
         lappend id $walls
-        set results [my search [my add id {*}$id] exec]
+        set results [my search [my add id {*}$id] KTR-exec]
         set res [dict values [lindex $results 0]]
         list [lrange $res 0 1] [lrange $res 2 5] [lindex $res 6] [lindex $res 7] [lindex $res 8] [lindex $res 9]
     }

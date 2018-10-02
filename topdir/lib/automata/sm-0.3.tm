@@ -12,7 +12,8 @@ oo::class create ::automata::SM {
         my add doc preamble {
 A simple sort of virtual Stack Machine.
         }
-        my installOperations {INC DEC CLR J: JZ: EQ EQL ADD MUL eq == + * PUSH NOP} {
+        my installOperations {INC DEC CLR J: JZ: EQ EQL ADD MUL eq == + * PUSH NOP}
+        if no {
             INC      {list $i $j [incr i] INC  0}  {<i>ToS</i> ← [<i>ToS</i>] + 1}
             DEC      {list $i $j [incr i] DEC  0}  {<i>ToS</i> ← [<i>ToS</i>] - 1}
             CLR      {list $i $j [incr i] PUSH 0}  {<i>ToS</i> ← 0}

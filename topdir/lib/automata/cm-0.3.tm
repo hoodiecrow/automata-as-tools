@@ -35,16 +35,7 @@ Specify which actual instruction set to use when instantiating machine.
 * `-instructionset 3` : (INC, CPY, JE), (Elgot-Robinson (1964), Minsky (1967))
 * `-instructionset 4` : (INC, DEC, CLR, CPY, J, JZ) (default: Shepherdson and Sturgis (1963))
         }
-        my installOperations $instructionSet {
-            JZ:   {je  $a $b 0}  {Jump to address *a* on *b* = 0}
-            JE:   {je  $a $b $c} {Jump to address *a* on *b* = *c*}
-            J:    {je  $a 0 0}   {Jump to address *a*}
-            INC:  {inc $a}       {Increment *a*}
-            DEC:  {dec $a}       {Decrement *a*}
-            CLR:  {set $a 0}     {Set *a* to 0}
-            CPY:  {set $a $b}    {Set *a* to *b*}
-            NOP   nop            {No operation}
-        }
+        my installOperations $instructionSet
         my installRunMethod {
             registers {} {a list of initial register cells}
             ?start? {} {initial state}
@@ -67,7 +58,8 @@ Specify which actual instruction set to use when instantiating machine.
     method compile tokens {
         #: Convert source code to transition configuration.
         #:
-        set i 0
+        set firstAddr 0
+        set i $firstAddr
         set jumps [dict create]
         set program [dict create]
         foreach token $tokens {
@@ -75,35 +67,77 @@ Specify which actual instruction set to use when instantiating machine.
                 dict set jumps [string trimright $token :] $i
                 continue
             }
-            if {![regexp {([[:upper:]]+:)(.+)$} $token -> op idxs]} {
-                if {$token eq "NOP"} {
-                    set op $token
-                    set idxs [list]
-                } else {
-                    return -code error [format {syntax error: %s} $token]
-                }
+            if {![regexp {(\w+:?)(.*)} $token -> command label]} {
+                return -code error [format {syntax error: %s} $token]
             }
-            dict set program $i idxs [list {*}[string map {, { }} $idxs]]
-            dict set program $i op $op
+            dict set program $i label [list {*}[string map {, { }} $label]]
+            dict set program $i command $command
             incr i
         }
+        dict set jumps END_OF_CODE $i
         my add S [lindex $jumps 1]
         my add F $i
         log::log d \$jumps=$jumps 
         log::log d \$program=$program 
         # fix jumps
-        for {set n 0} {$n < $i} {incr n} {
+        for {set n $firstAddr} {$n < $i} {incr n} {
             dict with program $n {
-                lassign $idxs a b c
-                log::log d \$idxs=$idxs 
+                lassign $label a b c
+                log::log d \$label=$label 
                 if {[regexp {^[-+]\d+$} $a]} {
                     set a [expr $n$a]
                 } elseif {[dict exists $jumps $a]} {
                     set a [dict get $jumps $a]
                 }
-                set o [subst [my GenOp $op]]
-                foreach inp [my get A] {
-                    my add table $n $inp [if {$inp && [llength $idxs] > 0} {set a} {expr {$n + 1}}] $o
+                set next [expr {$n + 1}]
+                switch $command {
+                    JE: - JZ: {
+                        # JE has two valid args, JZ one
+                        set addresses [list $next $a]
+                        set code [list $command $b $c]
+                    }
+                    JT: {
+                        set addresses [list $next $a]
+                        set code NOP
+                    }
+                    JNE: - JNZ: {
+                        set addresses [list $a $next]
+                        set code [list J[string index $command end] $b $c]
+                    }
+                    JNT: {
+                        set addresses [list $a $next]
+                        set code NOP
+                    }
+                    J: {
+                        set addresses [list $a $a]
+                        set code NOP
+                    }
+                    CALL: {
+                        set addresses [list $a $a]
+                        set code $command
+                    }
+                    INC: - DEC: - CLR: {
+                        set addresses [list $next $next]
+                        set code [list $command $a]
+                    }
+                    CPY: {
+                        set addresses [list $next $next]
+                        set code [list $command $a $b]
+                    }
+                    default {
+                        set addresses [list $next $next]
+                        set code [list $command]
+                    }
+                }
+                set code [lmap c $code {
+                    if {$c eq {}} {
+                        continue
+                    } else {
+                        set c
+                    }
+                }]
+                foreach inp [my get A] addr $addresses {
+                    my add table $n $inp $addr $code
                 }
             }
         }
@@ -115,7 +149,7 @@ Specify which actual instruction set to use when instantiating machine.
             my add S $s
         }
         set id [my add id $regs [my get S]]
-        set results [my search $id ExecCounter]
+        set results [my search $id CM-exec]
         dict values [lindex $results 0]
     }
 
