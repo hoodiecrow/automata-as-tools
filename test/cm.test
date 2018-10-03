@@ -5,7 +5,7 @@ namespace import ::tcltest::*
 
 ::tcltest::loadTestedCommands
 
-package require automata::cm
+package require automata::codemachine
 
 set mc CM
 set m [subst {::automata::$mc create M}]
