@@ -9,8 +9,22 @@ oo::class create ::automata::PDA {
     mixin ::automata::Configuration ::automata::Machine
 
     constructor args {
-        my add doc preamble {
-A Pushdown Automaton recognizes a context-free language.
+        if no {
+            option -accept "accepts the input (default)" Accept
+            option -classify "classifies the input" Classify
+            runargs {a "a list of input symbols"}
+            type A "Input symbols" # -epsilon ε
+            type B "Stack symbols" # -epsilon ε
+            type Q "State symbols" # -sorted
+            type S "Start symbol"  Q
+            type Z "Initial stack" [tindex B 0]
+            type F "Final symbols" Q+
+            table Q A Q B B*
+            id {
+                input A* "remaining input"
+                state Q  "current state"
+                stack B* "current stack"
+            }
         }
         my installRunMethod {
             -accept Accept {[[accept]] the input}

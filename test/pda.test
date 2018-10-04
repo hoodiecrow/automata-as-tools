@@ -7,7 +7,7 @@ namespace import ::tcltest::*
 
 ::tcltest::loadTestedCommands
 
-package require automata::pda
+package require automata::tablemachine
 
 set mc PDA
 set m [subst {::automata::$mc create M}]
@@ -102,9 +102,10 @@ q     1     q     A {}
 q     ε     r     Z Z
 }
 
+cleanupTests ; return
+
 if {[package vcompare [package present automata::pda] 0.1] > 0} { 
     cleanupTests ; return 
 } 
  
 
-cleanupTests ; return

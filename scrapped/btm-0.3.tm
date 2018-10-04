@@ -5,12 +5,38 @@ package require automata::configuration
 
 namespace eval automata {}
 
+if no {
+Type big N for naturals, {..} for enumerated, # for any symbol, T+ for subset of T, T for member of T
+
+-index n for #n of type
+-sorted for a sorted set
+-default x for starting value x
+-hidden for left out of documentation 
+
+For table and ID, T* means string of 
+
+type <name> <description> <derivation> ?option...?
+}
+
 oo::class create ::automata::BTM {
     mixin ::automata::Configuration ::automata::Machine
 
     constructor args {
-        my add doc preamble {
-A Basic Turing Machine recognizes a recursively enumerable language.
+        if no {
+            runargs {tape "a (part of a) list of tape symbols"}
+            type A "Tape symbols"  {0 1}
+            type B "Print symbols" {0 1} -epsilon N
+            type C "Move symbols"  {L R} -epsilon N
+            type Q "State symbols" #  -sorted
+            type E "Blank symbol"  [tindex B 0]
+            type S "Start symbol"  Q+
+            type F "Final symbol"  Q+
+            table Q A Q B C
+            id {
+                tape  A* "tape contents"
+                head  N  "current index"
+                state Q  "current state"
+            }
         }
         my installRunMethod {
             tape {} {a list of initial tape symbols}

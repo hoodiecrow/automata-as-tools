@@ -7,7 +7,7 @@ namespace import ::tcltest::*
 
 ::tcltest::loadTestedCommands
 
-package require automata::fsm
+package require automata::tablemachine
 
 set mc FSM
 set m [subst {::automata::$mc create M}]

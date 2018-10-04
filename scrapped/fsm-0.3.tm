@@ -10,8 +10,20 @@ oo::class create ::automata::FSM {
     mixin ::automata::Configuration ::automata::Machine
 
     constructor args {
-        my add doc preamble {
-A [[Finite State Machine|finitestatemachine]] recognizes a regular language. It can be asked to accept (respond with 1 if the machine recognizes the input, otherwise 0) or classify (respond with the final state) a list of input symbols.
+        if no {
+            option -accept "accepts the input (default)" Accept
+            option -classify "classifies the input" Classify
+            default Accept
+            runargs {a "a list of input symbols"}
+            type A "Input symbols" # -epsilon ε
+            type Q "State symbols" #
+            type S "Start symbols" Q+
+            type F "Final symbols" Q+
+            table Q A Q
+            id {
+                input A* "remaining input"
+                state Q  "current state"
+            }
         }
         my installRunMethod {
             -accept Accept {[[accept]] the input}

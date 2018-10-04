@@ -63,10 +63,15 @@ oo::class create ::automata::Documentation {
     }
 
     method GetDoc what {
+        if {![info exists doc]} {
+            return
+        }
         set res {}
         switch $what {
             preamble {
-                append res [dict get $doc $what]
+                if {[dict exists $doc $what]} {
+                    append res [dict get $doc $what]
+                }
             }
             language {
                 append res "\n| Instruction | Arguments | Description |\n"
@@ -139,6 +144,9 @@ oo::class create ::automata::Documentation {
     }
 
     method doc fn {
+        if {![info exists doc]} {
+            return
+        }
         set docstr {}
         set c [info object class [self]]
         dict for {name conf} $components {

@@ -9,9 +9,40 @@ oo::class create ::automata::FST {
     mixin ::automata::Configuration ::automata::Machine
 
     constructor args {
-        my add doc preamble {
-A Finite State Transducer recognizes or encodes a regular relation.
+        if no {
+            option -recognize "recognize two input/output symbol lists" Recognize
+            option -translate "translate an input symbol list and build an output symbol list" Translate
+            option -reconstruct "reconstruct an input symbol list from an output symbol list" Reconstruct
+            option -generate "generate two input/output symbol lists for a given number of steps"  Generate
+            runargs {
+                a "(for `-recognize` and `-translate`) an input symbol list"
+                b "(for `-recognize` and `-reconstruct`) an output symbol list"
+                steps "(for `-generate`) a number of steps"
+            }
+            type A "Input symbols"  # -epsilon ε
+            type B "Output symbols" # -epsilon ε
+            type Q "State symbols"  # -sorted
+            type S "Start symbols"  Q+
+            type F "Final symbols"  Q+
+            table Q A Q B
+            id {
+                input  A* "remaining input"
+                state  Q  "current state"
+                output B* "remaining output"
+            }
         }
+        my graded "Input symbols"  A -epsilon ε
+        my graded "Output symbols" B -epsilon ε
+        my graded "State symbols"  Q
+        my graded "Start symbols"  S -superset Q
+        my graded "Final symbols"  F -superset Q
+        my table -as {Q A Q B}
+        my id {
+            a A* "input symbols"
+            q Q  "current state"
+            b A* "output symbols"
+        }
+    }
         my installRunMethod {
             -recognize Recognize {[[recognize]] two input/output symbol lists.}
             -translate Translate {[[translate]] an input symbol list and build an output symbol list.}

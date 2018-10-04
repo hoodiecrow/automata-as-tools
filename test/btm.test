@@ -5,7 +5,7 @@ namespace import ::tcltest::*
 
 ::tcltest::loadTestedCommands
 
-package require automata::btm
+package require automata::tablemachine
 
 set mc BTM
 set m [subst {::automata::$mc create M}]

@@ -187,6 +187,19 @@ Specify which actual instruction set to use when instantiating machine.
 * `-instructionset 3` : (INC, CPY, JE), (Elgot-Robinson (1964), Minsky (1967))
 * `-instructionset 4` : (INC, DEC, CLR, CPY, J, JZ) (default: Shepherdson and Sturgis (1963))
         }
+        if no {
+            type A "Flag symbols"  {0 1}
+            type I "Instructions"  $instructionSet
+            type Q "Addresses"     N*
+            type S "Start address" Q
+            type F "Final address" Q
+            runargs {registers "a list of register cells"}
+            table Q A Q #*
+            id {
+                register N* "register cells"
+                ipointer Q  "instruction pointer"
+            }
+        }
         my installOperations $instructionSet
         my installRunMethod {
             registers {} {a list of initial register cells}
@@ -271,6 +284,34 @@ Test numbers:
             beepers {} {an even-sized list of x, y values}
             walls   {} {an even-sized list of x, y values}
             ?start? {} {initial state}
+        }
+        if no {
+            runargs {
+                world   "a list of width, height values"
+                robot   "a list of x, y, n, f values"
+                beepers "an even-sized list of x, y values"
+                walls   "an even-sized list of x, y values"
+            }
+            type A "Flag symbols"  {0 1}
+            type B "Facing"        {0 1 2 3}
+            type I "Instructions"  {JZ: J: TURN MOVE TAKE DROP TEST: RET CALL:}
+            type Q "Addresses"     N*
+            type S "Start address" Q
+            type F "Final address" Q
+            table Q A Q #*
+            id {
+                world    N  "world width"
+                height   N  "world height"
+                x        N  "robot x"
+                y        N  "robot y"
+                bag      N  "#robot's beepers"
+                facing   B  "robot facing"
+                returns  Q* "return stack"
+                test     A  "test state"
+                beepers  N* "beeper coords"
+                walls    N* "wall coords"
+                ipointer Q  "instruction pointer"
+            }
         }
         my graded "Flag symbols"    A -domain B
         my graded "Lengths/Amounts" B -domain N -hide
@@ -459,6 +500,21 @@ is set by compiling a program.  The tape uses a binary symbol set
             tape {} {a list of initial tape symbols}
             ?head? {} {initial head position}
         }
+        if no {
+            runargs {tape "a (part of a) list of tape symbols"}
+            type A "Tape symbols"  {0 1} -epsilon N
+            type B "Move symbols"  {L R} -epsilon N
+            type I "Instructions"  {JZ: J: PRINT ERASE ROLL:}
+            type Q "Addresses"     N*
+            type S "Start address" Q
+            type F "Final address" Q
+            table Q A Q #*
+            id {
+                tape     A* "tape contents"
+                head     N  "current index"
+                ipointer Q  "instruction pointer"
+            }
+        }
         my graded "Tape symbols"  A -domain B
         my graded "Instructions"  Q -domain N
         my graded "Program start" S -scalar
@@ -533,6 +589,19 @@ A simple sort of virtual Stack Machine.
         my installOperations {JSZ: JSNZ: JSE: JSNE: J: PUSH INC DEC CLR DUP EQ EQL ADD MUL}
         my installRunMethod {
             stack {} {a list of initial stack symbols}
+        }
+        if no {
+            runargs {stack "a list of stack symbols"}
+            type A "Flag symbols"  {0 1}
+            type I "Instructions"  {JZ: JS: J: PUSH INC DEC CLR DUP EQ EQL ADD MUL}
+            type Q "Addresses"     N*
+            type S "Start address" Q
+            type F "Final address" Q
+            table Q A Q #*
+            id {
+                stack    N* "stack contents"
+                ipointer Q  "instruction pointer"
+            }
         }
         my graded "Flag symbols"  A -domain B
         my graded "Stack values"  B -domain N -hide
