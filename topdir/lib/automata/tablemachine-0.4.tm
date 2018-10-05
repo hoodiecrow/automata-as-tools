@@ -19,11 +19,11 @@ package require automata::configuration
 namespace eval automata {}
 
 oo::class create ::automata::TableMachine {
-    mixin ::automata::Machine
+    mixin ::automata::Configuration ::automata::Machine
 }
 
 oo::class create ::automata::FSM {
-    mixin ::automata::Configuration ::automata::TableMachine
+    mixin ::automata::TableMachine
 
     variable types table iddef
 
@@ -154,7 +154,7 @@ oo::class create ::automata::FSM {
 }
 
 oo::class create ::automata::FST {
-    mixin ::automata::Configuration ::automata::TableMachine
+    mixin ::automata::TableMachine
 
     variable types table iddef
 
@@ -443,7 +443,7 @@ oo::class create ::automata::FST {
 }
 
 oo::class create ::automata::PDA {
-    mixin ::automata::Configuration ::automata::TableMachine
+    mixin ::automata::TableMachine
 
     variable types table iddef
 
@@ -604,7 +604,7 @@ oo::class create ::automata::PDA {
 }
 
 oo::class create ::automata::BTM {
-    mixin ::automata::Configuration ::automata::TableMachine
+    mixin ::automata::TableMachine
 
     variable types table iddef
 

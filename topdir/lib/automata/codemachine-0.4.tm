@@ -8,7 +8,7 @@ namespace eval automata {}
 # A CodeMachine is an automaton that compiles a labeled set of instructions to
 # a transition table.
 oo::class create ::automata::CodeMachine {
-    mixin ::automata::Machine
+    mixin ::automata::Configuration ::automata::Machine
 
     variable types table iddef
 
@@ -193,7 +193,7 @@ oo::class create ::automata::CodeMachine {
 }
 
 oo::class create ::automata::CM {
-    mixin ::automata::CodeMachine ::automata::Configuration
+    mixin ::automata::CodeMachine
 
     variable table iddef
 
@@ -296,7 +296,7 @@ Specify which actual instruction set to use when instantiating machine.
 }
 
 oo::class create ::automata::KTR {
-    mixin ::automata::CodeMachine ::automata::Configuration
+    mixin ::automata::CodeMachine
 
     variable table iddef
     
@@ -532,7 +532,7 @@ Test numbers:
 }
 
 oo::class create ::automata::PTM {
-    mixin ::automata::CodeMachine ::automata::Configuration
+    mixin ::automata::CodeMachine
 
     variable table iddef
 
@@ -632,7 +632,7 @@ is set by compiling a program.  The tape uses a binary symbol set
 }
 
 oo::class create ::automata::SM {
-    mixin ::automata::CodeMachine ::automata::Configuration
+    mixin ::automata::CodeMachine
 
     variable table iddef
 
