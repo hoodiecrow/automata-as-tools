@@ -155,6 +155,10 @@ oo::class create ::automata::Types {
         return $str
     }
 
+    method document {} {
+        ;
+    }
+
     method dump {} {
         set res {}
         for {set row 0} {$row < [my matrix rows]} {incr row} {
@@ -219,6 +223,10 @@ oo::class create ::automata::Table {
         return $str
     }
 
+    method document {} {
+        ;
+    }
+
     method dump {} {
         set res {}
         for {set row 0} {$row < [my matrix rows]} {incr row} {
@@ -230,7 +238,10 @@ oo::class create ::automata::Table {
 }
 
 oo::class create ::automata::ID {
+    variable types
+
     constructor args {
+        set types [set [uplevel 1 {namespace which -variable types}]]
         ::struct::matrix matrix
         matrix add columns 3
         foreach {name desc type} $args {
@@ -239,6 +250,18 @@ oo::class create ::automata::ID {
     }
 
     forward matrix matrix
+
+    method make args {
+        log::log d [info level 0] 
+        set res [dict create]
+        for {set row 0} {$row < [my matrix rows]} {incr row} {
+            set val [lindex $args $row]
+            # TODO check valid input
+            $types set [string index [my matrix get cell 2 $row] 0] $val
+            dict set res [my matrix get cell 0 $row] $val
+        }
+        return $res
+    }
 
     method print {} {
         append str "Instantaneous description\n"
@@ -249,14 +272,16 @@ oo::class create ::automata::ID {
         return $str
     }
 
+    method document {} {
+        ;
+    }
+
 }
 
 oo::class create ::automata::Configuration {
     mixin ::automata::Documentation
 
     variable types table iddef components
-    #table id
-    # doc
 
     #: Handles machine configurations, including instantaneous descriptions.
 
@@ -266,48 +291,10 @@ oo::class create ::automata::Configuration {
     }
 
     method print {} {
-        #: Print the configuration (without the ID).
-        set str {}
+        #: Print the configuration.
         append str [$types print]
-        dict for {k v} $components {
-            switch $k {
-                table {
-                    append str [$table print]
-                    if no {
-                        append str "Transitions\n"
-                        append str [format "%-5s %-5s %-5s %s\n" q0 inp q1 out]
-                        foreach tuple [dict get $v value] {
-                            set out [lassign $tuple q0 inp q1]
-                            if {$inp eq {}} {
-                                set inp ε
-                            }
-                            append str [format "%-5s %-5s %-5s %s\n" $q0 $inp $q1 $out]
-                        }
-                    }
-                }
-                id {
-                    append str [$iddef print]
-                }
-                default {
-                    if no {
-                        if {[dict get $v hide]} {
-                            continue
-                        }
-                        if {[dict get $v firstof] ne {}} {
-                            set vals [lrange [dict get $components [dict get $v firstof] value] 0 0]
-                        } else {
-                            set vals [dict get $v value]
-                        }
-                        set _vals [lmap val $vals {if {$val eq {}} {lindex ε} {set val}}]
-                        if {[dict get $v scalar]} {
-                            append str [format "%-15s %s = %s\n" [dict get $v label] $k $_vals]
-                        } else {
-                            append str [format "%-15s %s = {%s}\n" [dict get $v label] $k [join $_vals ", "]]
-                        }
-                    }
-                }
-            }
-        }
+        append str [$table print]
+        append str [$iddef print]
         puts -nonewline $str
     }
 
@@ -420,21 +407,6 @@ oo::class create ::automata::Configuration {
         }
     }
 
-    method id desc {
-        if {[dict exists $components id]} {
-            return -code error [format {id format already defined}]
-        }
-        set name id
-        dict set components $name label ID
-        dict set components $name type id
-        dict set components $name members {}
-        dict with components $name {
-            foreach {tag type label} $desc {
-                lappend members [list $tag $type $label]
-            }
-        }
-    }
-
     method Arrange {varName sorted} {
         upvar 1 $varName value
         if {$sorted} {
@@ -454,9 +426,6 @@ oo::class create ::automata::Configuration {
             table {
                 my InTable {*}$args
             }
-            id {
-                my InID {*}$args
-            }
             default {
                 my InGraded $what {*}$args
             }
@@ -473,9 +442,6 @@ oo::class create ::automata::Configuration {
         switch $what {
             table {
                 my GetTable {*}$args
-            }
-            id {
-                my GetID {*}$args
             }
             doc {
                 my GetDoc {*}$args
@@ -507,9 +473,6 @@ oo::class create ::automata::Configuration {
         switch $what {
             table {
                 my AddTable {*}$args
-            }
-            id {
-                my AddID {*}$args
             }
             doc {
                 my AddDoc {*}$args
@@ -620,34 +583,6 @@ oo::class create ::automata::Configuration {
             }
             lappend value $tuple
         }
-    }
-
-    method AddID args {
-        log::log i [info level 0] 
-        set name id
-        set result [dict create]
-        dict with components $name {
-            foreach arg $args member $members {
-                if {$member eq {}} {
-                    return -code error [format {too many symbols}]
-                }
-                lassign $member key fmt
-                if {[string index $fmt end] eq "*"} {
-                    if {[my FitsGraded [string trimright $fmt *] syms {*}$arg]} {
-                        dict set result $key $syms
-                    } else {
-                        return
-                    }
-                } else {
-                    if {[my FitsGraded $fmt sym $arg]} {
-                        dict set result $key $sym
-                    } else {
-                        return
-                    }
-                }
-            }
-        }
-        return $result
     }
 
     method succ {what args} {

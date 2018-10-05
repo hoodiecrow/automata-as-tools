@@ -1,6 +1,7 @@
 namespace eval automata {}
 
 oo::class create ::automata::Machine {
+    variable iddef
 
     constructor args {
         next {*}$args
@@ -28,18 +29,18 @@ oo::class create ::automata::Machine {
         # unpack ID
         dict with id {
             # get epsilons
-            set targets [lmap row [my get table $q {}] {
+            set targets [lmap row [my get table $state {}] {
                 lindex $row 2
             }]
             set ids [lmap target $targets {
-                my add id $a $target
+                $iddef make $input $target
             }]
-            set _a [lassign $a A]
-            set targets [lmap row [my get table $q $A] {
+            set _tail [lassign $input top]
+            set targets [lmap row [my get table $state $top] {
                 lindex $row 2
             }]
             lappend ids {*}[lmap target $targets {
-                my add id $_a $target
+                $iddef make $_tail $target
             }]
         }
         return $ids
@@ -49,30 +50,30 @@ oo::class create ::automata::Machine {
         # unpack ID
         dict with id {
             # get epsilons
-            set tuples [my get table $q {}]
-            set _a [lassign $a A]
-            set _b [lassign $b B]
+            set tuples [my get table $state {}]
+            set itail [lassign $input itop]
+            set otail [lassign $output otop]
             # get moves
-            lappend tuples {*}[my get table $q $A]
+            lappend tuples {*}[my get table $state $itop]
             set ids [lmap tuple $tuples {
                 # q1 from tuple
                 lassign $tuple - inp q1 out
                 if {$inp eq {}} {
-                    lset tuple 1 $a
+                    lset tuple 1 $input
                 } else {
                     # consume input token
-                    lset tuple 1 $_a
+                    lset tuple 1 $itail
                 }
                 if {$out eq {}} {
-                    lset tuple 3 $b
-                } elseif {$out ne $B} {
+                    lset tuple 3 $output
+                } elseif {$out ne $otop} {
                     # reject invalid transition
                     continue
                 } else {
                     # consume output token
-                    lset tuple 3 $_b
+                    lset tuple 3 $otail
                 }
-                my add id {*}[lrange $tuple 1 end]
+                $iddef make {*}[lrange $tuple 1 end]
             }]
         }
         return $ids
@@ -81,27 +82,27 @@ oo::class create ::automata::Machine {
     method translate id {
         # unpack ID
         dict with id {
-            set _a [lassign $a A]
+            set itail [lassign $input itop]
             # get epsilons
-            set tuples [my get table $q {}]
+            set tuples [my get table $state {}]
             # get moves
-            lappend tuples {*}[my get table $q $A]
+            lappend tuples {*}[my get table $state $itop]
             set ids [lmap tuple $tuples {
                 # q1 from tuple
                 lassign $tuple - inp q1 out
                 if {$inp eq {}} {
-                    lset tuple 1 $a
+                    lset tuple 1 $input
                 } else {
                     # consume input token
-                    lset tuple 1 $_a
+                    lset tuple 1 $itail
                 }
                 if {$out eq {}} {
-                    lset tuple 3 $b
+                    lset tuple 3 $output
                 } else {
                     # emit output token
-                    lset tuple 3 [linsert $b end [lindex $out 0]]
+                    lset tuple 3 [linsert $output end [lindex $out 0]]
                 }
-                my add id {*}[lrange $tuple 1 end]
+                $iddef make {*}[lrange $tuple 1 end]
             }]
         }
         return $ids
@@ -110,28 +111,28 @@ oo::class create ::automata::Machine {
     method reconstruct id {
         # unpack ID
         dict with id {
-            set _b [lassign $b B]
+            set otail [lassign $output otop]
             # get moves
-            set tuples [my get table $q *]
+            set tuples [my get table $state *]
             set ids [lmap tuple $tuples {
                 # q1 from tuple
                 lassign $tuple - inp q1 out
                 if {$inp eq {}} {
-                    lset tuple 1 $a
+                    lset tuple 1 $input
                 } else {
                     # emit input token
-                    lset tuple 1 [linsert $a end [lindex $inp 0]]
+                    lset tuple 1 [linsert $input end [lindex $inp 0]]
                 }
                 if {$out eq {}} {
-                    lset tuple 3 $b
-                } elseif {$out ne $B} {
+                    lset tuple 3 $output
+                } elseif {$out ne $otop} {
                     # reject invalid transition
                     continue
                 } else {
                     # consume output token
-                    lset tuple 3 $_b
+                    lset tuple 3 $otail
                 }
-                my add id {*}[lrange $tuple 1 end]
+                $iddef make {*}[lrange $tuple 1 end]
             }]
         }
         return $ids
@@ -141,56 +142,57 @@ oo::class create ::automata::Machine {
         # unpack ID
         dict with id {
             # get moves
-            set tuples [my get table $q *]
+            set tuples [my get table $state *]
             set ids [lmap tuple $tuples {
                 # q1 from tuple
                 lassign $tuple - inp q1 out
                 if {$inp eq {}} {
-                    lset tuple 1 $a
+                    lset tuple 1 $input
                 } else {
                     # emit input token
-                    lset tuple 1 [linsert $a end [lindex $inp 0]]
+                    lset tuple 1 [linsert $input end [lindex $inp 0]]
                 }
                 if {$out eq {}} {
-                    lset tuple 3 $b
+                    lset tuple 3 $output
                 } else {
                     # emit output token
-                    lset tuple 3 [linsert $b end [lindex $out 0]]
+                    lset tuple 3 [linsert $output end [lindex $out 0]]
                 }
-                my add id {*}[lrange $tuple 1 end]
+                $iddef make {*}[lrange $tuple 1 end]
             }]
         }
         return $ids
     }
 
-    method makeMoves id {
+    method PDA-exec id {
         # unpack ID
         dict with id {
-            set _w [lassign $w W]
-            set _z [lassign $z Z]
+            set itail [lassign $input itop]
+            set _tail [lassign $stack _top]
             # get epsilons
-            set tuples [my get table $q {}]
+            set tuples [my get table $state {}]
             # get moves
-            lappend tuples {*}[my get table $q $W]
+            lappend tuples {*}[my get table $state $itop]
             set ids [lmap tuple $tuples {
                 # q1 from tuple
                 lassign $tuple - inp q1 O _o
                 if {$inp eq {}} {
-                    lset tuple 1 $w
+                    lset tuple 1 $input
                 } else {
                     # consume input token
-                    lset tuple 1 $_w
+                    lset tuple 1 $itail
                 }
-                if {$O ne $Z} {
+                if {$O ne $_top} {
                     # reject invalid transition
                     continue
                 } else {
                     # push stack
-                    lset tuple 3 [concat {*}$_o $_z]
+                    lset tuple 3 [concat {*}$_o $_tail]
                 }
-                my add id {*}[apply {tuple {
-                    set _z [lassign $tuple - w q z]
-                    list $w $q $z
+                # TODO ??
+                $iddef make {*}[apply {tuple {
+                    set _tail [lassign $tuple - input state stack]
+                    list $input $state $stack
                 }} $tuple]
             }]
         }
@@ -247,19 +249,19 @@ oo::class create ::automata::Machine {
         return
     }
 
-    method process id {
+    method BTM-exec id {
         # unpack ID
         dict with id {
-            if {[my in F $q]} {
+            if {[my in F $state]} {
                 return
             }
             # should always be 0 or 1 tuples
-            set tuples [my get table $q [lindex $t $h]]
+            set tuples [my get table $state [lindex $tape $head]]
             set ids [lmap tuple $tuples {
-                lassign $tuple - - q1 p m
-                my Print t $h $p
-                my Move t h $m
-                my add id $t $h $q1
+                lassign $tuple - - next print move
+                my Print tape $head $print
+                my Move tape head $move
+                $iddef make $tape $head $next
             }]
         }
         return $ids

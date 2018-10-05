@@ -101,7 +101,7 @@ q0    inp   q1    out
 14    1     15    HALT
 Instantaneous description
 tape contents          tape: A*
-current index          head: N
+current index          head: V
 instruction pointer    ipointer: Q
 }
 

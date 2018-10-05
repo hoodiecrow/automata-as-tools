@@ -102,16 +102,16 @@ q0    inp   q1    out
 16    0     17    RET
 16    1     17    RET
 Instantaneous description
-world width            world: N
-world height           height: N
-robot x                xpos: N
-robot y                ypos: N
-#robot's beepers       bag: N
+world width            width: V
+world height           height: V
+robot x                xpos: V
+robot y                ypos: V
+#robot's beepers       bag: V
 robot facing           facing: B
 return stack           returns: Q*
 test state             test: A
-beeper coords          beepers: N*
-wall coords            walls: N*
+beeper coords          beepers: V*
+wall coords            walls: V*
 instruction pointer    ipointer: Q
 }
 

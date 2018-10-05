@@ -50,7 +50,7 @@ Move symbols    C = {L, R, N}
 State symbols   Q = {A, B, C, H}
 Start symbol    S = A
 Final symbols   F = {H}
-Head position   H = {0}
+Head position   I = {0}
 Transitions
 q0    inp   q1    out
 A     0     B     P R
@@ -61,7 +61,7 @@ C     0     B     P L
 C     1     H     P R
 Instantaneous description
 tape contents          tape: A*
-current index          head: N
+current index          head: I
 current state          state: Q
 }
 

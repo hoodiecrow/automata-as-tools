@@ -33,10 +33,6 @@ oo::class create ::automata::FSM {
             input "remaining input" A*
             state "current state"   Q 
         }
-        if no {
-            my Run accept   "accept the input"     input A*
-            my Run classify "classifies the input" input A*
-        }
         my installRunMethod {
             -accept Accept {[[accept]] the input}
             -classify Classify {[[classify]] the input}
@@ -48,9 +44,11 @@ oo::class create ::automata::FSM {
         my graded "Start symbols" S -superset Q
         my graded "Final symbols" F -superset Q
         my table -as {Q A Q}
-        my id {
-            a A* "remaining input"
-            q Q  "current state"
+        if no {
+            my id {
+                a A* "remaining input"
+                q Q  "current state"
+            }
         }
     }
 
@@ -89,16 +87,16 @@ oo::class create ::automata::FSM {
         log::log d [info level 0] 
         # Are we in a final state when all input symbols are consumed?
         lassign $arglist a
-        set a [list {*}$a]
-        set ids [lmap q [my get S] {
-            my AddID $a $q
+        set input [list {*}$a]
+        set ids [lmap state [my get S] {
+            $iddef make $input $state
         }]
         set results [concat {*}[lmap id $ids {
             my search $id consumeOne
         }]]
         lmap result $results {
             dict with result {
-                if {[llength $a] == 0 && [my in F $q]} {
+                if {[llength $input] == 0 && [my in F $state]} {
                     return 1
                 }
             }
@@ -109,17 +107,17 @@ oo::class create ::automata::FSM {
     method Classify arglist {
         # What state are we in when all input symbols are consumed?
         lassign $arglist a
-        set a [list {*}$a]
-        set ids [lmap q [my get S] {
-            my AddID $a $q
+        set input [list {*}$a]
+        set ids [lmap state [my get S] {
+            $iddef make $input $state
         }]
         set results [concat {*}[lmap id $ids {
             my search $id consumeOne
         }]]
         lmap result $results {
             dict with result {
-                if {[llength $a] == 0 && [my in F $q]} {
-                    set q
+                if {[llength $input] == 0 && [my in F $state]} {
+                    set state
                 } else {
                     continue
                 }
@@ -145,9 +143,6 @@ oo::class create ::automata::FST {
                 a "(for `-recognize` and `-translate`) an input symbol list"
                 b "(for `-recognize` and `-reconstruct`) an output symbol list"
                 steps "(for `-generate`) a number of steps"
-            }
-            table Q A Q B
-            id {
             }
         }
         my installRunMethod {
@@ -177,10 +172,12 @@ oo::class create ::automata::FST {
         my graded "Start symbols"  S -superset Q
         my graded "Final symbols"  F -superset Q
         my table -as {Q A Q B}
-        my id {
-            a A* "input symbols"
-            q Q  "current state"
-            b A* "output symbols"
+        if no {
+            my id {
+                a A* "input symbols"
+                q Q  "current state"
+                b A* "output symbols"
+            }
         }
     }
 
@@ -217,19 +214,20 @@ oo::class create ::automata::FST {
     }
 
     method Recognize arglist {
-        # Are we in a final state when all input symbols in a and b are consumed?
+        # Are we in a final state when all symbols in input and output are consumed?
         lassign $arglist a b
-        set a [list {*}$a]
-        set b [list {*}$b]
-        set ids [lmap q [my get S] {
-            my AddID $a $q $b
+        set input [list {*}$a]
+        set output [list {*}$b]
+        set ids [lmap state [my get S] {
+            $iddef make $input $state $output
         }]
+        log::log d \$ids=$ids 
         set results [concat {*}[lmap id $ids {
             my search $id recognize
         }]]
-        foreach result $results {
+        lmap result $results {
             dict with result {
-                if {[llength $a] == 0 && [my in F $q] && [llength $b] == 0} {
+                if {[llength $input] == 0 && [my in F $state] && [llength $output] == 0} {
                     return 1
                 }
             }
@@ -238,19 +236,19 @@ oo::class create ::automata::FST {
     }
 
     method Translate arglist {
-        # What symbols have been added to b when all input symbols in a are consumed?
+        # What symbols have been added to output when all input symbols in a are consumed?
         lassign $arglist a
-        set a [list {*}$a]
-        set ids [lmap q [my get S] {
-            my AddID $a $q {}
+        set input [list {*}$a]
+        set ids [lmap state [my get S] {
+            $iddef make $input $state {}
         }]
         set results [concat {*}[lmap id $ids {
             my search $id translate
         }]]
         lmap result $results {
             dict with result {
-                if {[llength $a] == 0 && [my in F $q]} {
-                    set b
+                if {[llength $input] == 0 && [my in F $state]} {
+                    set output
                 } else {
                     continue
                 }
@@ -259,19 +257,19 @@ oo::class create ::automata::FST {
     }
 
     method Reconstruct arglist {
-        # What symbols have been added to a when all input symbols in b are consumed?
+        # What symbols have been added to input when all symbols in output are consumed?
         lassign $arglist b
-        set b [list {*}$b]
-        set ids [lmap q [my get S] {
-            my AddID {} $q $b
+        set output [list {*}$b]
+        set ids [lmap state [my get S] {
+            $iddef make {} $state $output
         }]
         set results [concat {*}[lmap id $ids {
             my search $id reconstruct
         }]]
         lmap result $results {
             dict with result {
-                if {[my in F $q] && [llength $b] == 0} {
-                    set a
+                if {[my in F $state] && [llength $output] == 0} {
+                    set input
                 } else {
                     continue
                 }
@@ -280,17 +278,17 @@ oo::class create ::automata::FST {
     }
 
     method Generate arglist {
-        # If we take N steps into the transition sequence (or sequence powerset), what do we get in a and b?
+        # If we take N steps into the transition sequence (or sequence powerset), what do we get in input and output?
         lassign $arglist steps
-        set ids [lmap q [my get S] {
-            my AddID {} $q {}
+        set ids [lmap state [my get S] {
+            $iddef make {} $state {}
         }]
         set results [concat {*}[lmap id $ids {
             my search $id generate $steps
         }]]
         lmap result $results {
             dict with result {
-                if {[my in F $q]} {
+                if {[my in F $state]} {
                     dict values $result
                 } else {
                     continue
@@ -311,9 +309,6 @@ oo::class create ::automata::PDA {
             option -accept "accepts the input (default)" Accept
             option -classify "classifies the input" Classify
             runargs {a "a list of input symbols"}
-            table Q A Q B B*
-            id {
-            }
         }
         my installRunMethod {
             -accept Accept {[[accept]] the input}
@@ -340,10 +335,12 @@ oo::class create ::automata::PDA {
         my graded "Initial stack" Z -firstof B -scalar
         my graded "Final symbols" F -superset Q
         my table -as {Q A Q B B*}
-        my id {
-            w A* "remaining input"
-            q Q  "current state"
-            z B* "current stack"
+        if no {
+            my id {
+                w A* "remaining input"
+                q Q  "current state"
+                z B* "current stack"
+            }
         }
     }
 
@@ -386,19 +383,17 @@ oo::class create ::automata::PDA {
     method Accept arglist {
         # Are we in a final state when all input symbols are consumed and the stack has only one item?
         lassign $arglist a
-        set a [list {*}$a]
-        if no {
-            set Z [lindex [my get B] 0]
-        }
-        set ids [lmap q [my get S] {
-            my AddID $a $q [list [my get Z]]
+        set input [list {*}$a]
+        set stack [list [my get Z]]
+        set ids [lmap state [my get S] {
+            $iddef make $input $state $stack
         }]
         set results [concat {*}[lmap id $ids {
-            my search $id makeMoves
+            my search $id PDA-exec
         }]]
         lmap result $results {
             dict with result {
-                if {[llength $w] eq 0 && [my in F $q] && [llength $z] eq 1} {
+                if {[llength $input] eq 0 && [my in F $state] && [llength $stack] eq 1} {
                     return 1
                 }
             }
@@ -409,18 +404,18 @@ oo::class create ::automata::PDA {
     method Classify arglist {
         # What state are we in when all input symbols are consumed and the stack has only one item?
         lassign $arglist a
-        set a [list {*}$a]
-        set Z [lindex [my get B] 0]
-        set ids [lmap q [my get S] {
-            my AddID $a $q [list $Z]
+        set input [list {*}$a]
+        set stack [list [my get Z]]
+        set ids [lmap state [my get S] {
+            $iddef make $input $state $stack
         }]
         set results [concat {*}[lmap id $ids {
-            my search $id makeMoves
+            my search $id PDA-exec
         }]]
         lmap result $results {
             dict with result {
-                if {[llength $w] eq 0 && [my in F $q] && [llength $z] eq 1} {
-                    set q
+                if {[llength $input] eq 0 && [my in F $state] && [llength $stack] eq 1} {
+                    set state
                 } else {
                     continue
                 }
@@ -438,9 +433,6 @@ oo::class create ::automata::BTM {
     constructor args {
         if no {
             runargs {tape "a (part of a) list of tape symbols"}
-            table Q A Q B C
-            id {
-            }
         }
         my installRunMethod {
             tape {} {a list of initial tape symbols}
@@ -452,11 +444,11 @@ oo::class create ::automata::BTM {
         my type Q "State symbols" #+ -sorted 0
         my type S "Start symbol"  Q
         my type F "Final symbols" Q+
-        my type H "Head position" N+ -index 0
+        my type I "Head position" N+ -index 0
         my table1 Q A Q B C
         my id1 {
             tape  "tape contents" A*
-            head  "current index" N 
+            head  "current index" I 
             state "current state" Q 
         }
         my graded "Tape symbols"  A -sorted
@@ -467,10 +459,12 @@ oo::class create ::automata::BTM {
         my graded "Final symbols" F
         my graded "Head position" H -domain N -default 0 -scalar
         my table -as {Q A Q B C}
-        my id {
-            t A* "tape"
-            h H  "current cell"
-            q Q  "current state"
+        if no {
+            my id {
+                t A* "tape"
+                h H  "current cell"
+                q Q  "current state"
+            }
         }
     }
 
@@ -502,21 +496,18 @@ oo::class create ::automata::BTM {
         }
     }
 
-    method Run {tape {tapeIndex {}}} {
-        #: Run this tape from this position, return tape, current position, and ending state.
-        if {$tapeIndex ne {}} {
-            my add H $tapeIndex
-        }
+    method Run tape {
+        #: Run this tape from start index, return tape, current index, and ending state.
         set tape [list {*}$tape]
-        set ids [lmap q [my get S] {
-            my AddID $tape [my get H] $q
+        set ids [lmap state [my get S] {
+            $iddef make $tape [my get H] $state
         }]
         set results [concat {*}[lmap id $ids {
-            my search $id process
+            my search $id BTM-exec
         }]]
         lmap result $results {
             dict with result {
-                if {[my in F $q]} {
+                if {[my in F $state]} {
                     dict values $result
                 } else {
                     continue

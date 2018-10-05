@@ -81,7 +81,7 @@ q0    inp   q1    out
 9     0     10    NOP
 9     1     10    NOP
 Instantaneous description
-register cells         register: N*
+register cells         registers: B*
 instruction pointer    ipointer: Q
 }
 

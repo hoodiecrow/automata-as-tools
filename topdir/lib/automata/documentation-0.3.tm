@@ -154,9 +154,6 @@ oo::class create ::automata::Documentation {
                 table {
                     set comp2 [dict get $conf as]
                 }
-                id {
-                    set comp3 [lmap m [dict get $conf members] {lindex $m 0}]
-                }
                 default {
                     lappend comp1 $name
                 }
@@ -165,11 +162,13 @@ oo::class create ::automata::Documentation {
         append docstr "\n## Definition\n"
         append docstr "\n`$c` (class)\n"
         append docstr \n[string trim [my get doc preamble]]\n
-        append docstr [format "\nThe configuration for %s is (%s | %s | %s)\n" \
-            [namespace tail $c] \
-            [join $comp1 ", "] \
-            [join [string map {* \\\\*} $comp2] ×] \
-            [join $comp3 ", "]]
+        if no {
+            append docstr [format "\nThe configuration for %s is (%s | %s | %s)\n" \
+                [namespace tail $c] \
+                [join $comp1 ", "] \
+                [join [string map {* \\\\*} $comp2] ×] \
+                [join $comp3 ", "]]
+        }
         append docstr \n {where the [[defining tuple|dt]] is:} \n\n
         foreach name $comp1 {
             dict with components $name {
@@ -219,12 +218,14 @@ oo::class create ::automata::Documentation {
             append docstr \n
         }
         append docstr \n {and the [[Instantaneous Description|id]] (ID) is:} \n\n
-        foreach m [dict get $components id members] {
-            lassign $m name type label
-            append docstr [format "* `%s` : %-2s = %s\n" \
+        if no {
+            foreach m [dict get $components id members] {
+                lassign $m name type label
+                append docstr [format "* `%s` : %-2s = %s\n" \
                 $name \
                 [string map {* \\*} $type] \
                 [string tolower $label]]
+            }
         }
         if {[dict exists $doc language]} {
             append docstr "\n## Language\n"

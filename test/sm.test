@@ -52,7 +52,7 @@ q0    inp   q1    out
 4     0     5     MUL
 4     1     5     MUL
 Instantaneous description
-stack contents         stack: N*
+stack contents         stack: V*
 instruction pointer    ipointer: Q
 }
 
@@ -103,7 +103,7 @@ q0    inp   q1    out
 4     0     5     NOP
 4     1     5     NOP
 Instantaneous description
-stack contents         stack: N*
+stack contents         stack: V*
 instruction pointer    ipointer: Q
 }
 

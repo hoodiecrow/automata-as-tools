@@ -9,7 +9,7 @@ namespace eval automata {}
 # a transition table.
 oo::class create ::automata::CodeMachine {
 
-    variable types table
+    variable types table iddef
 
     method compile tokens {
         #: Convert source code to transition configuration.
@@ -159,7 +159,7 @@ oo::class create ::automata::CodeMachine {
 
     method SingleThread {fn data} {
         set data [list {*}$data]
-        set id [my AddID $data [my get S]]
+        set id [$iddef make $data [my get S]]
         set results [my search $id $fn]
         dict values [lindex $results 0]
     }
@@ -197,9 +197,6 @@ Specify which actual instruction set to use when instantiating machine.
         }
         if no {
             runargs {registers "a list of register cells"}
-            table Q A Q #*
-            id {
-            }
         }
         my installOperations $instructionSet
         my installRunMethod {
@@ -214,8 +211,8 @@ Specify which actual instruction set to use when instantiating machine.
         my type O "Operations"      #+ -hidden 1
         my table1 Q A Q O*
         my id1 {
-            register "register cells"      N*
-            ipointer "instruction pointer" Q 
+            registers "register cells"      B*
+            ipointer  "instruction pointer" Q 
         }
         my graded "Flag symbols"    A -domain B
         my graded "Register values" B -domain N -hide
@@ -225,9 +222,11 @@ Specify which actual instruction set to use when instantiating machine.
         my graded "Program end"     F
         my graded "Operations"      O -hide
         my table -as {Q A Q O*}
-        my id {
-            r B* "registers"
-            i Q  "instruction pointer"
+        if no {
+            my id {
+                r B* "registers"
+                i Q  "instruction pointer"
+            }
         }
 
     }
@@ -235,32 +234,32 @@ Specify which actual instruction set to use when instantiating machine.
     method Exec id {
         # unpack ID
         dict with id {
-            if {[my in F $i]} {
+            if {[my in F $ipointer]} {
                 return
             }
             # get move
-            lassign [lindex [my get table $i 0] 0] - - - code
+            lassign [lindex [my get table $ipointer 0] 0] - - - code
             lassign $code tag a b
             switch $tag {
-                JE: { set flag [expr [lindex $r $a] eq [lindex $r $b]] }
-                JZ: { set flag [expr [lindex $r $a] eq [lindex $r 0]] }
+                JE: { set flag [expr [lindex $registers $a] eq [lindex $registers $b]] }
+                JZ: { set flag [expr [lindex $registers $a] eq [lindex $registers 0]] }
                 default {
                     set flag 0
                 }
             }
-            lassign [lindex [my get table $i $flag] 0] - - i
+            lassign [lindex [my get table $ipointer $flag] 0] - - next
             # build new ID
             switch $tag {
-                INC: { lset r $a [expr {[lindex $r $a] + 1}] }
-                DEC: { lset r $a [expr {[lindex $r $a] - 1}] }
-                CLR: { lset r $a [lindex $r 0] }
-                CPY: { lset r $a [lindex $r $b] }
+                INC: { lset registers $a [expr {[lindex $registers $a] + 1}] }
+                DEC: { lset registers $a [expr {[lindex $registers $a] - 1}] }
+                CLR: { lset registers $a [lindex $registers 0] }
+                CPY: { lset registers $a [lindex $registers $b] }
                 NOP  {}
             }
-            if {[lindex $r 0] ne 0} {
-                return -code error [format {register 0 has been changed}]
+            if {[lindex $registers 0] ne 0} {
+                return -code error [format {registers 0 has been changed}]
             }
-            set res [list [my add id $r $i]]
+            set res [list [$iddef make $registers $next]]
         }
         return $res
     }
@@ -307,7 +306,6 @@ Test numbers:
                 beepers "an even-sized list of x, y values"
                 walls   "an even-sized list of x, y values"
             }
-            table Q A Q #*
         }
         my type A "Flag symbols"    {@ 0 1}
         my type B "Facing"          {@ 0 1 2 3} -hidden 1
@@ -315,18 +313,19 @@ Test numbers:
         my type Q "Addresses"       N+
         my type S "Start address"   Q
         my type F "Final address"   Q
+        my type V "Values"          N -hidden 1
         my table1 Q A Q O*
         my id1 {
-            world    "world width"         N 
-            height   "world height"        N 
-            xpos     "robot x"             N 
-            ypos     "robot y"             N 
-            bag      "#robot's beepers"    N 
+            width    "world width"         V 
+            height   "world height"        V 
+            xpos     "robot x"             V 
+            ypos     "robot y"             V 
+            bag      "#robot's beepers"    V 
             facing   "robot facing"        B 
             returns  "return stack"        Q*
             test     "test state"          A 
-            beepers  "beeper coords"       N*
-            walls    "wall coords"         N*
+            beepers  "beeper coords"       V*
+            walls    "wall coords"         V*
             ipointer "instruction pointer" Q 
         }
         my type O "Operations"      #+ -hidden 1
@@ -338,62 +337,64 @@ Test numbers:
         my graded "Program end"     F
         my graded "Operations"      O -hide
         my table -as {Q A Q O*}
-        my id {
-            w B  "world width"
-            h B  "world height"
-            x B  "robot x"
-            y B  "robot y"
-            n B  "robot's beepers"
-            f C  "robot facing"
-            r Q* "return stack"
-            t A  "test state"
-            b B* "beeper coords"
-            a B* "wall coords"
-            i Q  "instruction pointer"
+        if no {
+            my id {
+                w B  "world width"
+                h B  "world height"
+                x B  "robot x"
+                y B  "robot y"
+                n B  "robot's beepers"
+                f C  "robot facing"
+                r Q* "return stack"
+                t A  "test state"
+                b B* "beeper coords"
+                a B* "wall coords"
+                i Q  "instruction pointer"
+            }
         }
     }
 
     method Turn {varName {a 1}} {
-        upvar 1 $varName f
-        set f [expr {($f + $a + 4) % 4}]
+        upvar 1 $varName facing
+        set facing [expr {($facing + $a + 4) % 4}]
     }
 
-    method RMove {w h varName1 varName2 f a} {
-        upvar 1 $varName1 x $varName2 y
-        switch $f {
-            0 { set x [expr {$x + 1}] }
-            1 { set y [expr {$y + 1}] }
-            2 { set x [expr {$x - 1}] }
-            3 { set y [expr {$y - 1}] }
+    method RMove {width height varName1 varName2 facing walls} {
+        upvar 1 $varName1 xpos $varName2 ypos
+        switch $facing {
+            0 { set xpos [expr {$xpos + 1}] }
+            1 { set ypos [expr {$ypos + 1}] }
+            2 { set xpos [expr {$xpos - 1}] }
+            3 { set ypos [expr {$ypos - 1}] }
         }
-        if {[my CheckCollision $w $h $x $y $a]} {
+        if {[my CheckCollision $width $height $xpos $ypos $walls]} {
             return -code error [format {collision with a wall!}]
         }
     }
 
-    method Look {x y f {ddir 0}} {
-        switch [expr {($f + $ddir + 4) % 4}] {
-            0 { incr x }
-            1 { incr y }
-            2 { incr x -1 }
-            3 { incr y -1 }
+    method Look {xpos ypos facing {ddir 0}} {
+        switch [expr {($facing + $ddir + 4) % 4}] {
+            0 { incr xpos }
+            1 { incr ypos }
+            2 { incr xpos -1 }
+            3 { incr ypos -1 }
         }
-        return [list $x $y]
+        return [list $xpos $ypos]
     }
 
-    method FindBeeper {x y b} {
-        foreach {X Y} $b {
-            if {$X eq $x && $Y eq $y} {
+    method FindBeeper {xpos ypos beepers} {
+        foreach {X Y} $beepers {
+            if {$X eq $xpos && $Y eq $ypos} {
                 return 1
             }
         }
         return 0
     }
 
-    method CheckCollision {w h x y a} {
-        set _a [list 0 $y [expr {$w + 1}] $y $x 0 $x [expr {$h + 1}]]
-        foreach {X Y} [concat $_a $a] {
-            if {$X eq $x && $Y eq $y} {return 1}
+    method CheckCollision {width height xpos ypos walls} {
+        set _walls [list 0 $ypos [expr {$width + 1}] $ypos $xpos 0 $xpos [expr {$height + 1}]]
+        foreach {X Y} [concat $_walls $walls] {
+            if {$X eq $xpos && $Y eq $ypos} {return 1}
         }
         return 0
     }
@@ -413,20 +414,20 @@ Test numbers:
             } $idx]
             switch $label {
                 front-is-clear {
-                    expr {![my CheckCollision $w $h {*}[my Look $x $y $f] $a]}
+                    expr {![my CheckCollision $width $height {*}[my Look $xpos $ypos $facing] $walls]}
                 }
                 left-is-clear {
-                    expr {![my CheckCollision $w $h {*}[my Look $x $y $f +1] $a]}
+                    expr {![my CheckCollision $width $height {*}[my Look $xpos $ypos $facing +1] $walls]}
                 }
                 right-is-clear {
-                    expr {![my CheckCollision $w $h {*}[my Look $x $y $f -1] $a]}
+                    expr {![my CheckCollision $width $height {*}[my Look $xpos $ypos $facing -1] $walls]}
                 }
-                next-to-a-beeper { my FindBeeper $x $y $b }
-                facing-east  { expr {$f eq 0} }
-                facing-north { expr {$f eq 1} }
-                facing-west  { expr {$f eq 2} }
-                facing-south { expr {$f eq 3} }
-                any-beepers-in-beeper-bag { expr {$n > 0} }
+                next-to-a-beeper { my FindBeeper $xpos $ypos $beepers }
+                facing-east  { expr {$facing eq 0} }
+                facing-north { expr {$facing eq 1} }
+                facing-west  { expr {$facing eq 2} }
+                facing-south { expr {$facing eq 3} }
+                any-beepers-in-beeper-bag { expr {$bag > 0} }
             }
         }
     }
@@ -436,39 +437,39 @@ Test numbers:
         # unpack ID
         dict with id {
             # get move
-            set next [my succ Q $i]
-            lassign [lindex [my get table $i 0] 0] - - - code
+            set next [my succ Q $ipointer]
+            lassign [lindex [my get table $ipointer 0] 0] - - - code
             lassign $code tag _a _b _c _d _e
             # test-sensitive jumps are coded as NOP
             if {$tag eq "NOP"} {
-                set flag $t
+                set flag $test
             } else {
                 set flag 0
             }
-            set t 0
-            lassign [lindex [my get table $i $flag] 0] - - i
+            set test 0
+            lassign [lindex [my get table $ipointer $flag] 0] - - i
             switch $tag {
                 JT: - NOP {}
                 HALT  {
                     return
                 }
                 TURN  {
-                    my Turn f
+                    my Turn facing
                 }
                 MOVE  {
-                    my RMove $w $h x y $f $a
+                    my RMove $width $height xpos ypos $facing $walls
                 }
                 TAKE - DROP {
                 }
                 TEST: {
-                    set t [my Test $id $_a]
+                    set test [my Test $id $_a]
                 }
                 RET   {
-                    set r [lassign $r i]
+                    set returns [lassign $returns i]
                 }
                 CALL: {
-                    set r [linsert $r 0 $next]
-                    set t 0
+                    set returns [linsert $returns 0 $next]
+                    set test 0
                 }
             }
         }
@@ -476,14 +477,14 @@ Test numbers:
             return
         }
         # build new ID
-        lappend _id $w $h
-        lappend _id $x $y $n $f
-        lappend _id $r
-        lappend _id $t
-        lappend _id $b
-        lappend _id $a
+        lappend _id $width $height
+        lappend _id $xpos $ypos $bag $facing
+        lappend _id $returns
+        lappend _id $test
+        lappend _id $beepers
+        lappend _id $walls
         lappend _id $i
-        return [list [my add id {*}$_id]]
+        return [list [$iddef make {*}$_id]]
     }
 
     method Run {world robot beepers walls} {
@@ -495,7 +496,7 @@ Test numbers:
         lappend id $beepers
         lappend id $walls
         lappend id [my get S]
-        set id [my add id {*}$id]
+        set id [$iddef make {*}$id]
         set results [my search $id Exec]
         set res [dict values [lindex $results 0]]
         list [lrange $res 0 1] [lrange $res 2 5] [lindex $res 6] [lindex $res 7] [lindex $res 8] [lindex $res 9] [lindex $res 10]
@@ -522,11 +523,6 @@ is set by compiling a program.  The tape uses a binary symbol set
         if no {
             runargs {tape "a (part of a) list of tape symbols"}
             table Q A Q #*
-            id {
-                tape     A* "tape contents"
-                head     N  "current index"
-                ipointer Q  "instruction pointer"
-            }
         }
         my type A "Tape symbols"    {@ 0 1}
         my type B "Move symbols"    {@ L R} -hidden 1
@@ -535,10 +531,11 @@ is set by compiling a program.  The tape uses a binary symbol set
         my type S "Start address"   Q
         my type F "Final address"   Q
         my type O "Operations"      #+ -hidden 1
+        my type V "Values"          N -hidden 1
         my table1 Q A Q O*
         my id1 {
             tape     "tape contents"       A*
-            head     "current index"       N 
+            head     "current index"       V 
             ipointer "instruction pointer" Q 
         }
         my graded "Tape symbols"  A -domain B
@@ -548,10 +545,12 @@ is set by compiling a program.  The tape uses a binary symbol set
         my graded "Head position" H -domain N -default 0 -scalar -hide
         my graded "Operations"    O -hide
         my table -as {Q A Q O*}
-        my id {
-            t A* "tape"
-            h H  "current cell"
-            q Q  "current state"
+        if no {
+            my id {
+                t A* "tape"
+                h H  "current cell"
+                q Q  "current state"
+            }
         }
     }
 
@@ -560,31 +559,31 @@ is set by compiling a program.  The tape uses a binary symbol set
     method Exec id {
         # unpack ID
         dict with id {
-            if {[my in F $q]} {
+            if {[my in F $ipointer]} {
                 return
             }
             # should always be 0 or 1 tuples
-            set tuples [my get table $q [lindex $t $h]]
+            set tuples [my get table $ipointer [lindex $tape $head]]
             if {[llength $tuples] eq 0} {
                 return
             }
             set tuple [lindex $tuples 0]
-            lassign $tuple - - q code
+            lassign $tuple - - i code
             lassign $code tag a b
             switch $tag {
                 HALT  {
                     return
                 }
                 PRINT: {
-                    lset t $h [lindex [my get A] $a]
+                    lset tape $head [lindex [my get A] $a]
                 }
                 ROLL: {
                     # PTM has reversed sense of movement
-                    my Move t h [string map {R L L R} $a]
+                    my Move tape head [string map {R L L R} $a]
                 }
                 NOP {}
             }
-            set ids [list [my add id $t $h $q]]
+            set ids [list [$iddef make $tape $head $i]]
         }
         return $ids
     }
@@ -592,8 +591,8 @@ is set by compiling a program.  The tape uses a binary symbol set
     method Run tape {
         #: Run the code on this tape, return tape.
         set tape [list {*}$tape]
-        set ids [lmap q [my get S] {
-            my AddID $tape [my get H] $q
+        set ids [lmap ipointer [my get S] {
+            $iddef make $tape [my get H] $ipointer
         }]
         set results [concat {*}[lmap id $ids {
             my search $id Exec
@@ -620,7 +619,6 @@ A simple sort of virtual Stack Machine.
         }
         if no {
             runargs {stack "a list of stack symbols"}
-            table Q A Q #*
         }
         my type A "Flag symbols"    {@ 0 1}
         my type I "Instructions"    {@ JZ: JS: J: PUSH INC DEC CLR DUP EQ EQL ADD MUL} -hidden 1
@@ -628,9 +626,10 @@ A simple sort of virtual Stack Machine.
         my type S "Start address"   Q
         my type F "Final address"   Q
         my type O "Operations"      #+ -hidden 1
+        my type V "Values"          N -hidden 1
         my table1 Q A Q O*
         my id1 {
-            stack    "stack contents"      N*
+            stack    "stack contents"      V*
             ipointer "instruction pointer" Q 
         }
         my graded "Flag symbols"  A -domain B
@@ -640,54 +639,56 @@ A simple sort of virtual Stack Machine.
         my graded "End points"    F
         my graded "Operators"     O -hide
         my table -as {Q A Q O*}
-        my id {
-            s B* "current stack"
-            i Q  "instruction pointer"
+        if no {
+            my id {
+                s B* "current stack"
+                i Q  "instruction pointer"
+            }
         }
     }
 
     method Exec id {
         # unpack ID
         dict with id {
-            if {[my in F $i]} {
+            if {[my in F $ipointer]} {
                 return
             }
-            lassign [lindex [my get table $i 0] 0] - - - code
+            lassign [lindex [my get table $ipointer 0] 0] - - - code
             lassign $code tag a b c d e f
-            lassign $s TOP
+            lassign $stack TOP
             switch $tag {
                 JSZ: {
                     set flag [expr {$TOP == 0}]
                 }
                 JSE: {
-                    set flag [expr {$TOP == [lindex $s 1]}]
+                    set flag [expr {$TOP == [lindex $stack 1]}]
                 }
                 default {
                     set flag 0
                 }
             }
-            lassign [lindex [my get table $i $flag] 0] - - i
+            lassign [lindex [my get table $ipointer $flag] 0] - - i
             # get move
             switch $tag {
                 PUSH {
-                    set s [linsert $s 0 $a]
+                    set stack [linsert $stack 0 $a]
                 }
                 INC - DEC - CLR {
-                    lset s 0 [my ALU $tag $s 0]
+                    lset stack 0 [my ALU $tag $stack 0]
                 }
                 DUP {
-                    set s [linsert $s 0 $TOP]
+                    set stack [linsert $stack 0 $TOP]
                 }
                 EQ - EQL - ADD - MUL {
-                    set v [my ALU $tag $s 0 1]
-                    set s [lreplace $s 0 1 $v]
+                    set v [my ALU $tag $stack 0 1]
+                    set stack [lreplace $stack 0 1 $v]
                 }
             }
-            if {[lindex $s 0] < 0} {
+            if {[lindex $stack 0] < 0} {
                 return -code error [format {negative value in top of stack}]
             }
             # build new ID
-            list [my add id $s $i]
+            list [$iddef make $stack $i]
         }
     }
 
