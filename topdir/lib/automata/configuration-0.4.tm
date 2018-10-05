@@ -1,3 +1,4 @@
+package require struct::matrix
 
 ::tcl::tm::path add [file dirname [file dirname [file normalize [info script]]]]
 
@@ -5,56 +6,328 @@ package require automata::documentation
 
 namespace eval automata {}
 
+oo::class create ::automata::Types {
+    constructor args {
+        ::struct::matrix matrix
+        matrix add columns 5
+    }
+
+    forward matrix matrix
+
+    method addrow {name desc type vals args} {
+        set args [dict merge {
+            -sorted 1
+            -epsilon {}
+            -index -1
+            -hidden 0
+        } $args]
+        my matrix add row [list $name $type $vals $args $desc]
+    }
+
+    method getrow name {
+        set found [my matrix search column 0 $name]
+        if {[llength $found] > 0} {
+            return [lindex $found 0 1]
+        } else {
+            error not-found
+        }
+    }
+
+    method _set {key row val} {
+        set col [lsearch {name type val opts desc} $key]
+        if {$col >= 0} {
+            my matrix set cell $col $row $val
+        } else {
+            return -code error [format {key "%s" not found} $key]
+        }
+    }
+
+    method _get {key row} {
+        set col [lsearch {name type val opts desc} $key]
+        if {$col >= 0} {
+            my matrix get cell $col $row
+        } else {
+            return -code error [format {key "%s" not found} $key]
+        }
+    }
+
+    method set {name symbol} {
+        log::log d [info level 0] 
+        set row [my getrow $name]
+        array set options [my _get opts $row]
+        if no {
+            if {$symbol eq {}} {
+                return -code error [format {empty symbol}]
+            }
+        }
+        if {$symbol eq $options(-epsilon)} {
+            set symbol {}
+        }
+        if {[my _get type $row] ne "@"} {
+            set old [my _get val $row]
+            if {$options(-plural)} {
+                if {$options(-sorted)} {
+                    my _set val $row [lsort -dictionary -unique [linsert $old end $symbol]]
+                } else {
+                    my _set val $row [dict set old $symbol 1]
+                }
+            } else {
+                my _set val $row $symbol
+            }
+            if {[my _get type $row] ni {# @ N}} {
+                my set [my _get type $row] $symbol
+            }
+        }
+        log::log d "val = [my _get val $row]"
+    }
+
+    forward getname my _get name
+    forward gettype my _get type
+    forward getopts my _get opts
+    forward getdesc my _get desc
+     
+    method getval row {
+        array set options [my _get opts $row]
+        if {$options(-index) >= 0} {
+            set type [my _get type $row]
+            switch $type {
+                "#" {
+                    lindex [my _get val $row] $options(-index)
+                }
+                "N" {
+                    return 0
+                }
+                default {
+                    lindex [my get $type] $options(-index)
+                }
+            }
+        } else {
+            set type [my _get type $row]
+            if {$type in {@ N}} {
+                my _get val $row
+            } else {
+                if {$options(-plural)} {
+                    if {$options(-sorted)} {
+                        my _get val $row
+                    } else {
+                        dict keys [my _get val $row]
+                    }
+                } else {
+                    my _get val $row
+                }
+            }
+        }
+    }
+
+    method get name {
+        log::log d [info level 0] 
+        my getval [my getrow $name]
+    }
+
+
+    method print {} {
+        set str {}
+        for {set row 0} {$row < [my matrix rows]} {incr row} {
+            array set options [my getopts $row]
+            if {$options(-hidden)} {
+                continue
+            }
+            if {$options(-plural)} {
+                set values [lmap val [my getval $row] {
+                    if {$val eq {}} {
+                        continue
+                    } else {
+                        set val
+                    }
+                }]
+                append str [format "%-15s %s = {%s}\n" [my getdesc $row] [my getname $row] [join $values ", "]]
+            } elseif {[my _get type $row] eq "@"} {
+                set values [my getval $row]
+                if {[llength $values] eq 1} {
+                    append str [format "%-15s %s = %s\n" [my getdesc $row] [my getname $row] $values]
+                } else {
+                    append str [format "%-15s %s = {%s}\n" [my getdesc $row] [my getname $row] [join $values ", "]]
+                }
+            } else {
+                append str [format "%-15s %s = %s\n" [my getdesc $row] [my getname $row] [my getval $row]]
+            }
+        }
+        return $str
+    }
+
+    method dump {} {
+        set res {}
+        for {set row 0} {$row < [my matrix rows]} {incr row} {
+            append res [my matrix get row $row] \n
+        }
+        return $res
+    }
+
+}
+
+oo::class create ::automata::Table {
+    variable types
+
+    constructor args {
+        set types [set [uplevel 1 {namespace which -variable types}]]
+        ::struct::matrix matrix
+        matrix add columns [llength $args]
+        matrix add row [lmap arg $args {string index $arg 0}]
+        matrix add row [lmap arg $args {string index $arg 1}]
+    }
+
+    forward matrix matrix
+
+    method add args {
+        log::log d [info level 0] 
+        if {[llength $args] ne [my matrix columns]} {
+            return -code error [format {can't add table row}]
+        }
+        set values [list]
+        set col 0
+        foreach arg $args {
+            set val {}
+            set t [my matrix get cell $col 0]
+            if {[llength $arg] > 1} {
+                if {[my matrix get cell $col 1] ne "*"} {
+                    return -code error [format {can't add multiple symbols}]
+                }
+                foreach symbol $arg {
+                    $types set $t $symbol
+                    lappend val $symbol
+                }
+            } else {
+                $types set $t $arg
+                set val $arg
+            }
+            lappend values $val
+            incr col
+        }
+        my matrix add row $values
+    }
+
+    method print {} {
+        append str "Transitions\n"
+        append str [format "%-5s %-5s %-5s %s\n" q0 inp q1 out]
+        for {set row 2} {$row < [my matrix rows]} {incr row} {
+            set out [lassign [my matrix get row $row] q0 inp q1]
+            if {$inp eq {}} {
+                set inp ε
+            }
+            append str [format "%-5s %-5s %-5s %s\n" $q0 $inp $q1 $out]
+        }
+        return $str
+    }
+
+    method dump {} {
+        set res {}
+        for {set row 0} {$row < [my matrix rows]} {incr row} {
+            append res [my matrix get row $row] \n
+        }
+        return $res
+    }
+
+}
+
+oo::class create ::automata::ID {
+    constructor args {
+        ::struct::matrix matrix
+        matrix add columns 3
+        foreach {name desc type} $args {
+            matrix add row [list $name $desc $type]
+        }
+    }
+
+    forward matrix matrix
+
+    method print {} {
+        append str "Instantaneous description\n"
+        for {set row 0} {$row < [my matrix rows]} {incr row} {
+            lassign [my matrix get row $row] name desc type
+            append str [format "%-22s %s: %s\n" $desc $name $type]
+        }
+        return $str
+    }
+
+}
+
 oo::class create ::automata::Configuration {
     mixin ::automata::Documentation
 
-    variable types components
+    variable types table iddef components
     #table id
     # doc
 
     #: Handles machine configurations, including instantaneous descriptions.
 
     constructor args {
+        set types [::automata::Types new]
         next {*}$args
     }
 
     method print {} {
         #: Print the configuration (without the ID).
         set str {}
-        append str [$types print] \n
+        append str [$types print]
         dict for {k v} $components {
             switch $k {
                 table {
-                    append str "Transitions\n"
-                    append str [format "%-5s %-5s %-5s %s\n" q0 inp q1 out]
-                    foreach tuple [dict get $v value] {
-                        set out [lassign $tuple q0 inp q1]
-                        if {$inp eq {}} {
-                            set inp ε
+                    append str [$table print]
+                    if no {
+                        append str "Transitions\n"
+                        append str [format "%-5s %-5s %-5s %s\n" q0 inp q1 out]
+                        foreach tuple [dict get $v value] {
+                            set out [lassign $tuple q0 inp q1]
+                            if {$inp eq {}} {
+                                set inp ε
+                            }
+                            append str [format "%-5s %-5s %-5s %s\n" $q0 $inp $q1 $out]
                         }
-                        append str [format "%-5s %-5s %-5s %s\n" $q0 $inp $q1 $out]
                     }
                 }
-                id { ; }
+                id {
+                    append str [$iddef print]
+                }
                 default {
-                    if {[dict get $v hide]} {
-                        continue
-                    }
-                    if {[dict get $v firstof] ne {}} {
-                        set vals [lrange [dict get $components [dict get $v firstof] value] 0 0]
-                    } else {
-                        set vals [dict get $v value]
-                    }
-                    set _vals [lmap val $vals {if {$val eq {}} {lindex ε} {set val}}]
-                    if {[dict get $v scalar]} {
-                        append str [format "%-15s %s = %s\n" [dict get $v label] $k $_vals]
-                    } else {
-                        append str [format "%-15s %s = {%s}\n" [dict get $v label] $k [join $_vals ", "]]
+                    if no {
+                        if {[dict get $v hide]} {
+                            continue
+                        }
+                        if {[dict get $v firstof] ne {}} {
+                            set vals [lrange [dict get $components [dict get $v firstof] value] 0 0]
+                        } else {
+                            set vals [dict get $v value]
+                        }
+                        set _vals [lmap val $vals {if {$val eq {}} {lindex ε} {set val}}]
+                        if {[dict get $v scalar]} {
+                            append str [format "%-15s %s = %s\n" [dict get $v label] $k $_vals]
+                        } else {
+                            append str [format "%-15s %s = {%s}\n" [dict get $v label] $k [join $_vals ", "]]
+                        }
                     }
                 }
             }
         }
         puts -nonewline $str
+    }
+
+    method type {name desc base args} {
+        if {[string match {[#A-Z]*} $base]} {
+            lassign [split [string trim $base] {}] type plural
+            set vals {}
+        } else {
+            set vals [lassign $base type]
+            set plural {}
+        }
+        $types addrow $name $desc $type $vals -plural [expr {$plural eq "+"}] {*}$args
+    }
+
+    method table1 args {
+        set table [::automata::Table new {*}$args]
+    }
+
+    method id1 def {
+        set iddef [::automata::ID new {*}$def]
     }
 
     method graded {label name args} {

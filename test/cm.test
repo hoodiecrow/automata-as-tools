@@ -57,7 +57,7 @@ test cm-1.1 {print 1.0} -setup {
 Instructions    Q = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 Erase symbol    E = 0
 Program start   S = 0
-Program end     F = {10}
+Program end     F = 10
 Transitions
 q0    inp   q1    out
 0     0     1     {JZ: 2}
@@ -80,6 +80,9 @@ q0    inp   q1    out
 8     1     5     NOP
 9     0     10    NOP
 9     1     10    NOP
+Instantaneous description
+register cells         register: N*
+instruction pointer    ipointer: Q
 }
 
 test cm-2.0 {Implement a DEC operation using instruction set 2} -setup {

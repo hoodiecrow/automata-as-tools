@@ -64,9 +64,9 @@ test ptm-1.1 {2 state, 2 symbol busy beaver, print} -setup {} -body {
     M destroy
     log::lvSuppressLE i 1
 } -output {Tape symbols    A = {0, 1}
-Instructions    Q = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
-Program start   S = 0
-Program end     F = {15}
+Addresses       Q = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
+Start address   S = 0
+Final address   F = 15
 Transitions
 q0    inp   q1    out
 0     0     1     JZ:
@@ -99,6 +99,10 @@ q0    inp   q1    out
 13    1     14    NOP
 14    0     15    HALT
 14    1     15    HALT
+Instantaneous description
+tape contents          tape: A*
+current index          head: N
+instruction pointer    ipointer: Q
 }
 
 test ptm-1.2 {multiply two numbers in unary} -setup {} -body {

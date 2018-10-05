@@ -291,6 +291,10 @@ s0    0     s0    0
 s0    1     s1    1
 s1    0     s0    1
 s1    1     s1    0
+Instantaneous description
+remaining input        input: A*
+current state          state: Q
+remaining output       output: B*
 }
 
 cleanupTests ; return ; # ---------------------------------

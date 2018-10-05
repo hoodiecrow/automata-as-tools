@@ -24,7 +24,11 @@ test dfa-1.0 {accept binary numbers that are multiples of 3} -body {
         { s1  1 s0}
         { s2  0 s1}
         { s2  1 s2}
-   }
+    }
+    if no {
+        oo::objdefine M method tabledump {} {variable table ; $table dump}
+        puts [M tabledump]
+    }
     set res {}
     lappend res [M run {1}]
     lappend res [M run {0 1}]
@@ -40,12 +44,12 @@ test dfa-1.0 {accept binary numbers that are multiples of 3} -body {
 } -result {0 0 1 0 0 1 0}
 
 test dfa-1.1 {find even number of ones/zeros} -setup $m -body {
-M compile {
-    {<s1> 0 s2}
-    { s1  1 s1}
-    { s2  0 s1}
-    { s2  1 s2}
-}
+    M compile {
+        {<s1> 0 s2}
+        { s1  1 s1}
+        { s2  0 s1}
+        { s2  1 s2}
+    }
     set res {}
     lappend res [M run {1 1}]
     lappend res [M run {1 0}]
@@ -80,6 +84,9 @@ s1    0     s2
 s1    1     s1    
 s2    0     s1    
 s2    1     s2    
+Instantaneous description
+remaining input        input: A*
+current state          state: Q
 }
 
 test nfa-1.0 {} -setup $m -body {

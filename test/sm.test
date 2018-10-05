@@ -36,9 +36,9 @@ test sm-1.1 {print 1.0} -setup {
     M destroy
     log::lvSuppressLE i 1
 } -output {Flag symbols    A = {0, 1}
-Instructions    Q = {0, 1, 2, 3, 4, 5}
-Program start   S = 0
-End points      F = {5}
+Addresses       Q = {0, 1, 2, 3, 4, 5}
+Start address   S = 0
+Final address   F = 5
 Transitions
 q0    inp   q1    out
 0     0     1     {PUSH 2}
@@ -51,6 +51,9 @@ q0    inp   q1    out
 3     1     4     {PUSH 4}
 4     0     5     MUL
 4     1     5     MUL
+Instantaneous description
+stack contents         stack: N*
+instruction pointer    ipointer: Q
 }
 
 test sm-2.0 {Implement a CLR operation} -setup {
@@ -84,9 +87,9 @@ test sm-2.1 {Print 2.0} -setup {
     M destroy
     log::lvSuppressLE i 1
 } -output {Flag symbols    A = {0, 1}
-Instructions    Q = {0, 1, 2, 3, 4, 5}
-Program start   S = 0
-End points      F = {5}
+Addresses       Q = {0, 1, 2, 3, 4, 5}
+Start address   S = 0
+Final address   F = 5
 Transitions
 q0    inp   q1    out
 0     0     1     {PUSH 3}
@@ -99,6 +102,9 @@ q0    inp   q1    out
 3     1     1     NOP
 4     0     5     NOP
 4     1     5     NOP
+Instantaneous description
+stack contents         stack: N*
+instruction pointer    ipointer: Q
 }
 
 cleanupTests ; return ; # ---------------------------------

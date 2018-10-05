@@ -21,19 +21,19 @@ namespace eval automata {}
 oo::class create ::automata::FSM {
     mixin ::automata::Configuration ::automata::Machine
 
-    variable types
+    variable types table iddef
 
     constructor args {
         my type A "Input symbols" #+ -epsilon ε
         my type Q "State symbols" #+ -sorted 0
-        my type S "Start symbol"  Q+
+        my type S "Start symbols" Q+
         my type F "Final symbols" Q+
+        my table1 Q A Q
+        my id1 {
+            input "remaining input" A*
+            state "current state"   Q 
+        }
         if no {
-            my Table Q A Q
-            my ID {
-                input "remaining input" A*
-                state "current state"   Q 
-            }
             my Run accept   "accept the input"     input A*
             my Run classify "classifies the input" input A*
         }
@@ -77,10 +77,8 @@ oo::class create ::automata::FSM {
                         $types set F $from
                     }
                 }
-                $types set Q $from
-                $types set Q $next
                 foreach inp $input {
-                    $types set A $inp
+                    $table add $from $inp $next
                     my add table $from $inp $next
                 }
             }
@@ -135,7 +133,7 @@ oo::class create ::automata::FSM {
 oo::class create ::automata::FST {
     mixin ::automata::Configuration ::automata::Machine
 
-    variable types
+    variable types table iddef
 
     constructor args {
         if no {
@@ -150,9 +148,6 @@ oo::class create ::automata::FST {
             }
             table Q A Q B
             id {
-                input  A* "remaining input"
-                state  Q  "current state"
-                output B* "remaining output"
             }
         }
         my installRunMethod {
@@ -168,8 +163,14 @@ oo::class create ::automata::FST {
         my type A "Input symbols"  #+ -epsilon ε
         my type B "Output symbols" #+ -epsilon ε
         my type Q "State symbols"  #+ -sorted 0
-        my type S "Start symbol"   Q
+        my type S "Start symbols"  Q+
         my type F "Final symbols"  Q+
+        my table1 Q A Q B
+        my id1 {
+            input  "remaining input"  A*
+            state  "current state"    Q 
+            output "remaining output" B*
+        }
         my graded "Input symbols"  A -epsilon ε
         my graded "Output symbols" B -epsilon ε
         my graded "State symbols"  Q
@@ -207,11 +208,8 @@ oo::class create ::automata::FST {
                         $types set F [set $name]
                     }
                 }
-                $types set Q $from
-                $types set Q $next
                 foreach inp $input {
-                    $types set A $inp
-                    $types set B $output
+                    $table add $from $inp $next $output
                     my add table $from $inp $next $output
                 }
             }
@@ -306,7 +304,7 @@ oo::class create ::automata::FST {
 oo::class create ::automata::PDA {
     mixin ::automata::Configuration ::automata::Machine
 
-    variable types
+    variable types table iddef
 
     constructor args {
         if no {
@@ -315,9 +313,6 @@ oo::class create ::automata::PDA {
             runargs {a "a list of input symbols"}
             table Q A Q B B*
             id {
-                input A* "remaining input"
-                state Q  "current state"
-                stack B* "current stack"
             }
         }
         my installRunMethod {
@@ -330,8 +325,14 @@ oo::class create ::automata::PDA {
         my type B "Stack symbols" #+ -epsilon ε -sorted 0
         my type Q "State symbols" #+ -sorted 0
         my type S "Start symbol"  Q
-        my type Z "Stack symbol"  B -index 0
+        my type Z "Initial stack" B -index 0
         my type F "Final symbols" Q+
+        my table1 Q A Q B B*
+        my id1 {
+            input "remaining input" A*
+            state "current state"   Q 
+            stack "current stack"   B*
+        }
         my graded "Input symbols" A -epsilon ε
         my graded "Stack symbols" B -epsilon ε
         my graded "State symbols" Q
@@ -374,14 +375,8 @@ oo::class create ::automata::PDA {
                 if {$stackPush eq "ε"} {
                     set stackPush {}
                 }
-                $types set Q $from
-                $types set Q $next
                 foreach inp $input {
-                    $types set A $inp
-                    $types set B $stackInput
-                    foreach sym $stackPush {
-                        $types set B $sym
-                    }
+                    $table add $from $inp $next $stackInput $stackPush
                     my add table $from $inp $next $stackInput $stackPush
                 }
             }
@@ -438,16 +433,13 @@ oo::class create ::automata::PDA {
 oo::class create ::automata::BTM {
     mixin ::automata::Configuration ::automata::Machine
 
-    variable types
+    variable types table iddef
 
     constructor args {
         if no {
             runargs {tape "a (part of a) list of tape symbols"}
             table Q A Q B C
             id {
-                tape  A* "tape contents"
-                head  N  "current index"
-                state Q  "current state"
             }
         }
         my installRunMethod {
@@ -461,6 +453,12 @@ oo::class create ::automata::BTM {
         my type S "Start symbol"  Q
         my type F "Final symbols" Q+
         my type H "Head position" N+ -index 0
+        my table1 Q A Q B C
+        my id1 {
+            tape  "tape contents" A*
+            head  "current index" N 
+            state "current state" Q 
+        }
         my graded "Tape symbols"  A -sorted
         my graded "Print symbols" B -enum {E P N}
         my graded "Move symbols"  C -enum {L R N}
@@ -495,11 +493,7 @@ oo::class create ::automata::BTM {
                             $types set F [set $name]
                         }
                     }
-                    $types set Q $from
-                    $types set Q $next
-                    $types set A $input
-                    $types set B $print
-                    $types set C $move
+                    $table add $from $input $next $print $move
                     my add table $from $input $next $print $move
                 } else {
                     return -code error [format {can't parse "%s"} $edge]

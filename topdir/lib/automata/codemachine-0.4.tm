@@ -9,7 +9,7 @@ namespace eval automata {}
 # a transition table.
 oo::class create ::automata::CodeMachine {
 
-    variable types
+    variable types table
 
     method compile tokens {
         #: Convert source code to transition configuration.
@@ -150,12 +150,7 @@ oo::class create ::automata::CodeMachine {
                     }
                 }]
                 foreach inp [my get A] next $addresses {
-                    $types set Q $addr
-                    $types set Q $next
-                    $types set A $inp
-                    foreach sym $code {
-                        $types set O $sym
-                    }
+                    $table add $addr $inp $next $code
                     my add table $addr $inp $next $code
                 }
             }
@@ -172,6 +167,8 @@ oo::class create ::automata::CodeMachine {
 
 oo::class create ::automata::CM {
     mixin ::automata::CodeMachine ::automata::Configuration ::automata::Machine
+
+    variable table iddef
 
     constructor args {
         set is 4
@@ -202,8 +199,6 @@ Specify which actual instruction set to use when instantiating machine.
             runargs {registers "a list of register cells"}
             table Q A Q #*
             id {
-                register N* "register cells"
-                ipointer Q  "instruction pointer"
             }
         }
         my installOperations $instructionSet
@@ -217,6 +212,11 @@ Specify which actual instruction set to use when instantiating machine.
         my type S "Program start"   Q
         my type F "Program end"     Q
         my type O "Operations"      #+ -hidden 1
+        my table1 Q A Q O*
+        my id1 {
+            register "register cells"      N*
+            ipointer "instruction pointer" Q 
+        }
         my graded "Flag symbols"    A -domain B
         my graded "Register values" B -domain N -hide
         my graded "Instructions"    Q -domain N
@@ -271,6 +271,8 @@ Specify which actual instruction set to use when instantiating machine.
 
 oo::class create ::automata::KTR {
     mixin ::automata::CodeMachine ::automata::Configuration ::automata::Machine
+
+    variable table iddef
     
     constructor args {
         my add doc preamble {
@@ -306,26 +308,27 @@ Test numbers:
                 walls   "an even-sized list of x, y values"
             }
             table Q A Q #*
-            id {
-                world    N  "world width"
-                height   N  "world height"
-                x        N  "robot x"
-                y        N  "robot y"
-                bag      N  "#robot's beepers"
-                facing   B  "robot facing"
-                returns  Q* "return stack"
-                test     A  "test state"
-                beepers  N* "beeper coords"
-                walls    N* "wall coords"
-                ipointer Q  "instruction pointer"
-            }
         }
         my type A "Flag symbols"    {@ 0 1}
         my type B "Facing"          {@ 0 1 2 3} -hidden 1
-        my type I "Instructions"    {@ JZ: J: TURN MOVE TAKE DROP TEST: RET CALL:}
+        my type I "Instructions"    {@ JZ: J: TURN MOVE TAKE DROP TEST: RET CALL:} -hidden 1
         my type Q "Addresses"       N+
         my type S "Start address"   Q
         my type F "Final address"   Q
+        my table1 Q A Q O*
+        my id1 {
+            world    "world width"         N 
+            height   "world height"        N 
+            xpos     "robot x"             N 
+            ypos     "robot y"             N 
+            bag      "#robot's beepers"    N 
+            facing   "robot facing"        B 
+            returns  "return stack"        Q*
+            test     "test state"          A 
+            beepers  "beeper coords"       N*
+            walls    "wall coords"         N*
+            ipointer "instruction pointer" Q 
+        }
         my type O "Operations"      #+ -hidden 1
         my graded "Flag symbols"    A -domain B
         my graded "Lengths/Amounts" B -domain N -hide
@@ -503,6 +506,8 @@ Test numbers:
 oo::class create ::automata::PTM {
     mixin ::automata::CodeMachine ::automata::Configuration ::automata::Machine
 
+    variable table iddef
+
     constructor args {
         my add doc preamble {
 A Post-Turing Machine is essentially a TM. The transition matrix
@@ -530,6 +535,12 @@ is set by compiling a program.  The tape uses a binary symbol set
         my type S "Start address"   Q
         my type F "Final address"   Q
         my type O "Operations"      #+ -hidden 1
+        my table1 Q A Q O*
+        my id1 {
+            tape     "tape contents"       A*
+            head     "current index"       N 
+            ipointer "instruction pointer" Q 
+        }
         my graded "Tape symbols"  A -domain B
         my graded "Instructions"  Q -domain N
         my graded "Program start" S -scalar
@@ -597,6 +608,8 @@ is set by compiling a program.  The tape uses a binary symbol set
 oo::class create ::automata::SM {
     mixin ::automata::CodeMachine ::automata::Configuration ::automata::Machine
 
+    variable table iddef
+
     constructor args {
         my add doc preamble {
 A simple sort of virtual Stack Machine.
@@ -608,10 +621,6 @@ A simple sort of virtual Stack Machine.
         if no {
             runargs {stack "a list of stack symbols"}
             table Q A Q #*
-            id {
-                stack    N* "stack contents"
-                ipointer Q  "instruction pointer"
-            }
         }
         my type A "Flag symbols"    {@ 0 1}
         my type I "Instructions"    {@ JZ: JS: J: PUSH INC DEC CLR DUP EQ EQL ADD MUL} -hidden 1
@@ -619,6 +628,11 @@ A simple sort of virtual Stack Machine.
         my type S "Start address"   Q
         my type F "Final address"   Q
         my type O "Operations"      #+ -hidden 1
+        my table1 Q A Q O*
+        my id1 {
+            stack    "stack contents"      N*
+            ipointer "instruction pointer" Q 
+        }
         my graded "Flag symbols"  A -domain B
         my graded "Stack values"  B -domain N -hide
         my graded "Instructions"  Q -domain N

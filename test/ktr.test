@@ -62,9 +62,9 @@ test ktr-1.1 {print 1.0} -setup {
     M destroy
     log::lvSuppressLE i 1
 } -output {Flag symbols    A = {0, 1}
-Instructions    Q = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17}
-Program start   S = 0
-Program end     F = {17}
+Addresses       Q = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17}
+Start address   S = 0
+Final address   F = 17
 Transitions
 q0    inp   q1    out
 0     0     1     {TEST: 3}
@@ -101,6 +101,18 @@ q0    inp   q1    out
 15    1     16    TURN
 16    0     17    RET
 16    1     17    RET
+Instantaneous description
+world width            world: N
+world height           height: N
+robot x                xpos: N
+robot y                ypos: N
+#robot's beepers       bag: N
+robot facing           facing: B
+return stack           returns: Q*
+test state             test: A
+beeper coords          beepers: N*
+wall coords            walls: N*
+instruction pointer    ipointer: Q
 }
 
 cleanupTests ; return ; # ---------------------------------
