@@ -8,6 +8,7 @@ namespace eval automata {}
 # A CodeMachine is an automaton that compiles a labeled set of instructions to
 # a transition table.
 oo::class create ::automata::CodeMachine {
+    mixin ::automata::Machine
 
     variable types table iddef
 
@@ -157,6 +158,32 @@ oo::class create ::automata::CodeMachine {
         }
     }
 
+    method ALU {op data args} {
+        # Shared between KTR and SM
+        switch $op {
+            INC { set res [expr {[lindex $data {*}$args] + 1}] }
+            DEC { set res [expr {[lindex $data {*}$args] - 1}] }
+            CLR { set res 0 }
+            default {
+                if {[string is upper -strict $op]} {
+                    set op [dict get {
+                        EQ  eq
+                        EQL ==
+                        ADD +
+                        MUL *
+                    } $op]
+                }
+                set res [::tcl::mathop::$op {*}[lmap arg $args {
+                    lindex $data $arg
+                }]]
+            }
+        }
+        if {$res < 0} {
+            return -code error [format {result less than 0}]
+        }
+        return $res
+    }
+
     method SingleThread {fn data} {
         set data [list {*}$data]
         set id [$iddef make $data [my get S]]
@@ -166,7 +193,7 @@ oo::class create ::automata::CodeMachine {
 }
 
 oo::class create ::automata::CM {
-    mixin ::automata::CodeMachine ::automata::Configuration ::automata::Machine
+    mixin ::automata::CodeMachine ::automata::Configuration
 
     variable table iddef
 
@@ -269,7 +296,7 @@ Specify which actual instruction set to use when instantiating machine.
 }
 
 oo::class create ::automata::KTR {
-    mixin ::automata::CodeMachine ::automata::Configuration ::automata::Machine
+    mixin ::automata::CodeMachine ::automata::Configuration
 
     variable table iddef
     
@@ -505,7 +532,7 @@ Test numbers:
 }
 
 oo::class create ::automata::PTM {
-    mixin ::automata::CodeMachine ::automata::Configuration ::automata::Machine
+    mixin ::automata::CodeMachine ::automata::Configuration
 
     variable table iddef
 
@@ -605,7 +632,7 @@ is set by compiling a program.  The tape uses a binary symbol set
 }
 
 oo::class create ::automata::SM {
-    mixin ::automata::CodeMachine ::automata::Configuration ::automata::Machine
+    mixin ::automata::CodeMachine ::automata::Configuration
 
     variable table iddef
 

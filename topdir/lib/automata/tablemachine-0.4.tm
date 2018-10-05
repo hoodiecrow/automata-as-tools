@@ -18,8 +18,12 @@ package require automata::configuration
 
 namespace eval automata {}
 
+oo::class create ::automata::TableMachine {
+    mixin ::automata::Machine
+}
+
 oo::class create ::automata::FSM {
-    mixin ::automata::Configuration ::automata::Machine
+    mixin ::automata::Configuration ::automata::TableMachine
 
     variable types table iddef
 
@@ -83,6 +87,27 @@ oo::class create ::automata::FSM {
         }
     }
 
+    method Exec id {
+        # unpack ID
+        dict with id {
+            # get epsilons
+            set targets [lmap row [my get table $state {}] {
+                lindex $row 2
+            }]
+            set ids [lmap target $targets {
+                $iddef make $input $target
+            }]
+            set _tail [lassign $input top]
+            set targets [lmap row [my get table $state $top] {
+                lindex $row 2
+            }]
+            lappend ids {*}[lmap target $targets {
+                $iddef make $_tail $target
+            }]
+        }
+        return $ids
+    }
+
     method Accept arglist {
         log::log d [info level 0] 
         # Are we in a final state when all input symbols are consumed?
@@ -92,7 +117,7 @@ oo::class create ::automata::FSM {
             $iddef make $input $state
         }]
         set results [concat {*}[lmap id $ids {
-            my search $id consumeOne
+            my search $id Exec
         }]]
         lmap result $results {
             dict with result {
@@ -112,7 +137,7 @@ oo::class create ::automata::FSM {
             $iddef make $input $state
         }]
         set results [concat {*}[lmap id $ids {
-            my search $id consumeOne
+            my search $id Exec
         }]]
         lmap result $results {
             dict with result {
@@ -129,7 +154,7 @@ oo::class create ::automata::FSM {
 }
 
 oo::class create ::automata::FST {
-    mixin ::automata::Configuration ::automata::Machine
+    mixin ::automata::Configuration ::automata::TableMachine
 
     variable types table iddef
 
@@ -213,6 +238,39 @@ oo::class create ::automata::FST {
         }
     }
 
+    method Exec-recognize id {
+        # unpack ID
+        dict with id {
+            # get epsilons
+            set tuples [my get table $state {}]
+            set itail [lassign $input itop]
+            set otail [lassign $output otop]
+            # get moves
+            lappend tuples {*}[my get table $state $itop]
+            set ids [lmap tuple $tuples {
+                # q1 from tuple
+                lassign $tuple - inp q1 out
+                if {$inp eq {}} {
+                    lset tuple 1 $input
+                } else {
+                    # consume input token
+                    lset tuple 1 $itail
+                }
+                if {$out eq {}} {
+                    lset tuple 3 $output
+                } elseif {$out ne $otop} {
+                    # reject invalid transition
+                    continue
+                } else {
+                    # consume output token
+                    lset tuple 3 $otail
+                }
+                $iddef make {*}[lrange $tuple 1 end]
+            }]
+        }
+        return $ids
+    }
+
     method Recognize arglist {
         # Are we in a final state when all symbols in input and output are consumed?
         lassign $arglist a b
@@ -223,7 +281,7 @@ oo::class create ::automata::FST {
         }]
         log::log d \$ids=$ids 
         set results [concat {*}[lmap id $ids {
-            my search $id recognize
+            my search $id Exec-recognize
         }]]
         lmap result $results {
             dict with result {
@@ -235,6 +293,35 @@ oo::class create ::automata::FST {
         return 0
     }
 
+    method Exec-translate id {
+        # unpack ID
+        dict with id {
+            set itail [lassign $input itop]
+            # get epsilons
+            set tuples [my get table $state {}]
+            # get moves
+            lappend tuples {*}[my get table $state $itop]
+            set ids [lmap tuple $tuples {
+                # q1 from tuple
+                lassign $tuple - inp q1 out
+                if {$inp eq {}} {
+                    lset tuple 1 $input
+                } else {
+                    # consume input token
+                    lset tuple 1 $itail
+                }
+                if {$out eq {}} {
+                    lset tuple 3 $output
+                } else {
+                    # emit output token
+                    lset tuple 3 [linsert $output end [lindex $out 0]]
+                }
+                $iddef make {*}[lrange $tuple 1 end]
+            }]
+        }
+        return $ids
+    }
+
     method Translate arglist {
         # What symbols have been added to output when all input symbols in a are consumed?
         lassign $arglist a
@@ -243,7 +330,7 @@ oo::class create ::automata::FST {
             $iddef make $input $state {}
         }]
         set results [concat {*}[lmap id $ids {
-            my search $id translate
+            my search $id Exec-translate
         }]]
         lmap result $results {
             dict with result {
@@ -256,6 +343,36 @@ oo::class create ::automata::FST {
         }
     }
 
+    method Exec-reconstruct id {
+        # unpack ID
+        dict with id {
+            set otail [lassign $output otop]
+            # get moves
+            set tuples [my get table $state *]
+            set ids [lmap tuple $tuples {
+                # q1 from tuple
+                lassign $tuple - inp q1 out
+                if {$inp eq {}} {
+                    lset tuple 1 $input
+                } else {
+                    # emit input token
+                    lset tuple 1 [linsert $input end [lindex $inp 0]]
+                }
+                if {$out eq {}} {
+                    lset tuple 3 $output
+                } elseif {$out ne $otop} {
+                    # reject invalid transition
+                    continue
+                } else {
+                    # consume output token
+                    lset tuple 3 $otail
+                }
+                $iddef make {*}[lrange $tuple 1 end]
+            }]
+        }
+        return $ids
+    }
+
     method Reconstruct arglist {
         # What symbols have been added to input when all symbols in output are consumed?
         lassign $arglist b
@@ -264,7 +381,7 @@ oo::class create ::automata::FST {
             $iddef make {} $state $output
         }]
         set results [concat {*}[lmap id $ids {
-            my search $id reconstruct
+            my search $id Exec-reconstruct
         }]]
         lmap result $results {
             dict with result {
@@ -277,6 +394,32 @@ oo::class create ::automata::FST {
         }
     }
 
+    method Exec-generate id {
+        # unpack ID
+        dict with id {
+            # get moves
+            set tuples [my get table $state *]
+            set ids [lmap tuple $tuples {
+                # q1 from tuple
+                lassign $tuple - inp q1 out
+                if {$inp eq {}} {
+                    lset tuple 1 $input
+                } else {
+                    # emit input token
+                    lset tuple 1 [linsert $input end [lindex $inp 0]]
+                }
+                if {$out eq {}} {
+                    lset tuple 3 $output
+                } else {
+                    # emit output token
+                    lset tuple 3 [linsert $output end [lindex $out 0]]
+                }
+                $iddef make {*}[lrange $tuple 1 end]
+            }]
+        }
+        return $ids
+    }
+
     method Generate arglist {
         # If we take N steps into the transition sequence (or sequence powerset), what do we get in input and output?
         lassign $arglist steps
@@ -284,7 +427,7 @@ oo::class create ::automata::FST {
             $iddef make {} $state {}
         }]
         set results [concat {*}[lmap id $ids {
-            my search $id generate $steps
+            my search $id Exec-generate $steps
         }]]
         lmap result $results {
             dict with result {
@@ -300,7 +443,7 @@ oo::class create ::automata::FST {
 }
 
 oo::class create ::automata::PDA {
-    mixin ::automata::Configuration ::automata::Machine
+    mixin ::automata::Configuration ::automata::TableMachine
 
     variable types table iddef
 
@@ -380,6 +523,41 @@ oo::class create ::automata::PDA {
         }
     }
 
+    method Exec id {
+        # unpack ID
+        dict with id {
+            set itail [lassign $input itop]
+            set _tail [lassign $stack _top]
+            # get epsilons
+            set tuples [my get table $state {}]
+            # get moves
+            lappend tuples {*}[my get table $state $itop]
+            set ids [lmap tuple $tuples {
+                # q1 from tuple
+                lassign $tuple - inp q1 O _o
+                if {$inp eq {}} {
+                    lset tuple 1 $input
+                } else {
+                    # consume input token
+                    lset tuple 1 $itail
+                }
+                if {$O ne $_top} {
+                    # reject invalid transition
+                    continue
+                } else {
+                    # push stack
+                    lset tuple 3 [concat {*}$_o $_tail]
+                }
+                # TODO ??
+                $iddef make {*}[apply {tuple {
+                    set _tail [lassign $tuple - input state stack]
+                    list $input $state $stack
+                }} $tuple]
+            }]
+        }
+        return $ids
+    }
+
     method Accept arglist {
         # Are we in a final state when all input symbols are consumed and the stack has only one item?
         lassign $arglist a
@@ -389,7 +567,7 @@ oo::class create ::automata::PDA {
             $iddef make $input $state $stack
         }]
         set results [concat {*}[lmap id $ids {
-            my search $id PDA-exec
+            my search $id Exec
         }]]
         lmap result $results {
             dict with result {
@@ -410,7 +588,7 @@ oo::class create ::automata::PDA {
             $iddef make $input $state $stack
         }]
         set results [concat {*}[lmap id $ids {
-            my search $id PDA-exec
+            my search $id Exec
         }]]
         lmap result $results {
             dict with result {
@@ -426,7 +604,7 @@ oo::class create ::automata::PDA {
 }
 
 oo::class create ::automata::BTM {
-    mixin ::automata::Configuration ::automata::Machine
+    mixin ::automata::Configuration ::automata::TableMachine
 
     variable types table iddef
 
@@ -496,6 +674,39 @@ oo::class create ::automata::BTM {
         }
     }
 
+    method Print {varName h p} {
+        upvar 1 $varName tape
+        switch $p {
+            N  {}
+            E  { lset tape $h [lindex [my get A] 0] }
+            P  { lset tape $h [lindex [my get A] 1] }
+            default {
+                if {[regexp {^P(.)$} $p -> s]} {
+                    lset tape $h $s
+                }
+            }
+        }
+        return
+    }
+
+    method Exec id {
+        # unpack ID
+        dict with id {
+            if {[my in F $state]} {
+                return
+            }
+            # should always be 0 or 1 tuples
+            set tuples [my get table $state [lindex $tape $head]]
+            set ids [lmap tuple $tuples {
+                lassign $tuple - - next print move
+                my Print tape $head $print
+                my Move tape head $move
+                $iddef make $tape $head $next
+            }]
+        }
+        return $ids
+    }
+
     method Run tape {
         #: Run this tape from start index, return tape, current index, and ending state.
         set tape [list {*}$tape]
@@ -503,7 +714,7 @@ oo::class create ::automata::BTM {
             $iddef make $tape [my get H] $state
         }]
         set results [concat {*}[lmap id $ids {
-            my search $id BTM-exec
+            my search $id Exec
         }]]
         lmap result $results {
             dict with result {
