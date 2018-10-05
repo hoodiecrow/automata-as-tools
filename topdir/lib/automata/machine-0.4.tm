@@ -1,6 +1,8 @@
 namespace eval automata {}
 
 oo::class create ::automata::Machine {
+    variable types
+
     constructor args {
         next {*}$args
     }
@@ -24,18 +26,19 @@ oo::class create ::automata::Machine {
     }
 
     method Move {varName1 varName2 dir} {
+        log::log d [info level 0] 
         # Shared between BTM and PTM
         upvar 1 $varName1 tape $varName2 head
         switch $dir {
             L {
                 incr head
                 if {$head >= [expr {[llength $tape] - 1}]} {
-                    lappend tape [lindex [my get A] 0]
+                    lappend tape [lindex [$types get A] 0]
                 }
             }
             R {
                 if {$head < 1} {
-                    set tape [linsert $tape 0 [lindex [my get A] 0]]
+                    set tape [linsert $tape 0 [lindex [$types get A] 0]]
                 } else {
                     incr head -1
                 }

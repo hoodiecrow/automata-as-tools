@@ -144,6 +144,7 @@ oo::class create ::automata::Documentation {
     }
 
     method doc fn {
+        return
         if {![info exists doc]} {
             return
         }

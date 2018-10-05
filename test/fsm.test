@@ -90,13 +90,13 @@ current state          state: Q
 }
 
 test nfa-1.0 {} -setup $m -body {
-    M add table s0 0 s0
-    M add table s0 1 s0
-    M add table s0 1 s1
-    M add table s1 0 s0
-    M add table s1 1 s1
-    M add S s0
-    M add F s1
+    M compile {
+        {<s0 0 s0 }
+        { s0 1 s0 }
+        { s0 1 s1 }
+        { s1 0 s0 }
+        { s1 1 s1>}
+    }
     set res {}
     lappend res [M run {1}]
     lappend res [M run {0}]

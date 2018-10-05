@@ -49,8 +49,6 @@ oo::class create ::automata::CodeMachine {
         variable jumps
         $types set S [dict get $jumps BEG_OF_CODE]
         $types set F [dict get $jumps END_OF_CODE]
-        my add S [dict get $jumps BEG_OF_CODE]
-        my add F [dict get $jumps END_OF_CODE]
         dict for {addr data} $program {
             dict with data {
                 lassign $lbl a b c d e f
@@ -150,9 +148,8 @@ oo::class create ::automata::CodeMachine {
                         set c
                     }
                 }]
-                foreach inp [my get A] next $addresses {
+                foreach inp [$types get A] next $addresses {
                     $table add $addr $inp $next $code
-                    my add table $addr $inp $next $code
                 }
             }
         }
@@ -186,7 +183,7 @@ oo::class create ::automata::CodeMachine {
 
     method SingleThread {fn data} {
         set data [list {*}$data]
-        set id [$iddef make $data [my get S]]
+        set id [$iddef make $data [$types get S]]
         set results [my search $id $fn]
         dict values [lindex $results 0]
     }
@@ -195,7 +192,7 @@ oo::class create ::automata::CodeMachine {
 oo::class create ::automata::CM {
     mixin ::automata::CodeMachine
 
-    variable table iddef
+    variable types table iddef
 
     constructor args {
         set is 4
@@ -236,24 +233,10 @@ Specify which actual instruction set to use when instantiating machine.
         my type S "Program start"   Q
         my type F "Program end"     Q
         my type O "Operations"      #+ -hidden 1
-        my table1 Q A Q O*
-        my id1 {
+        my table Q A Q O*
+        my id {
             registers "register cells"      B*
             ipointer  "instruction pointer" Q 
-        }
-        my graded "Flag symbols"    A -domain B
-        my graded "Register values" B -domain N -hide
-        my graded "Instructions"    Q -domain N
-        my graded "Erase symbol"    E -scalar -default 0
-        my graded "Program start"   S -scalar
-        my graded "Program end"     F
-        my graded "Operations"      O -hide
-        my table -as {Q A Q O*}
-        if no {
-            my id {
-                r B* "registers"
-                i Q  "instruction pointer"
-            }
         }
 
     }
@@ -261,11 +244,11 @@ Specify which actual instruction set to use when instantiating machine.
     method Exec id {
         # unpack ID
         dict with id {
-            if {[my in F $ipointer]} {
+            if {[$types in F $ipointer]} {
                 return
             }
             # get move
-            lassign [lindex [my get table $ipointer 0] 0] - - - code
+            lassign [lindex [$table get $ipointer 0] 0] - - - code
             lassign $code tag a b
             switch $tag {
                 JE: { set flag [expr [lindex $registers $a] eq [lindex $registers $b]] }
@@ -274,7 +257,7 @@ Specify which actual instruction set to use when instantiating machine.
                     set flag 0
                 }
             }
-            lassign [lindex [my get table $ipointer $flag] 0] - - next
+            lassign [lindex [$table get $ipointer $flag] 0] - - next
             # build new ID
             switch $tag {
                 INC: { lset registers $a [expr {[lindex $registers $a] + 1}] }
@@ -298,7 +281,7 @@ Specify which actual instruction set to use when instantiating machine.
 oo::class create ::automata::KTR {
     mixin ::automata::CodeMachine
 
-    variable table iddef
+    variable types table iddef
     
     constructor args {
         my add doc preamble {
@@ -341,8 +324,8 @@ Test numbers:
         my type S "Start address"   Q
         my type F "Final address"   Q
         my type V "Values"          N -hidden 1
-        my table1 Q A Q O*
-        my id1 {
+        my table Q A Q O*
+        my id {
             width    "world width"         V 
             height   "world height"        V 
             xpos     "robot x"             V 
@@ -356,29 +339,6 @@ Test numbers:
             ipointer "instruction pointer" Q 
         }
         my type O "Operations"      #+ -hidden 1
-        my graded "Flag symbols"    A -domain B
-        my graded "Lengths/Amounts" B -domain N -hide
-        my graded "Facing"          C -enum {0 1 2 3} -hide
-        my graded "Instructions"    Q -domain N
-        my graded "Program start"   S -scalar
-        my graded "Program end"     F
-        my graded "Operations"      O -hide
-        my table -as {Q A Q O*}
-        if no {
-            my id {
-                w B  "world width"
-                h B  "world height"
-                x B  "robot x"
-                y B  "robot y"
-                n B  "robot's beepers"
-                f C  "robot facing"
-                r Q* "return stack"
-                t A  "test state"
-                b B* "beeper coords"
-                a B* "wall coords"
-                i Q  "instruction pointer"
-            }
-        }
     }
 
     method Turn {varName {a 1}} {
@@ -464,8 +424,8 @@ Test numbers:
         # unpack ID
         dict with id {
             # get move
-            set next [my succ Q $ipointer]
-            lassign [lindex [my get table $ipointer 0] 0] - - - code
+            set next [$types succ Q $ipointer]
+            lassign [lindex [$table get $ipointer 0] 0] - - - code
             lassign $code tag _a _b _c _d _e
             # test-sensitive jumps are coded as NOP
             if {$tag eq "NOP"} {
@@ -474,7 +434,7 @@ Test numbers:
                 set flag 0
             }
             set test 0
-            lassign [lindex [my get table $ipointer $flag] 0] - - i
+            lassign [lindex [$table get $ipointer $flag] 0] - - i
             switch $tag {
                 JT: - NOP {}
                 HALT  {
@@ -500,7 +460,7 @@ Test numbers:
                 }
             }
         }
-        if {[my in F $i]} {
+        if {[$types in F $i]} {
             return
         }
         # build new ID
@@ -522,7 +482,7 @@ Test numbers:
         lappend id 0
         lappend id $beepers
         lappend id $walls
-        lappend id [my get S]
+        lappend id [$types get S]
         set id [$iddef make {*}$id]
         set results [my search $id Exec]
         set res [dict values [lindex $results 0]]
@@ -534,7 +494,7 @@ Test numbers:
 oo::class create ::automata::PTM {
     mixin ::automata::CodeMachine
 
-    variable table iddef
+    variable types table iddef
 
     constructor args {
         my add doc preamble {
@@ -549,7 +509,6 @@ is set by compiling a program.  The tape uses a binary symbol set
         }
         if no {
             runargs {tape "a (part of a) list of tape symbols"}
-            table Q A Q #*
         }
         my type A "Tape symbols"    {@ 0 1}
         my type B "Move symbols"    {@ L R} -hidden 1
@@ -559,25 +518,11 @@ is set by compiling a program.  The tape uses a binary symbol set
         my type F "Final address"   Q
         my type O "Operations"      #+ -hidden 1
         my type V "Values"          N -hidden 1
-        my table1 Q A Q O*
-        my id1 {
+        my table Q A Q O*
+        my id {
             tape     "tape contents"       A*
             head     "current index"       V 
             ipointer "instruction pointer" Q 
-        }
-        my graded "Tape symbols"  A -domain B
-        my graded "Instructions"  Q -domain N
-        my graded "Program start" S -scalar
-        my graded "Program end"   F
-        my graded "Head position" H -domain N -default 0 -scalar -hide
-        my graded "Operations"    O -hide
-        my table -as {Q A Q O*}
-        if no {
-            my id {
-                t A* "tape"
-                h H  "current cell"
-                q Q  "current state"
-            }
         }
     }
 
@@ -586,11 +531,11 @@ is set by compiling a program.  The tape uses a binary symbol set
     method Exec id {
         # unpack ID
         dict with id {
-            if {[my in F $ipointer]} {
+            if {[$types in F $ipointer]} {
                 return
             }
             # should always be 0 or 1 tuples
-            set tuples [my get table $ipointer [lindex $tape $head]]
+            set tuples [$table get $ipointer [lindex $tape $head]]
             if {[llength $tuples] eq 0} {
                 return
             }
@@ -602,7 +547,7 @@ is set by compiling a program.  The tape uses a binary symbol set
                     return
                 }
                 PRINT: {
-                    lset tape $head [lindex [my get A] $a]
+                    lset tape $head [lindex [$types get A] $a]
                 }
                 ROLL: {
                     # PTM has reversed sense of movement
@@ -618,8 +563,8 @@ is set by compiling a program.  The tape uses a binary symbol set
     method Run tape {
         #: Run the code on this tape, return tape.
         set tape [list {*}$tape]
-        set ids [lmap ipointer [my get S] {
-            $iddef make $tape [my get H] $ipointer
+        set ids [lmap ipointer [$types get S] {
+            $iddef make $tape 0 $ipointer
         }]
         set results [concat {*}[lmap id $ids {
             my search $id Exec
@@ -634,7 +579,7 @@ is set by compiling a program.  The tape uses a binary symbol set
 oo::class create ::automata::SM {
     mixin ::automata::CodeMachine
 
-    variable table iddef
+    variable types table iddef
 
     constructor args {
         my add doc preamble {
@@ -654,33 +599,20 @@ A simple sort of virtual Stack Machine.
         my type F "Final address"   Q
         my type O "Operations"      #+ -hidden 1
         my type V "Values"          N -hidden 1
-        my table1 Q A Q O*
-        my id1 {
+        my table Q A Q O*
+        my id {
             stack    "stack contents"      V*
             ipointer "instruction pointer" Q 
-        }
-        my graded "Flag symbols"  A -domain B
-        my graded "Stack values"  B -domain N -hide
-        my graded "Instructions"  Q -domain N
-        my graded "Program start" S -scalar
-        my graded "End points"    F
-        my graded "Operators"     O -hide
-        my table -as {Q A Q O*}
-        if no {
-            my id {
-                s B* "current stack"
-                i Q  "instruction pointer"
-            }
         }
     }
 
     method Exec id {
         # unpack ID
         dict with id {
-            if {[my in F $ipointer]} {
+            if {[$types in F $ipointer]} {
                 return
             }
-            lassign [lindex [my get table $ipointer 0] 0] - - - code
+            lassign [lindex [$table get $ipointer 0] 0] - - - code
             lassign $code tag a b c d e f
             lassign $stack TOP
             switch $tag {
@@ -694,7 +626,7 @@ A simple sort of virtual Stack Machine.
                     set flag 0
                 }
             }
-            lassign [lindex [my get table $ipointer $flag] 0] - - i
+            lassign [lindex [$table get $ipointer $flag] 0] - - i
             # get move
             switch $tag {
                 PUSH {

@@ -78,7 +78,8 @@ oo::class create ::automata::Types {
                 my set [my _get type $row] $symbol
             }
         }
-        log::log d "val = [my _get val $row]"
+        log::log d "val = [my _get val $row] ($symbol)"
+        return $symbol
     }
 
     forward getname my _get name
@@ -124,6 +125,25 @@ oo::class create ::automata::Types {
         my getval [my getrow $name]
     }
 
+    method succ {name val} {
+        #: Given a value, find the next value in the component.
+        set value [my get $name]
+        set idx [lsearch $value $val]
+        if {$idx < 0} {
+            return -code error [format {can't find value}]
+        }
+        incr idx
+        if {$idx >= [llength $value]} {
+            return -code error [format {no successor to %s} $val]
+        }
+        return [lindex $value $idx]
+    }
+
+
+    method in {name symbol} {
+        log::log d [info level 0] 
+        expr {$symbol in [my getval [my getrow $name]]}
+    }
 
     method print {} {
         set str {}
@@ -182,6 +202,33 @@ oo::class create ::automata::Table {
 
     forward matrix matrix
 
+    method get {key1 {key2 *}} {
+        log::log d [info level 0] 
+        log::log d "[my matrix serialize]"
+        set rows1 [lmap idx [my matrix search rect 0 2 0 end $key1] {
+            lindex $idx 1
+        }]
+        set rows $rows1
+        if {$key2 ne "*"} {
+            log::log d \$key2=$key2 
+            set rows2 [lmap idx [my matrix search rect 1 2 1 end $key2] {
+                lindex $idx 1
+            }]
+            log::log d \$rows2=$rows2 
+            set rows [list]
+            for {set row 2} {$row < [my matrix rows]} {incr row} {
+                if {$row in $rows1 && $row in $rows2} {
+                    lappend rows $row
+                }
+            }
+        }
+        set result [list]
+        foreach row $rows {
+            lappend result [my matrix get row $row]
+        }
+        return $result
+    }
+
     method add args {
         log::log d [info level 0] 
         if {[llength $args] ne [my matrix columns]} {
@@ -197,11 +244,11 @@ oo::class create ::automata::Table {
                     return -code error [format {can't add multiple symbols}]
                 }
                 foreach symbol $arg {
-                    $types set $t $symbol
+                    set symbol [$types set $t $symbol]
                     lappend val $symbol
                 }
             } else {
-                $types set $t $arg
+                set arg [$types set $t $arg]
                 set val $arg
             }
             lappend values $val
@@ -253,13 +300,26 @@ oo::class create ::automata::ID {
 
     method make args {
         log::log d [info level 0] 
+        log::log d [$types matrix serialize]
         set res [dict create]
         for {set row 0} {$row < [my matrix rows]} {incr row} {
             set val [lindex $args $row]
             # TODO check valid input
-            $types set [string index [my matrix get cell 2 $row] 0] $val
-            dict set res [my matrix get cell 0 $row] $val
+            set key [my matrix get cell 0 $row]
+            dict set res $key {}
+            foreach symbol $val {
+                $types set [string index [my matrix get cell 2 $row] 0] $symbol
+                log::log d "type = [my matrix get cell 2 $row]"
+                if {[string index [my matrix get cell 2 $row] 1] eq "*"} {
+                    dict lappend res $key $symbol
+                    log::log d "appending: \$res=$res"
+                } else {
+                    dict set res $key $symbol
+                    log::log d "replacing: \$res=$res"
+                }
+            }
         }
+        log::log d \$res=$res 
         return $res
     }
 
@@ -309,307 +369,32 @@ oo::class create ::automata::Configuration {
         $types addrow $name $desc $type $vals -plural [expr {$plural eq "+"}] {*}$args
     }
 
-    method table1 args {
+    method table args {
         set table [::automata::Table new {*}$args]
     }
 
-    method id1 def {
+    method id def {
         set iddef [::automata::ID new {*}$def]
-    }
-
-    method graded {label name args} {
-        dict set components $name label $label
-        dict set components $name type graded
-        dict set components $name epsilon {v {set v}}
-        dict set components $name exclude {v {set v}}
-        dict set components $name insert {v {}}
-        dict set components $name sorted 0
-        dict set components $name hide 0
-        dict set components $name scalar 0
-        dict set components $name firstof {}
-        dict set components $name superset {}
-        dict set components $name domain {}
-        dict set components $name value {}
-        while {[string match -* [lindex $args 0]]} {
-            switch [lindex $args 0] {
-                -epsilon {
-                    set args [lassign $args - e]
-                    dict set components $name epsilon [list sym [format {if {$sym eq "%s"} list {set sym}} $e]]
-                }
-                -enum {
-                    set args [lassign $args - e]
-                    dict set components $name value $e
-                    dict set components $name exclude [list sym [format {if {$sym ni {%s}} list {set sym}} $e]]
-                }
-                -exclude {
-                    set args [lassign $args - e]
-                    dict set components $name exclude [list sym [format {if {$sym in {%s}} list {set sym}} $e]]
-                }
-                -insert {
-                    set args [lassign $args - i]
-                    dict set components $name insert [list sym [format {my add %s $sym} $i] [self namespace]]
-                }
-                -sorted {
-                    set args [lassign $args -]
-                    dict set components $name sorted 1
-                }
-                -hide {
-                    set args [lassign $args -]
-                    dict set components $name hide 1
-                }
-                -scalar {
-                    set args [lassign $args -]
-                    dict set components $name scalar 1
-                }
-                -firstof {
-                    set args [lassign $args - f]
-                    dict set components $name firstof $f
-                }
-                -superset {
-                    set args [lassign $args - s]
-                    dict set components $name superset $s
-                }
-                -default {
-                    set args [lassign $args - d]
-                    dict set components $name value $d
-                }
-                -domain {
-                    set args [lassign $args - d]
-                    dict set components $name domain $d
-                    if {$d eq "B"} {
-                        dict set components $name value {0 1}
-                    }
-                    dict set components $name sorted 1
-                }
-                default {
-                    return -code error [format {unknown option "%s"} [lindex $args 0]]
-                }
-            }
-        }
-    }
-
-    method table args {
-        if {[dict exists $components table]} {
-            return -code error [format {table already defined}]
-        }
-        set name table
-        dict set components $name label Transitions
-        dict set components $name type table
-        dict set components $name as {}
-        dict set components $name value {}
-        while {[string match -* [lindex $args 0]]} {
-            switch [lindex $args 0] {
-                -as {
-                    set args [lassign $args - a]
-                    dict set components $name as $a
-                }
-            }
-        }
-    }
-
-    method Arrange {varName sorted} {
-        upvar 1 $varName value
-        if {$sorted} {
-            set value [lsort -unique -dict $value]
-        } else {
-            set u [dict create]
-            foreach item $value {
-                dict set u $item 1
-            }
-            set value [dict keys $u]
-        }
-        return
-    }
-
-    method in {what args} {
-        switch $what {
-            table {
-                my InTable {*}$args
-            }
-            default {
-                my InGraded $what {*}$args
-            }
-        }
-    }
-
-    method InGraded {name val} {
-        dict with components $name {
-            expr {$val in $value}
-        }
     }
 
     method get {what args} {
         switch $what {
-            table {
-                my GetTable {*}$args
-            }
             doc {
                 my GetDoc {*}$args
             }
             default {
-                my GetGraded $what {*}$args
             }
         }
-    }
-
-    method GetGraded {name args} {
-        dict with components $name {
-            if {$firstof eq {}} {
-                return $value
-            } else {
-                return [lindex [my get $firstof] 0]
-            }
-        }
-    }
-
-    method GetTable {q s} {
-        dict with components table {
-            set v [lsearch -all -inline -index 0 $value $q]
-        }
-        return [lsearch -all -inline -index 1 $v $s]
     }
 
     method add {what args} {
         switch $what {
-            table {
-                my AddTable {*}$args
-            }
             doc {
                 my AddDoc {*}$args
             }
             default {
-                my AddGraded $what {*}$args
             }
         }
     }
-
-    method AddGraded {name args} {
-        if {[llength $args] > 0} {
-            if {[my FitsGraded $name syms {*}$args]} {
-                my AddGradedValue $name $syms
-            } else {
-                return -code error [format {can't add "%s" to %s} $syms $name]
-            }
-                }
-    }
-
-    method AddGradedValue {name syms} {
-        dict with components $name {
-            if {$scalar} {
-                set sym [lindex $syms end]
-                if {$sym ne {}} {
-                    apply $insert $sym
-                    set value $sym
-                }
-            } else {
-                    foreach sym $syms {
-                        if {$sym ne {}} {
-                            apply $insert $sym
-                            lappend value $sym
-                        }
-                    }
-                my Arrange value $sorted
-            }
-        }
-    }
-
-
-    method FitsGraded {name varName args} {
-        upvar 1 $varName syms
-        set syms [list]
-        dict with components $name {
-            foreach sym $args {
-                if {[llength $sym] > 1} {
-                    return -code error [format {non-atomic symbol "%s"} $sym]
-                }
-                switch $domain {
-                    B {
-                        if {$sym ni {0 1}} {
-                            return 0
-                        }
-                    }
-                    N {
-                        if {![string is digit -strict $sym]} {
-                            return 0
-                        }
-                    }
-                    Z {
-                        if {![string is entier -strict $sym]} {
-                            return 0
-                        }
-                    }
-                    R {
-                        if {![string is double -strict $sym]} {
-                            return 0
-                        }
-                    }
-                }
-                set sym [apply $exclude $sym]
-                if {$sym eq {}} {
-                    return 0
-                }
-                set sym [apply $epsilon $sym]
-                lappend syms $sym
-            }
-        }
-        return 1
-    }
-
-    method AddTable args {
-        log::log i [info level 0] 
-        set name table
-        set tuple [list]
-        dict with components $name {
-            foreach arg $args fmt $as {
-                if {$fmt eq {}} {
-                    return -code error [format {too many symbols}]
-                }
-                if {[string index $fmt end] eq "*"} {
-                    set c [string trimright $fmt *]
-                    if {[my FitsGraded $c syms {*}$arg]} {
-                        my AddGradedValue $c $syms
-                        lappend tuple $syms
-                    } else {
-                        return -code error [format {can't add "%s" to table} $syms]
-                    }
-                } else {
-                    if {[my FitsGraded $fmt sym $arg]} {
-                        my AddGradedValue $fmt $sym
-                        lappend tuple [lindex $sym 0]
-                    } else {
-                        return -code error [format {can't add "%s" to table} $sym]
-                    }
-                }
-            }
-            lappend value $tuple
-        }
-    }
-
-    method succ {what args} {
-        switch $what {
-            table - id {
-                return -code error [format {unknown command "succ %s"} $what]
-            }
-            default {
-                my Succ $what {*}$args
-            }
-        }
-    }
-
-    method Succ {name val} {
-        #: Given a value, find the next value in the component.
-        dict with components $name {
-            set idx [lsearch $value $val]
-            if {$idx < 0} {
-                return -code error [format {can't find value}]
-            }
-            incr idx
-            if {$idx >= [llength $value]} {
-                return -code error [format {no successor to %s} $val]
-            }
-        }
-        return [lindex $value $idx]
-    }
-
 
 }
