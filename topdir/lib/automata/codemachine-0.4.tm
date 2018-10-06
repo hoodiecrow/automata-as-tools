@@ -1,16 +1,19 @@
 ::tcl::tm::path add [file dirname [file dirname [file normalize [info script]]]]
 
 package require automata::machine
-package require automata::configuration
 
 namespace eval automata {}
 
 # A CodeMachine is an automaton that compiles a labeled set of instructions to
 # a transition table.
 oo::class create ::automata::CodeMachine {
-    mixin ::automata::Configuration ::automata::Machine
+    mixin ::automata::Machine
 
-    variable types table iddef
+    variable table iddef
+
+    constructor args {
+        next {*}$args
+    }
 
     method compile tokens {
         #: Convert source code to transition configuration.
@@ -47,8 +50,8 @@ oo::class create ::automata::CodeMachine {
     method GetOps {} {
         variable program
         variable jumps
-        $types set S [dict get $jumps BEG_OF_CODE]
-        $types set F [dict get $jumps END_OF_CODE]
+        my vsets set S [dict get $jumps BEG_OF_CODE]
+        my vsets set F [dict get $jumps END_OF_CODE]
         dict for {addr data} $program {
             dict with data {
                 lassign $lbl a b c d e f
@@ -143,7 +146,7 @@ oo::class create ::automata::CodeMachine {
                         set c
                     }
                 }]
-                foreach inp [$types get A] next $addresses {
+                foreach inp [my vsets get A] next $addresses {
                     $table add $addr $inp $next $code
                 }
             }
@@ -178,7 +181,7 @@ oo::class create ::automata::CodeMachine {
 
     method SingleThread {fn data} {
         set data [list {*}$data]
-        set id [$iddef make $data [$types get S]]
+        set id [$iddef make $data [my vsets get S]]
         set results [my search $id $fn]
         dict values [lindex $results 0]
     }
@@ -187,7 +190,7 @@ oo::class create ::automata::CodeMachine {
 oo::class create ::automata::CM {
     mixin ::automata::CodeMachine
 
-    variable types table iddef
+    variable table iddef
 
     constructor args {
         set is 4
@@ -221,14 +224,14 @@ Specify which actual instruction set to use when instantiating machine.
         my installRunMethod {
             registers {} {a list of initial register cells}
         }
-        my type A "Flag symbols"    {@ 0 1}
-        my type V "Register values" N -hidden 1
-        my type I "Instructions"    [linsert $instructionSet 0 @] -hidden 1
-        my type Q "Addresses"       N+
-        my type S "Start address"   Q
-        my type F "Final address"   Q
-        my type E "Erase symbol"    {@ 0}
-        my type O "Operations"      #+ -hidden 1
+        my values A "Flag symbols"    {@ 0 1}
+        my values V "Register values" N -hidden 1
+        my values I "Instructions"    [linsert $instructionSet 0 @] -hidden 1
+        my values Q "Addresses"       N+
+        my values S "Start address"   Q
+        my values F "Final address"   Q
+        my values E "Erase symbol"    {@ 0}
+        my values O "Operations"      #+ -hidden 1
         my table Q A Q O*
         my id {
             registers "register cells"      V*
@@ -240,7 +243,7 @@ Specify which actual instruction set to use when instantiating machine.
     method Exec id {
         # unpack ID
         dict with id {
-            if {[$types in F $ipointer]} {
+            if {[my vsets in F $ipointer]} {
                 return
             }
             # get move
@@ -271,7 +274,7 @@ Specify which actual instruction set to use when instantiating machine.
 oo::class create ::automata::KTR {
     mixin ::automata::CodeMachine
 
-    variable types table iddef
+    variable table iddef
     
     constructor args {
         my add doc preamble {
@@ -307,13 +310,13 @@ Test numbers:
                 walls   "an even-sized list of x, y values"
             }
         }
-        my type A "Flag symbols"    {@ 0 1}
-        my type B "Facing"          {@ 0 1 2 3} -hidden 1
-        my type I "Instructions"    {@ JZ: J: TURN MOVE TAKE DROP TEST: RET CALL:} -hidden 1
-        my type Q "Addresses"       N+
-        my type S "Start address"   Q
-        my type F "Final address"   Q
-        my type V "Values"          N -hidden 1
+        my values A "Flag symbols"    {@ 0 1}
+        my values B "Facing"          {@ 0 1 2 3} -hidden 1
+        my values I "Instructions"    {@ JZ: J: TURN MOVE TAKE DROP TEST: RET CALL:} -hidden 1
+        my values Q "Addresses"       N+
+        my values S "Start address"   Q
+        my values F "Final address"   Q
+        my values V "Values"          N -hidden 1
         my table Q A Q O*
         my id {
             width    "world width"         V 
@@ -328,7 +331,7 @@ Test numbers:
             walls    "wall coords"         V*
             ipointer "instruction pointer" Q 
         }
-        my type O "Operations"      #+ -hidden 1
+        my values O "Operations"      #+ -hidden 1
     }
 
     method Turn {varName {a 1}} {
@@ -414,7 +417,7 @@ Test numbers:
         # unpack ID
         dict with id {
             # get move
-            set next [$types succ Q $ipointer]
+            set next [my vsets succ Q $ipointer]
             lassign [lindex [$table get $ipointer 0] 0] - - - code
             lassign $code tag _a _b _c _d _e
             lassign [lindex [$table get $ipointer $flag] 0] - - i
@@ -443,7 +446,7 @@ Test numbers:
                 NOP {}
             }
         }
-        if {[$types in F $i]} {
+        if {[my vsets in F $i]} {
             return
         }
         # build new ID
@@ -465,7 +468,7 @@ Test numbers:
         lappend id 0
         lappend id $beepers
         lappend id $walls
-        lappend id [$types get S]
+        lappend id [my vsets get S]
         set id [$iddef make {*}$id]
         set results [my search $id Exec]
         set res [dict values [lindex $results 0]]
@@ -477,7 +480,7 @@ Test numbers:
 oo::class create ::automata::PTM {
     mixin ::automata::CodeMachine
 
-    variable types table iddef
+    variable table iddef
 
     constructor args {
         my add doc preamble {
@@ -493,14 +496,14 @@ is set by compiling a program.  The tape uses a binary symbol set
         if no {
             runargs {tape "a (part of a) list of tape symbols"}
         }
-        my type A "Tape symbols"    {@ 0 1}
-        my type B "Move symbols"    {@ L R} -hidden 1
-        my type I "Instructions"    {@ JZ: J: PRINT ERASE ROLL:} -hidden 1
-        my type Q "Addresses"       N+
-        my type S "Start address"   Q
-        my type F "Final address"   Q
-        my type O "Operations"      #+ -hidden 1
-        my type V "Values"          N -hidden 1
+        my values A "Tape symbols"    {@ 0 1}
+        my values B "Move symbols"    {@ L R} -hidden 1
+        my values I "Instructions"    {@ JZ: J: PRINT ERASE ROLL:} -hidden 1
+        my values Q "Addresses"       N+
+        my values S "Start address"   Q
+        my values F "Final address"   Q
+        my values O "Operations"      #+ -hidden 1
+        my values V "Values"          N -hidden 1
         my table Q A Q O*
         my id {
             tape     "tape contents"       A*
@@ -514,7 +517,7 @@ is set by compiling a program.  The tape uses a binary symbol set
     method Exec id {
         # unpack ID
         dict with id {
-            if {[$types in F $ipointer]} {
+            if {[my vsets in F $ipointer]} {
                 return
             }
             # should always be 0 or 1 tuples
@@ -530,7 +533,7 @@ is set by compiling a program.  The tape uses a binary symbol set
                     return
                 }
                 PRINT: {
-                    lset tape $head [lindex [$types get A] $a]
+                    lset tape $head [lindex [my vsets get A] $a]
                 }
                 ROLL: {
                     # PTM has reversed sense of movement
@@ -546,7 +549,7 @@ is set by compiling a program.  The tape uses a binary symbol set
     method Run tape {
         #: Run the code on this tape, return tape.
         set tape [list {*}$tape]
-        set ids [lmap ipointer [$types get S] {
+        set ids [lmap ipointer [my vsets get S] {
             $iddef make $tape 0 $ipointer
         }]
         set results [concat {*}[lmap id $ids {
@@ -562,7 +565,7 @@ is set by compiling a program.  The tape uses a binary symbol set
 oo::class create ::automata::SM {
     mixin ::automata::CodeMachine
 
-    variable types table iddef
+    variable table iddef
 
     constructor args {
         my add doc preamble {
@@ -575,13 +578,13 @@ A simple sort of virtual Stack Machine.
         if no {
             runargs {stack "a list of stack symbols"}
         }
-        my type A "Flag symbols"    {@ 0 1}
-        my type I "Instructions"    {@ JZ: JSZ: JSE: J: PUSH INC DEC CLR DUP EQ EQL ADD MUL} -hidden 1
-        my type Q "Addresses"       N+
-        my type S "Start address"   Q
-        my type F "Final address"   Q
-        my type O "Operations"      #+ -hidden 1
-        my type V "Values"          N -hidden 1
+        my values A "Flag symbols"    {@ 0 1}
+        my values I "Instructions"    {@ JZ: JSZ: JSE: J: PUSH INC DEC CLR DUP EQ EQL ADD MUL} -hidden 1
+        my values Q "Addresses"       N+
+        my values S "Start address"   Q
+        my values F "Final address"   Q
+        my values O "Operations"      #+ -hidden 1
+        my values V "Values"          N -hidden 1
         my table Q A Q O*
         my id {
             stack    "stack contents"      V*
@@ -592,7 +595,7 @@ A simple sort of virtual Stack Machine.
     method Exec id {
         # unpack ID
         dict with id {
-            if {[$types in F $ipointer]} {
+            if {[my vsets in F $ipointer]} {
                 return
             }
             lassign [lindex [$table get $ipointer 0] 0] - - - code

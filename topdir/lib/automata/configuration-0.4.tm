@@ -6,7 +6,7 @@ package require automata::documentation
 
 namespace eval automata {}
 
-oo::class create ::automata::Types {
+oo::class create ::automata::ValueSets {
     constructor args {
         ::struct::matrix matrix
         matrix add columns 5
@@ -14,18 +14,7 @@ oo::class create ::automata::Types {
 
     forward matrix matrix
 
-    method addrow {name desc type vals args} {
-        set args [dict merge {
-            -sorted 1
-            -epsilon {}
-            -index -1
-            -hidden 0
-        } $args]
-        my matrix add row [list $name $type $vals $args $desc]
-    }
-
-    method getrow name {
-        set found [my matrix search column 0 $name]
+    method ExtractRow found {
         if {[llength $found] > 0} {
             return [lindex $found 0 1]
         } else {
@@ -33,29 +22,39 @@ oo::class create ::automata::Types {
         }
     }
 
-    method _set {key row val} {
-        set col [lsearch {name type val opts desc} $key]
+    method GetCol key {
+        set col [lsearch {name vset val opts desc} $key]
         if {$col >= 0} {
-            my matrix set cell $col $row $val
+            return $col
         } else {
             return -code error [format {key "%s" not found} $key]
         }
     }
 
+    method addrow {name desc vset vals args} {
+        set args [dict merge {
+            -sorted 1
+            -epsilon {}
+            -index -1
+            -hidden 0
+        } $args]
+        my matrix add row [list $name $vset $vals $args $desc]
+    }
+
+    method _set {key row val} {
+        my matrix set cell [my GetCol $key] $row $val
+    }
+
     method _get {key row} {
-        set col [lsearch {name type val opts desc} $key]
-        if {$col >= 0} {
-            my matrix get cell $col $row
-        } else {
-            return -code error [format {key "%s" not found} $key]
-        }
+        my matrix get cell [my GetCol $key] $row
     }
 
     method set {name symbol} {
         log::log d [info level 0] 
-        set row [my getrow $name]
+        set row [my ExtractRow [my matrix search column 0 $name]]
         array set options [my _get opts $row]
         if no {
+            # TODO would be nice to have at initial assignment
             if {$symbol eq {}} {
                 return -code error [format {empty symbol}]
             }
@@ -63,19 +62,25 @@ oo::class create ::automata::Types {
         if {$symbol eq $options(-epsilon)} {
             set symbol {}
         }
-        if {[my _get type $row] ne "@"} {
+        # first element eq @ means that the value is an immutable enumeration
+        if {[my _get vset $row] ne "@"} {
             set old [my _get val $row]
             if {$options(-plural)} {
-                if {$options(-sorted)} {
-                    my _set val $row [lsort -dictionary -unique [linsert $old end $symbol]]
-                } else {
-                    my _set val $row [dict set old $symbol 1]
+                if {$symbol ni $old} {
+                    set new [linsert $old end $symbol]
+                    if {$options(-sorted)} {
+                        my _set val $row [lsort -dictionary -unique $new]
+                    } else {
+                        my _set val $row $new
+                    }
                 }
             } else {
                 my _set val $row $symbol
             }
-            if {[my _get type $row] ni {# @ N}} {
-                my set [my _get type $row] $symbol
+            # if the vset has an extendable subset, extend it
+            set sup [my _get vset $row]
+            if {$sup ni {# @ N}} {
+                my set $sup $symbol
             }
         }
         log::log d "val = [my _get val $row] ($symbol)"
@@ -83,46 +88,33 @@ oo::class create ::automata::Types {
     }
 
     forward getname my _get name
-    forward gettype my _get type
+    forward gettype my _get vset
     forward getopts my _get opts
     forward getdesc my _get desc
-     
+
     method getval row {
         array set options [my _get opts $row]
         if {$options(-index) >= 0} {
-            set type [my _get type $row]
-            switch $type {
+            set vset [my _get vset $row]
+            switch $vset {
                 "#" {
                     lindex [my _get val $row] $options(-index)
                 }
                 "N" {
-                    return 0
+                    return $options(-index)
                 }
                 default {
-                    lindex [my get $type] $options(-index)
+                    lindex [my get $vset] $options(-index)
                 }
             }
         } else {
-            set type [my _get type $row]
-            if {$type in {@ N}} {
-                my _get val $row
-            } else {
-                if {$options(-plural)} {
-                    if {$options(-sorted)} {
-                        my _get val $row
-                    } else {
-                        dict keys [my _get val $row]
-                    }
-                } else {
-                    my _get val $row
-                }
-            }
+            my _get val $row
         }
     }
 
     method get name {
         log::log d [info level 0] 
-        my getval [my getrow $name]
+        my getval [my ExtractRow [my matrix search column 0 $name]]
     }
 
     method succ {name val} {
@@ -142,7 +134,7 @@ oo::class create ::automata::Types {
 
     method in {name symbol} {
         log::log d [info level 0] 
-        expr {$symbol in [my getval [my getrow $name]]}
+        expr {$symbol in [my getval [my ExtractRow [my matrix search column 0 $name]]]}
     }
 
     method print {} {
@@ -161,7 +153,7 @@ oo::class create ::automata::Types {
                     }
                 }]
                 append str [format "%-15s %s = {%s}\n" [my getdesc $row] [my getname $row] [join $values ", "]]
-            } elseif {[my _get type $row] eq "@"} {
+            } elseif {[my _get vset $row] eq "@"} {
                 set values [my getval $row]
                 if {[llength $values] eq 1} {
                     append str [format "%-15s %s = %s\n" [my getdesc $row] [my getname $row] $values]
@@ -190,10 +182,7 @@ oo::class create ::automata::Types {
 }
 
 oo::class create ::automata::Table {
-    variable types
-
     constructor args {
-        set types [set [uplevel 1 {namespace which -variable types}]]
         ::struct::matrix matrix
         matrix add columns [llength $args]
         matrix add row [lmap arg $args {string index $arg 0}]
@@ -243,11 +232,11 @@ oo::class create ::automata::Table {
                     return -code error [format {can't add multiple symbols}]
                 }
                 foreach symbol $arg {
-                    set symbol [$types set $t $symbol]
+                    set symbol [my vsets set $t $symbol]
                     lappend val $symbol
                 }
             } else {
-                set arg [$types set $t $arg]
+                set arg [my vsets set $t $arg]
                 set val $arg
             }
             lappend values $val
@@ -284,14 +273,11 @@ oo::class create ::automata::Table {
 }
 
 oo::class create ::automata::ID {
-    variable types
-
     constructor args {
-        set types [set [uplevel 1 {namespace which -variable types}]]
         ::struct::matrix matrix
         matrix add columns 3
-        foreach {name desc type} $args {
-            matrix add row [list $name $desc $type]
+        foreach {name desc vset} $args {
+            matrix add row [list $name $desc $vset]
         }
     }
 
@@ -306,8 +292,8 @@ oo::class create ::automata::ID {
             set key [my matrix get cell 0 $row]
             dict set res $key {}
             foreach symbol $val {
-                $types set [string index [my matrix get cell 2 $row] 0] $symbol
-                log::log d "type = [my matrix get cell 2 $row]"
+                my vsets set [string index [my matrix get cell 2 $row] 0] $symbol
+                log::log d "vset = [my matrix get cell 2 $row]"
                 if {[string index [my matrix get cell 2 $row] 1] eq "*"} {
                     dict lappend res $key $symbol
                     log::log d "appending: \$res=$res"
@@ -324,8 +310,8 @@ oo::class create ::automata::ID {
     method print {} {
         append str "Instantaneous description\n"
         for {set row 0} {$row < [my matrix rows]} {incr row} {
-            lassign [my matrix get row $row] name desc type
-            append str [format "%-22s %s: %s\n" $desc $name $type]
+            lassign [my matrix get row $row] name desc vset
+            append str [format "%-22s %s: %s\n" $desc $name $vset]
         }
         return $str
     }
@@ -339,32 +325,39 @@ oo::class create ::automata::ID {
 oo::class create ::automata::Configuration {
     mixin ::automata::Documentation
 
-    variable types table iddef components
+    variable vsets table iddef components
 
     #: Handles machine configurations, including instantaneous descriptions.
 
     constructor args {
-        set types [::automata::Types new]
+        set vsets [::automata::ValueSets new]
+        oo::objdefine [self] forward vsets $vsets
+        oo::define ::automata::Table forward vsets $vsets
+        oo::define ::automata::ID forward vsets $vsets
         next {*}$args
+    }
+
+    destructor {
+        catch {$vsets destroy}
     }
 
     method print {} {
         #: Print the configuration.
-        append str [$types print]
+        append str [my vsets print]
         append str [$table print]
         append str [$iddef print]
         puts -nonewline $str
     }
 
-    method type {name desc base args} {
+    method values {name desc base args} {
         if {[string match {[#A-Z]*} $base]} {
-            lassign [split [string trim $base] {}] type plural
+            lassign [split [string trim $base] {}] vset plural
             set vals {}
         } else {
-            set vals [lassign $base type]
+            set vals [lassign $base vset]
             set plural {}
         }
-        $types addrow $name $desc $type $vals -plural [expr {$plural eq "+"}] {*}$args
+        my vsets addrow $name $desc $vset $vals -plural [expr {$plural eq "+"}] {*}$args
     }
 
     method table args {

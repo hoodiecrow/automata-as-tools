@@ -1,37 +1,24 @@
-if no {
-Type big N for naturals, {..} for enumerated, # for any symbol, T+ for subset of T, T for member of T
-
--index n for #n of type
--sorted for a sorted set
--default x for starting value x
--hidden for left out of documentation 
-
-For table and ID, T* means string of 
-
-type <name> <description> <derivation> ?option...?
-}
 
 ::tcl::tm::path add [file dirname [file dirname [file normalize [info script]]]]
 
 package require automata::machine
-package require automata::configuration
 
 namespace eval automata {}
 
 oo::class create ::automata::TableMachine {
-    mixin ::automata::Configuration ::automata::Machine
+    mixin ::automata::Machine
 }
 
 oo::class create ::automata::FSM {
     mixin ::automata::TableMachine
 
-    variable types table iddef
+    variable table iddef
 
     constructor args {
-        my type A "Input symbols" #+ -epsilon ε
-        my type Q "State symbols" #+ -sorted 0
-        my type S "Start symbols" Q+
-        my type F "Final symbols" Q+
+        my values A "Input symbols" #+ -epsilon ε
+        my values Q "State symbols" #+ -sorted 0
+        my values S "Start symbols" Q+
+        my values F "Final symbols" Q+
         my table Q A Q
         my id {
             input "remaining input" A*
@@ -58,13 +45,13 @@ oo::class create ::automata::FSM {
                 }
                 if {[string match <* $from]} {
                     set from [string trimleft $from <]
-                    $types set S [string trimright $from >]
-                    $types set S [string trimright $from >]
+                    my vsets set S [string trimright $from >]
+                    my vsets set S [string trimright $from >]
                 }
                 foreach name {from next} {
                     if {[string match *> [set $name]]} {
                         set $name [string trimright [set $name] >]
-                        $types set F [set $name]
+                        my vsets set F [set $name]
                     }
                 }
                 foreach inp $input {
@@ -100,7 +87,7 @@ oo::class create ::automata::FSM {
         # Are we in a final state when all input symbols are consumed?
         lassign $arglist a
         set input [list {*}$a]
-        set ids [lmap state [$types get S] {
+        set ids [lmap state [my vsets get S] {
             $iddef make $input $state
         }]
         set results [concat {*}[lmap id $ids {
@@ -108,7 +95,7 @@ oo::class create ::automata::FSM {
         }]]
         lmap result $results {
             dict with result {
-                if {[llength $input] == 0 && [$types in F $state]} {
+                if {[llength $input] == 0 && [my vsets in F $state]} {
                     return 1
                 }
             }
@@ -120,7 +107,7 @@ oo::class create ::automata::FSM {
         # What state are we in when all input symbols are consumed?
         lassign $arglist a
         set input [list {*}$a]
-        set ids [lmap state [$types get S] {
+        set ids [lmap state [my vsets get S] {
             $iddef make $input $state
         }]
         set results [concat {*}[lmap id $ids {
@@ -128,7 +115,7 @@ oo::class create ::automata::FSM {
         }]]
         lmap result $results {
             dict with result {
-                if {[llength $input] == 0 && [$types in F $state]} {
+                if {[llength $input] == 0 && [my vsets in F $state]} {
                     set state
                 } else {
                     continue
@@ -143,7 +130,7 @@ oo::class create ::automata::FSM {
 oo::class create ::automata::FST {
     mixin ::automata::TableMachine
 
-    variable types table iddef
+    variable table iddef
 
     constructor args {
         if no {
@@ -167,11 +154,11 @@ oo::class create ::automata::FST {
             b     {} {(for `-reconstruct`) an output symbol list}
             steps {} {(for `-generate`) a number of steps}
         }
-        my type A "Input symbols"  #+ -epsilon ε
-        my type B "Output symbols" #+ -epsilon ε
-        my type Q "State symbols"  #+ -sorted 0
-        my type S "Start symbols"  Q+
-        my type F "Final symbols"  Q+
+        my values A "Input symbols"  #+ -epsilon ε
+        my values B "Output symbols" #+ -epsilon ε
+        my values Q "State symbols"  #+ -sorted 0
+        my values S "Start symbols"  Q+
+        my values F "Final symbols"  Q+
         my table Q A Q B
         my id {
             input  "remaining input"  A*
@@ -194,14 +181,14 @@ oo::class create ::automata::FST {
                 }
                 if {[string match <* $from]} {
                     set from [string trimleft $from <]
-                    $types set S [string trimright $from >]
-                    $types set S [string trimright $from >]
+                    my vsets set S [string trimright $from >]
+                    my vsets set S [string trimright $from >]
                 }
                 foreach name {from next} {
                     if {[string match *> [set $name]]} {
                         set $name [string trimright [set $name] >]
-                        $types set F [set $name]
-                        $types set F [set $name]
+                        my vsets set F [set $name]
+                        my vsets set F [set $name]
                     }
                 }
                 foreach inp $input {
@@ -249,7 +236,7 @@ oo::class create ::automata::FST {
         lassign $arglist a b
         set input [list {*}$a]
         set output [list {*}$b]
-        set ids [lmap state [$types get S] {
+        set ids [lmap state [my vsets get S] {
             $iddef make $input $state $output
         }]
         log::log d \$ids=$ids 
@@ -258,7 +245,7 @@ oo::class create ::automata::FST {
         }]]
         lmap result $results {
             dict with result {
-                if {[llength $input] == 0 && [$types in F $state] && [llength $output] == 0} {
+                if {[llength $input] == 0 && [my vsets in F $state] && [llength $output] == 0} {
                     return 1
                 }
             }
@@ -299,7 +286,7 @@ oo::class create ::automata::FST {
         # What symbols have been added to output when all input symbols in a are consumed?
         lassign $arglist a
         set input [list {*}$a]
-        set ids [lmap state [$types get S] {
+        set ids [lmap state [my vsets get S] {
             $iddef make $input $state {}
         }]
         set results [concat {*}[lmap id $ids {
@@ -307,7 +294,7 @@ oo::class create ::automata::FST {
         }]]
         lmap result $results {
             dict with result {
-                if {[llength $input] == 0 && [$types in F $state]} {
+                if {[llength $input] == 0 && [my vsets in F $state]} {
                     set output
                 } else {
                     continue
@@ -350,7 +337,7 @@ oo::class create ::automata::FST {
         # What symbols have been added to input when all symbols in output are consumed?
         lassign $arglist b
         set output [list {*}$b]
-        set ids [lmap state [$types get S] {
+        set ids [lmap state [my vsets get S] {
             $iddef make {} $state $output
         }]
         set results [concat {*}[lmap id $ids {
@@ -358,7 +345,7 @@ oo::class create ::automata::FST {
         }]]
         lmap result $results {
             dict with result {
-                if {[$types in F $state] && [llength $output] == 0} {
+                if {[my vsets in F $state] && [llength $output] == 0} {
                     set input
                 } else {
                     continue
@@ -396,7 +383,7 @@ oo::class create ::automata::FST {
     method Generate arglist {
         # If we take N steps into the transition sequence (or sequence powerset), what do we get in input and output?
         lassign $arglist steps
-        set ids [lmap state [$types get S] {
+        set ids [lmap state [my vsets get S] {
             $iddef make {} $state {}
         }]
         set results [concat {*}[lmap id $ids {
@@ -404,7 +391,7 @@ oo::class create ::automata::FST {
         }]]
         lmap result $results {
             dict with result {
-                if {[$types in F $state]} {
+                if {[my vsets in F $state]} {
                     dict values $result
                 } else {
                     continue
@@ -418,7 +405,7 @@ oo::class create ::automata::FST {
 oo::class create ::automata::PDA {
     mixin ::automata::TableMachine
 
-    variable types table iddef
+    variable table iddef
 
     constructor args {
         if no {
@@ -432,12 +419,12 @@ oo::class create ::automata::PDA {
             default Accept {[[accept]] the input}
             a {} {a list of input symbols}
         }
-        my type A "Input symbols" #+ -epsilon ε
-        my type B "Stack symbols" #+ -epsilon ε -sorted 0
-        my type Q "State symbols" #+ -sorted 0
-        my type S "Start symbol"  Q
-        my type Z "Initial stack" B -index 0
-        my type F "Final symbols" Q+
+        my values A "Input symbols" #+ -epsilon ε
+        my values B "Stack symbols" #+ -epsilon ε -sorted 0
+        my values Q "State symbols" #+ -sorted 0
+        my values S "Start symbol"  Q
+        my values Z "Initial stack" B -index 0
+        my values F "Final symbols" Q+
         my table Q A Q B B*
         my id {
             input "remaining input" A*
@@ -461,14 +448,14 @@ oo::class create ::automata::PDA {
                 splitItems stackPush
                 if {[string match <* $from]} {
                     set from [string trimleft $from <]
-                    $types set S [string trimright $from >]
-                    $types set S [string trimright $from >]
+                    my vsets set S [string trimright $from >]
+                    my vsets set S [string trimright $from >]
                 }
                 foreach name {from next} {
                     if {[string match *> [set $name]]} {
                         set $name [string trimright [set $name] >]
-                        $types set F [set $name]
-                        $types set F [set $name]
+                        my vsets set F [set $name]
+                        my vsets set F [set $name]
                     }
                 }
                 if {$stackPush eq "ε"} {
@@ -520,8 +507,8 @@ oo::class create ::automata::PDA {
         # Are we in a final state when all input symbols are consumed and the stack has only one item?
         lassign $arglist a
         set input [list {*}$a]
-        set stack [list [$types get Z]]
-        set ids [lmap state [$types get S] {
+        set stack [list [my vsets get Z]]
+        set ids [lmap state [my vsets get S] {
             $iddef make $input $state $stack
         }]
         set results [concat {*}[lmap id $ids {
@@ -529,7 +516,7 @@ oo::class create ::automata::PDA {
         }]]
         lmap result $results {
             dict with result {
-                if {[llength $input] eq 0 && [$types in F $state] && [llength $stack] eq 1} {
+                if {[llength $input] eq 0 && [my vsets in F $state] && [llength $stack] eq 1} {
                     return 1
                 }
             }
@@ -541,8 +528,8 @@ oo::class create ::automata::PDA {
         # What state are we in when all input symbols are consumed and the stack has only one item?
         lassign $arglist a
         set input [list {*}$a]
-        set stack [list [$types get Z]]
-        set ids [lmap state [$types get S] {
+        set stack [list [my vsets get Z]]
+        set ids [lmap state [my vsets get S] {
             $iddef make $input $state $stack
         }]
         set results [concat {*}[lmap id $ids {
@@ -550,7 +537,7 @@ oo::class create ::automata::PDA {
         }]]
         lmap result $results {
             dict with result {
-                if {[llength $input] eq 0 && [$types in F $state] && [llength $stack] eq 1} {
+                if {[llength $input] eq 0 && [my vsets in F $state] && [llength $stack] eq 1} {
                     set state
                 } else {
                     continue
@@ -564,7 +551,7 @@ oo::class create ::automata::PDA {
 oo::class create ::automata::BTM {
     mixin ::automata::TableMachine
 
-    variable types table iddef
+    variable table iddef
 
     constructor args {
         if no {
@@ -574,13 +561,13 @@ oo::class create ::automata::BTM {
             tape {} {a list of initial tape symbols}
             ?head? {} {initial head position}
         }
-        my type A "Tape symbols"  #+ -epsilon ε
-        my type B "Print symbols" {@ E P N} -sorted 0
-        my type C "Move symbols"  {@ L R N} -sorted 0
-        my type Q "State symbols" #+ -sorted 0
-        my type S "Start symbol"  Q
-        my type F "Final symbols" Q+
-        my type I "Head position" N+ -index 0
+        my values A "Tape symbols"  #+ -epsilon ε
+        my values B "Print symbols" {@ E P N} -sorted 0
+        my values C "Move symbols"  {@ L R N} -sorted 0
+        my values Q "State symbols" #+ -sorted 0
+        my values S "Start symbol"  Q
+        my values F "Final symbols" Q+
+        my values I "Head position" N+ -index 0
         my table Q A Q B C
         my id {
             tape  "tape contents" A*
@@ -598,14 +585,14 @@ oo::class create ::automata::BTM {
                 if {[regexp {(\w)\s*/\s*([EPN]|P\w)\s*;\s*([LRN])} $edge -> input print move]} {
                     if {[string match <* $from]} {
                         set from [string trimleft $from <]
-                        $types set S [string trimright $from >]
-                        $types set S [string trimright $from >]
+                        my vsets set S [string trimright $from >]
+                        my vsets set S [string trimright $from >]
                     }
                     foreach name {from next} {
                         if {[string match *> [set $name]]} {
                             set $name [string trimright [set $name] >]
-                            $types set F [set $name]
-                            $types set F [set $name]
+                            my vsets set F [set $name]
+                            my vsets set F [set $name]
                         }
                     }
                     $table add $from $input $next $print $move
@@ -621,8 +608,8 @@ oo::class create ::automata::BTM {
         upvar 1 $varName tape
         switch $p {
             N  {}
-            E  { lset tape $head [lindex [$types get A] 0] }
-            P  { lset tape $head [lindex [$types get A] 1] }
+            E  { lset tape $head [lindex [my vsets get A] 0] }
+            P  { lset tape $head [lindex [my vsets get A] 1] }
             default {
                 if {[regexp {^P(.)$} $p -> s]} {
                     lset tape $head $s
@@ -636,7 +623,7 @@ oo::class create ::automata::BTM {
     method Exec id {
         # unpack ID
         dict with id {
-            if {[$types in F $state]} {
+            if {[my vsets in F $state]} {
                 return
             }
             # should always be 0 or 1 tuples
@@ -655,15 +642,15 @@ oo::class create ::automata::BTM {
     method Run tape {
         #: Run this tape from start index, return tape, current index, and ending state.
         set tape [list {*}$tape]
-        set ids [lmap state [$types get S] {
-            $iddef make $tape [$types get I] $state
+        set ids [lmap state [my vsets get S] {
+            $iddef make $tape [my vsets get I] $state
         }]
         set results [concat {*}[lmap id $ids {
             my search $id Exec
         }]]
         lmap result $results {
             dict with result {
-                if {[$types in F $state]} {
+                if {[my vsets in F $state]} {
                     dict values $result
                 } else {
                     continue

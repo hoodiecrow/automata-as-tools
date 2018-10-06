@@ -1,11 +1,11 @@
+::tcl::tm::path add [file dirname [file dirname [file normalize [info script]]]]
+
 namespace eval automata {}
 
-oo::class create ::automata::Machine {
-    variable types
+package require automata::configuration
 
-    constructor args {
-        next {*}$args
-    }
+oo::class create ::automata::Machine {
+    mixin ::automata::Configuration
 
     method search {id fn {steps {}}} {
         if {$steps ne {}} {
@@ -33,12 +33,12 @@ oo::class create ::automata::Machine {
             L {
                 incr head
                 if {$head >= [expr {[llength $tape] - 1}]} {
-                    lappend tape [lindex [$types get A] 0]
+                    lappend tape [lindex [my vsets get A] 0]
                 }
             }
             R {
                 if {$head < 1} {
-                    set tape [linsert $tape 0 [lindex [$types get A] 0]]
+                    set tape [linsert $tape 0 [lindex [my vsets get A] 0]]
                 } else {
                     incr head -1
                 }
