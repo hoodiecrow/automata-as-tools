@@ -54,14 +54,14 @@ test cm-1.1 {print 1.0} -setup {
     M destroy
     log::lvSuppressLE i 1
 } -output {Flag symbols    A = {0, 1}
-Instructions    Q = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+Addresses       Q = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+Start address   S = 0
+Final address   F = 10
 Erase symbol    E = 0
-Program start   S = 0
-Program end     F = 10
 Transitions
 q0    inp   q1    out
-0     0     1     {JZ: 2}
-0     1     5     {JZ: 2}
+0     0     1     {JZ: 2 0}
+0     1     5     {JZ: 2 0}
 1     0     2     {DEC: 2}
 1     1     2     {DEC: 2}
 2     0     3     {INC: 3}
@@ -70,8 +70,8 @@ q0    inp   q1    out
 3     1     4     {INC: 1}
 4     0     0     NOP
 4     1     0     NOP
-5     0     6     {JZ: 1}
-5     1     9     {JZ: 1}
+5     0     6     {JZ: 1 0}
+5     1     9     {JZ: 1 0}
 6     0     7     {DEC: 1}
 6     1     7     {DEC: 1}
 7     0     8     {INC: 2}
@@ -81,7 +81,7 @@ q0    inp   q1    out
 9     0     10    NOP
 9     1     10    NOP
 Instantaneous description
-register cells         registers: B*
+register cells         registers: V*
 instruction pointer    ipointer: Q
 }
 

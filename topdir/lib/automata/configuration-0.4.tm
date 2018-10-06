@@ -204,7 +204,6 @@ oo::class create ::automata::Table {
 
     method get {key1 {key2 *}} {
         log::log d [info level 0] 
-        log::log d "[my matrix serialize]"
         set rows1 [lmap idx [my matrix search rect 0 2 0 end $key1] {
             lindex $idx 1
         }]
@@ -300,7 +299,6 @@ oo::class create ::automata::ID {
 
     method make args {
         log::log d [info level 0] 
-        log::log d [$types matrix serialize]
         set res [dict create]
         for {set row 0} {$row < [my matrix rows]} {incr row} {
             set val [lindex $args $row]

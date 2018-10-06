@@ -58,49 +58,49 @@ oo::class create ::automata::CodeMachine {
                 } elseif {[dict exists $jumps $a]} {
                     set a [dict get $jumps $a]
                 }
-                set addresses [list $next $next]
-                # TODO planned:
-                # test flag:
-                #   CM:  condition registers same (implied EQ)
-                #   KTR: test operation
-                #   PTM: current cell (implied READ)
-                #   SM:  top of stack (implied TOP)
-                # J(N)Z:  check if test flag is zero/non-zero
-                # J0:     check if test flag is 0
-                # J1:     check if test flag is 1
-                # J(N)T:  check if test flag is true/false
-                # JF:     check if test flag is false
-                # JS(N)E: check if test flag same as second stack item
+                # Conditional jumps:
+                # JN.* jump if not cond(flag)
+                # J.*  jump if (flag)
+                #
+                # Flag setting:
+                # CM:  reg' eq reg''
+                # KTR: 0 or as set by TEST:
+                # PTM: tape/head
+                # SM:
+                #   JN?SZ: stack#0 eq zero
+                #   JN?SE: stack#0 eq stack#1
+                #   else:  0
+                switch -glob $cmd {
+                    J: - CALL: {
+                        set addresses [list $a $a]
+                    }
+                    JN* {
+                        set addresses [list $a $next]
+                    }
+                    J* {
+                        set addresses [list $next $a]
+                    }
+                    default {
+                        set addresses [list $next $next]
+                    }
+                }
                 switch $cmd {
-                    JE: - JZ: - JSE: - JSZ: {
-                        # JE has two valid args,
-                        # JZ one,
-                        # JSE and JSZ zero
-                        set addresses [list $next $a]
-                        set code [list $cmd $b $c]
+                    JZ: - JNZ: {
+                        set code [list [string map {N {}} $cmd] $b 0]
                     }
-                    JNE: - JNZ: - JSNE - JSNZ: {
-                        set addresses [list $a $next]
-                        set code [string map {N {}} $cmd] $b $c]
+                    JE: - JNE: {
+                        set code [list [string map {N {}} $cmd] $b $c]
                     }
-                    JT: {
-                        set addresses [list $next $a]
-                        set code NOP
-                    }
-                    JNT: {
-                        set addresses [list $a $next]
-                        set code NOP
+                    JSZ: - JNSZ: - JSE: - JNSE: {
+                        set code [string map {N {}} $cmd]
                     }
                     J: {
-                        set addresses [list $a $a]
                         set code NOP
                     }
                     CALL: {
-                        set addresses [list $a $a]
                         set code $cmd
                     }
                     TEST: {
-                        set addresses [list $next $next]
                         set code [list $cmd [lsearch -exact {
                             front-is-clear
                             left-is-clear
@@ -227,15 +227,16 @@ Specify which actual instruction set to use when instantiating machine.
             registers {} {a list of initial register cells}
         }
         my type A "Flag symbols"    {@ 0 1}
-        my type B "Register values" N -hidden 1
-        my type Q "Instructions"    N+
+        my type V "Register values" N -hidden 1
+        my type I "Instructions"    [linsert $instructionSet 0 @] -hidden 1
+        my type Q "Addresses"       N+
+        my type S "Start address"   Q
+        my type F "Final address"   Q
         my type E "Erase symbol"    {@ 0}
-        my type S "Program start"   Q
-        my type F "Program end"     Q
         my type O "Operations"      #+ -hidden 1
         my table Q A Q O*
         my id {
-            registers "register cells"      B*
+            registers "register cells"      V*
             ipointer  "instruction pointer" Q 
         }
 
@@ -250,13 +251,7 @@ Specify which actual instruction set to use when instantiating machine.
             # get move
             lassign [lindex [$table get $ipointer 0] 0] - - - code
             lassign $code tag a b
-            switch $tag {
-                JE: { set flag [expr [lindex $registers $a] eq [lindex $registers $b]] }
-                JZ: { set flag [expr [lindex $registers $a] eq [lindex $registers 0]] }
-                default {
-                    set flag 0
-                }
-            }
+            set flag [expr {[lindex $registers $a] eq [lindex $registers $b]}]
             lassign [lindex [$table get $ipointer $flag] 0] - - next
             # build new ID
             switch $tag {
@@ -333,7 +328,7 @@ Test numbers:
             bag      "#robot's beepers"    V 
             facing   "robot facing"        B 
             returns  "return stack"        Q*
-            test     "test state"          A 
+            flag     "test flag"           A 
             beepers  "beeper coords"       V*
             walls    "wall coords"         V*
             ipointer "instruction pointer" Q 
@@ -427,16 +422,9 @@ Test numbers:
             set next [$types succ Q $ipointer]
             lassign [lindex [$table get $ipointer 0] 0] - - - code
             lassign $code tag _a _b _c _d _e
-            # test-sensitive jumps are coded as NOP
-            if {$tag eq "NOP"} {
-                set flag $test
-            } else {
-                set flag 0
-            }
-            set test 0
             lassign [lindex [$table get $ipointer $flag] 0] - - i
+            set flag 0
             switch $tag {
-                JT: - NOP {}
                 HALT  {
                     return
                 }
@@ -449,15 +437,15 @@ Test numbers:
                 TAKE - DROP {
                 }
                 TEST: {
-                    set test [my Test $id $_a]
+                    set flag [my Test $id $_a]
                 }
                 RET   {
                     set returns [lassign $returns i]
                 }
                 CALL: {
                     set returns [linsert $returns 0 $next]
-                    set test 0
                 }
+                NOP {}
             }
         }
         if {[$types in F $i]} {
@@ -467,7 +455,7 @@ Test numbers:
         lappend _id $width $height
         lappend _id $xpos $ypos $bag $facing
         lappend _id $returns
-        lappend _id $test
+        lappend _id $flag
         lappend _id $beepers
         lappend _id $walls
         lappend _id $i
@@ -593,7 +581,7 @@ A simple sort of virtual Stack Machine.
             runargs {stack "a list of stack symbols"}
         }
         my type A "Flag symbols"    {@ 0 1}
-        my type I "Instructions"    {@ JZ: JS: J: PUSH INC DEC CLR DUP EQ EQL ADD MUL} -hidden 1
+        my type I "Instructions"    {@ JZ: JSZ: JSE: J: PUSH INC DEC CLR DUP EQ EQL ADD MUL} -hidden 1
         my type Q "Addresses"       N+
         my type S "Start address"   Q
         my type F "Final address"   Q

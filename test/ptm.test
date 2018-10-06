@@ -18,14 +18,14 @@ M destroy
 test ptm-1.0 {2 state, 2 symbol busy beaver} -setup {} -body {
     ::automata::PTM create M
     M compile {
-        A:	JZ:+4
+        A:	JZ:+4,0
             PRINT
             ROLL:R
             J:B
             PRINT
             ROLL:L
             J:B
-        B:	JZ:+4
+        B:	JZ:+4,0
             PRINT
             ROLL:L
             J:A
@@ -43,14 +43,14 @@ test ptm-1.0 {2 state, 2 symbol busy beaver} -setup {} -body {
 test ptm-1.1 {2 state, 2 symbol busy beaver, print} -setup {} -body {
     ::automata::PTM create M
     M compile {
-        A:	JZ:+4
+        A:	JZ:+4,0
             PRINT
             ROLL:R
             J:B
             PRINT
             ROLL:L
             J:B
-        B:	JZ:+4
+        B:	JZ:+4,0
             PRINT
             ROLL:L
             J:A
@@ -69,8 +69,8 @@ Start address   S = 0
 Final address   F = 15
 Transitions
 q0    inp   q1    out
-0     0     1     JZ:
-0     1     4     JZ:
+0     0     1     {JZ: 0 0}
+0     1     4     {JZ: 0 0}
 1     0     2     {PRINT: 1}
 1     1     2     {PRINT: 1}
 2     0     3     {ROLL: R}
@@ -83,8 +83,8 @@ q0    inp   q1    out
 5     1     6     {ROLL: L}
 6     0     7     NOP
 6     1     7     NOP
-7     0     8     JZ:
-7     1     11    JZ:
+7     0     8     {JZ: 0 0}
+7     1     11    {JZ: 0 0}
 8     0     9     {PRINT: 1}
 8     1     9     {PRINT: 1}
 9     0     10    {ROLL: L}
@@ -108,21 +108,21 @@ instruction pointer    ipointer: Q
 test ptm-1.2 {multiply two numbers in unary} -setup {} -body {
     ::automata::PTM create M
     M compile {
-        begin:   ROLL:R JZ:-1 ROLL:R JZ:-1 ROLL:R PRINT
+        begin:   ROLL:R JZ:-1,0 ROLL:R JZ:-1,0 ROLL:R PRINT
                  ROLL:L
-        a_loop:  ROLL:L JZ:-1 ROLL:L JZ:-1 ROLL:R
+        a_loop:  ROLL:L JZ:-1,0 ROLL:L JZ:-1,0 ROLL:R
                  ERASE
-                 ROLL:R JNT:done
-                 ROLL:R JZ:-1 ROLL:R
+                 ROLL:R JNZ:done,0
+                 ROLL:R JZ:-1,0 ROLL:R
         b_loop:  ROLL:R
-                 JNT:a_loop
+                 JNZ:a_loop,0
                  ERASE
-                 ROLL:R JZ:-1 ROLL:R JZ:-1
+                 ROLL:R JZ:-1,0 ROLL:R JZ:-1,0
                  PRINT
-                 ROLL:L JZ:-1 ROLL:L JZ:-1 PRINT
-                 JZ:b_loop
+                 ROLL:L JZ:-1,0 ROLL:L JZ:-1,0 PRINT
+                 JZ:b_loop,0
                  ROLL:R
-                 JNT:a_loop
+                 JNZ:a_loop,0
                  ERASE
         done:    HALT
     }

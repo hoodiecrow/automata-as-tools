@@ -18,13 +18,13 @@ test ktr-1.0 {} -setup {
 } -body {
     M compile {
         a:          TEST:next-to-a-beeper
-                    JT:end
+                    JZ:end,0
                     TEST:right-is-clear
-                    JNT:b
+                    JNZ:b,0
                     CALL:turnright
                     J:c
         b:          TEST:front-is-clear
-                    JT:c
+                    JZ:c,0
                     TURN
                     J:b
         c:          MOVE
@@ -43,13 +43,13 @@ test ktr-1.1 {print 1.0} -setup {
 } -body {
     M compile {
         a:          TEST:next-to-a-beeper
-                    JT:end
+                    JZ:end,0
                     TEST:right-is-clear
-                    JNT:b
+                    JNZ:b,0
                     CALL:turnright
                     J:c
         b:          TEST:front-is-clear
-                    JT:c
+                    JZ:c,0
                     TURN
                     J:b
         c:          MOVE
@@ -69,20 +69,20 @@ Transitions
 q0    inp   q1    out
 0     0     1     {TEST: 3}
 0     1     1     {TEST: 3}
-1     0     2     NOP
-1     1     12    NOP
+1     0     2     {JZ: 0 0}
+1     1     12    {JZ: 0 0}
 2     0     3     {TEST: 2}
 2     1     3     {TEST: 2}
-3     0     6     NOP
-3     1     4     NOP
+3     0     6     {JZ: 0 0}
+3     1     4     {JZ: 0 0}
 4     0     13    CALL:
 4     1     13    CALL:
 5     0     10    NOP
 5     1     10    NOP
 6     0     7     {TEST: 0}
 6     1     7     {TEST: 0}
-7     0     8     NOP
-7     1     10    NOP
+7     0     8     {JZ: 0 0}
+7     1     10    {JZ: 0 0}
 8     0     9     TURN
 8     1     9     TURN
 9     0     6     NOP
@@ -109,7 +109,7 @@ robot y                ypos: V
 #robot's beepers       bag: V
 robot facing           facing: B
 return stack           returns: Q*
-test state             test: A
+test flag              flag: A
 beeper coords          beepers: V*
 wall coords            walls: V*
 instruction pointer    ipointer: Q
