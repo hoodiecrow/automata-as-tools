@@ -60,8 +60,8 @@ Final address   F = 10
 Erase symbol    E = 0
 Transitions
 q0    inp   q1    out
-0     0     1     {JZ: 2 0}
-0     1     5     {JZ: 2 0}
+0     0     1     {JC: 2 0}
+0     1     5     {JC: 2 0}
 1     0     2     {DEC: 2}
 1     1     2     {DEC: 2}
 2     0     3     {INC: 3}
@@ -70,8 +70,8 @@ q0    inp   q1    out
 3     1     4     {INC: 1}
 4     0     0     NOP
 4     1     0     NOP
-5     0     6     {JZ: 1 0}
-5     1     9     {JZ: 1 0}
+5     0     6     {JC: 1 0}
+5     1     9     {JC: 1 0}
 6     0     7     {DEC: 1}
 6     1     7     {DEC: 1}
 7     0     8     {INC: 2}

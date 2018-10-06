@@ -69,8 +69,8 @@ Start address   S = 0
 Final address   F = 15
 Transitions
 q0    inp   q1    out
-0     0     1     {JZ: 0 0}
-0     1     4     {JZ: 0 0}
+0     0     1     {JC: 0 0}
+0     1     4     {JC: 0 0}
 1     0     2     {PRINT: 1}
 1     1     2     {PRINT: 1}
 2     0     3     {ROLL: R}
@@ -83,8 +83,8 @@ q0    inp   q1    out
 5     1     6     {ROLL: L}
 6     0     7     NOP
 6     1     7     NOP
-7     0     8     {JZ: 0 0}
-7     1     11    {JZ: 0 0}
+7     0     8     {JC: 0 0}
+7     1     11    {JC: 0 0}
 8     0     9     {PRINT: 1}
 8     1     9     {PRINT: 1}
 9     0     10    {ROLL: L}

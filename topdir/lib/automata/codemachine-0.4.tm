@@ -63,19 +63,17 @@ oo::class create ::automata::CodeMachine {
                 # J.*  jump if (flag)
                 #
                 # Flag setting:
-                # CM:  reg' eq reg''
+                # CM:  reg/a eq reg/b
                 # KTR: 0 or as set by TEST:
                 # PTM: tape/head
-                # SM:
-                #   JN?SZ: stack#0 eq zero
-                #   JN?SE: stack#0 eq stack#1
-                #   else:  0
+                # SM:  stack/0 eq 0 (JZ) or stack/a eq stack/b (JE)
                 switch -glob $cmd {
                     J: - CALL: {
                         set addresses [list $a $a]
                     }
                     JN* {
                         set addresses [list $a $next]
+                        set cmd [string replace $cmd 1 1]
                     }
                     J* {
                         set addresses [list $next $a]
@@ -85,14 +83,11 @@ oo::class create ::automata::CodeMachine {
                     }
                 }
                 switch $cmd {
-                    JZ: - JNZ: {
-                        set code [list [string map {N {}} $cmd] $b 0]
+                    JZ: {
+                        set code [list JC: $b 0]
                     }
-                    JE: - JNE: {
-                        set code [list [string map {N {}} $cmd] $b $c]
-                    }
-                    JSZ: - JNSZ: - JSE: - JNSE: {
-                        set code [string map {N {}} $cmd]
+                    JE: {
+                        set code [list JC: $b $c]
                     }
                     J: {
                         set code NOP
@@ -603,16 +598,10 @@ A simple sort of virtual Stack Machine.
             lassign [lindex [$table get $ipointer 0] 0] - - - code
             lassign $code tag a b c d e f
             lassign $stack TOP
-            switch $tag {
-                JSZ: {
-                    set flag [expr {$TOP == 0}]
-                }
-                JSE: {
-                    set flag [expr {$TOP == [lindex $stack 1]}]
-                }
-                default {
-                    set flag 0
-                }
+            if {$b == 0} {
+                set flag [expr {$TOP == 0}]
+            } else {
+                set flag [expr {$TOP == [lindex $stack 1]}]
             }
             lassign [lindex [$table get $ipointer $flag] 0] - - i
             # get move
