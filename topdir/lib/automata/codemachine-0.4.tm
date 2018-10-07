@@ -17,7 +17,6 @@ oo::class create ::automata::CodeMachine {
 
     method compile tokens {
         #: Convert source code to transition configuration.
-        #:
         foreach token $tokens {
             my AddOp $token
         }
@@ -131,10 +130,8 @@ oo::class create ::automata::CodeMachine {
                     }
                     default {
                         if {[string is entier -strict $cmd]} {
-                            set addresses [list $next $next]
                             set code [list PUSH $cmd]
                         } else {
-                            set addresses [list $next $next]
                             set code $cmd
                         }
                     }
@@ -225,13 +222,13 @@ Specify which actual instruction set to use when instantiating machine.
             registers {} {a list of initial register cells}
         }
         my values A "Flag symbols"    {@ 0 1}
-        my values V "Register values" N -hidden 1
         my values I "Instructions"    [linsert $instructionSet 0 @] -hidden 1
         my values Q "Addresses"       N+
         my values S "Start address"   Q
         my values F "Final address"   Q
         my values E "Erase symbol"    {@ 0}
         my values O "Operations"      #+ -hidden 1
+        my values V "Register values" N -hidden 1
         my table Q A Q O*
         my id {
             registers "register cells"      V*
@@ -274,7 +271,7 @@ Specify which actual instruction set to use when instantiating machine.
 oo::class create ::automata::KTR {
     mixin ::automata::CodeMachine
 
-    variable table iddef
+    variable table iddef directions
     
     constructor args {
         my add doc preamble {
@@ -311,7 +308,7 @@ Test numbers:
             }
         }
         my values A "Flag symbols"    {@ 0 1}
-        my values B "Facing"          {@ 0 1 2 3} -hidden 1
+        my values B "Facing"          {@ e n w s} -hidden 1
         my values I "Instructions"    {@ JZ: J: TURN MOVE TAKE DROP TEST: RET CALL:} -hidden 1
         my values Q "Addresses"       N+
         my values S "Start address"   Q
@@ -332,20 +329,22 @@ Test numbers:
             ipointer "instruction pointer" Q 
         }
         my values O "Operations"      #+ -hidden 1
+        set directions {e 0 n 1 w 2 s 3}
     }
 
     method Turn {varName {a 1}} {
         upvar 1 $varName facing
-        set facing [expr {($facing + $a + 4) % 4}]
+        set f [dict get $directions $facing]
+        set facing [dict get [lreverse $directions] [expr {($f + $a + 4) % 4}]]
     }
 
     method RMove {width height varName1 varName2 facing walls} {
         upvar 1 $varName1 xpos $varName2 ypos
         switch $facing {
-            0 { set xpos [expr {$xpos + 1}] }
-            1 { set ypos [expr {$ypos + 1}] }
-            2 { set xpos [expr {$xpos - 1}] }
-            3 { set ypos [expr {$ypos - 1}] }
+            e { incr xpos    }
+            n { incr ypos    }
+            w { incr xpos -1 }
+            s { incr ypos -1 }
         }
         if {[my CheckCollision $width $height $xpos $ypos $walls]} {
             return -code error [format {collision with a wall!}]
@@ -353,7 +352,8 @@ Test numbers:
     }
 
     method Look {xpos ypos facing {ddir 0}} {
-        switch [expr {($facing + $ddir + 4) % 4}] {
+        set f [dict get $directions $facing]
+        switch [expr {($f + $ddir + 4) % 4}] {
             0 { incr xpos }
             1 { incr ypos }
             2 { incr xpos -1 }
@@ -403,10 +403,10 @@ Test numbers:
                     expr {![my CheckCollision $width $height {*}[my Look $xpos $ypos $facing -1] $walls]}
                 }
                 next-to-a-beeper { my FindBeeper $xpos $ypos $beepers }
-                facing-east  { expr {$facing eq 0} }
-                facing-north { expr {$facing eq 1} }
-                facing-west  { expr {$facing eq 2} }
-                facing-south { expr {$facing eq 3} }
+                facing-east  { expr {$facing eq e} }
+                facing-north { expr {$facing eq n} }
+                facing-west  { expr {$facing eq w} }
+                facing-south { expr {$facing eq s} }
                 any-beepers-in-beeper-bag { expr {$bag > 0} }
             }
         }

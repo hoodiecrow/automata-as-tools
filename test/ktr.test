@@ -32,11 +32,11 @@ test ktr-1.0 {} -setup {
         end:        HALT
         turnright:  TURN TURN TURN RET
     }
-    M run {3 3} {1 1 0 0} {3 2} {2 1 2 2}
+    M run {3 3} {1 1 0 e} {3 2} {2 1 2 2}
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {{3 3} {3 2 0 3} {} 0 {3 2} {2 1 2 2} 12}
+} -result {{3 3} {3 2 0 s} {} 0 {3 2} {2 1 2 2} 12}
 
 test ktr-1.1 {print 1.0} -setup {
     ::automata::KTR create M
