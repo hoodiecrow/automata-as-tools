@@ -7,6 +7,7 @@ namespace eval automata {}
 
 oo::class create ::automata::TableMachine {
     mixin ::automata::Machine
+
 }
 
 oo::class create ::automata::FSM {
@@ -40,21 +41,8 @@ oo::class create ::automata::FSM {
         #:
         foreach tokens $tuples {
             foreach {from input next} $tokens {
-                if no {
-                    splitItems input
-                }
-                if {[string match <* $from]} {
-                    set from [string trimleft $from <]
-                    my vsets set S [string trimright $from >]
-                }
-                foreach name {from next} {
-                    if {[string match *> [set $name]]} {
-                        set $name [string trimright [set $name] >]
-                        my vsets set F [set $name]
-                    }
-                }
                 foreach inp $input {
-                    $table add $from $inp $next
+                    $table add [my vsets mapped $from < S > F] $inp [my vsets mapped $next < S > F]
                 }
             }
         }
@@ -174,22 +162,8 @@ oo::class create ::automata::FST {
         foreach tokens $tuples {
             foreach {from edge next} $tokens {
                 regexp {(\w+)\s*/\s*(\w+)} $edge -> input output
-                if no {
-                    splitItems input
-                    splitItems output
-                }
-                if {[string match <* $from]} {
-                    set from [string trimleft $from <]
-                    my vsets set S [string trimright $from >]
-                }
-                foreach name {from next} {
-                    if {[string match *> [set $name]]} {
-                        set $name [string trimright [set $name] >]
-                        my vsets set F [set $name]
-                    }
-                }
                 foreach inp $input {
-                    $table add $from $inp $next $output
+                    $table add [my vsets mapped $from < S > F] $inp [my vsets mapped $next < S > F] $output
                 }
             }
         }
@@ -433,31 +407,17 @@ oo::class create ::automata::PDA {
     method compile tuples {
         #: 'source' form is three tokens: from, edge, next.
         #: edge is split by / into input and stack-action
-        #: input can contain one or more input symbols, separated by comma.
         #: stack-action is split by ; into stack-input and stack-push
         #: Stack symbols in stack-push are separated by commas.
         foreach tokens $tuples {
             foreach {from edge next} $tokens {
                 regexp {(\w+)\s*/\s*(\w+)\s*;\s*(.*)} $edge -> input stackInput stackPush
-                if no {
-                    splitItems input
-                }
                 splitItems stackPush
-                if {[string match <* $from]} {
-                    set from [string trimleft $from <]
-                    my vsets set S [string trimright $from >]
-                }
-                foreach name {from next} {
-                    if {[string match *> [set $name]]} {
-                        set $name [string trimright [set $name] >]
-                        my vsets set F [set $name]
-                    }
-                }
                 if {$stackPush eq "ε"} {
                     set stackPush {}
                 }
                 foreach inp $input {
-                    $table add $from $inp $next $stackInput $stackPush
+                    $table add [my vsets mapped $from < S > F] $inp [my vsets mapped $next < S > F] $stackInput $stackPush
                 }
             }
         }
@@ -550,7 +510,7 @@ oo::class create ::automata::BTM {
 
     constructor args {
         if no {
-            runargs {tape "a (part of a) list of tape symbols"}
+            runargs {tape "initial tape contents"}
         }
         my installRunMethod {
             tape {} {a list of initial tape symbols}
@@ -578,17 +538,7 @@ oo::class create ::automata::BTM {
         foreach tokens $tuples {
             foreach {from edge next} $tokens {
                 if {[regexp {(\w)\s*/\s*([EPN]|P\w)\s*;\s*([LRN])} $edge -> input print move]} {
-                    if {[string match <* $from]} {
-                        set from [string trimleft $from <]
-                        my vsets set S [string trimright $from >]
-                    }
-                    foreach name {from next} {
-                        if {[string match *> [set $name]]} {
-                            set $name [string trimright [set $name] >]
-                            my vsets set F [set $name]
-                        }
-                    }
-                    $table add $from $input $next $print $move
+                    $table add [my vsets mapped $from < S > F] $input [my vsets mapped $next < S > F] $print $move
                 } else {
                     return -code error [format {can't parse "%s"} $edge]
                 }
@@ -609,7 +559,6 @@ oo::class create ::automata::BTM {
                 }
             }
         }
-        log::log d \$tape=$tape 
         return
     }
 

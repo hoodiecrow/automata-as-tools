@@ -50,6 +50,7 @@ oo::class create ::automata::ValueSets {
     }
 
     method set {name symbol} {
+        log::log d [info level 0] 
         set row [my ExtractRow [my Matrix search column 0 $name]]
         array set options [my Get opts $row]
         if no {
@@ -61,8 +62,9 @@ oo::class create ::automata::ValueSets {
         if {$symbol eq $options(-epsilon)} {
             set symbol {}
         }
+        set v [my Get vset $row]
         # first element eq @ means that the value is an immutable enumeration
-        if {[my Get vset $row] ne "@"} {
+        if {$v ne "@"} {
             set old [my Get val $row]
             if {$options(-plural)} {
                 if {$symbol ni $old} {
@@ -77,10 +79,25 @@ oo::class create ::automata::ValueSets {
                 my Set val $row $symbol
             }
             # if the vset has an extendable subset, extend it
-            set sup [my Get vset $row]
-            if {$sup ni {# @ N}} {
-                my set $sup $symbol
+            if {$v ni {# N}} {
+                my set $v $symbol
             }
+        }
+        return $symbol
+    }
+
+    method mapped {symbol args} {
+        log::log d [info level 0] 
+        # use symbol mapping to set secondary value sets
+        set vss [list]
+        foreach {code vset} $args {
+            if {[string match *$code* $symbol]} {
+                lappend vss $vset
+                set symbol [string map [list $code {}] $symbol]
+            }
+        }
+        foreach vset $vss {
+            my set $vset $symbol
         }
         return $symbol
     }

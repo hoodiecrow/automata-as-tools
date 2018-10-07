@@ -19,11 +19,11 @@ test pda-1.0 {0^n1^n | n >= 0} -setup {
     ::automata::PDA create M
     M compile {
         {<p 0/Z;A,Z p}
-        {p 0/A;A,A p}
-        {p ε/Z;Z   q}
-        {p ε/A;A   q}
-        {q 1/A;ε   q}
-        {q ε/Z;Z   r>}
+        { p 0/A;A,A p}
+        { p ε/Z;Z   q}
+        { p ε/A;A   q}
+        { q 1/A;ε   q}
+        { q ε/Z;Z   r>}
     }
 } -body {
     M run -accept {}
@@ -36,11 +36,11 @@ test pda-1.1 {} -setup {
     ::automata::PDA create M
     M compile {
         {<p 0/Z;A,Z p}
-        {p 0/A;A,A p}
-        {p ε/Z;Z   q}
-        {p ε/A;A   q}
-        {q 1/A;ε   q}
-        {q ε/Z;Z   r>}
+        { p 0/A;A,A p}
+        { p ε/Z;Z   q}
+        { p ε/A;A   q}
+        { q 1/A;ε   q}
+        { q ε/Z;Z   r>}
     }
 } -body {
     M run -accept {0 0 0 0 1 1 1 1}
@@ -53,11 +53,11 @@ test pda-1.2 {} -setup {
     ::automata::PDA create M
     M compile {
         {<p 0/Z;A,Z p}
-        {p 0/A;A,A p}
-        {p ε/Z;Z   q}
-        {p ε/A;A   q}
-        {q 1/A;ε   q}
-        {q ε/Z;Z   r>}
+        { p 0/A;A,A p}
+        { p ε/Z;Z   q}
+        { p ε/A;A   q}
+        { q 1/A;ε   q}
+        { q ε/Z;Z   r>}
     }
 } -body {
     set res {}
@@ -75,11 +75,11 @@ test pda-1.3 {} -setup {
     ::automata::PDA create M
     M compile {
         {<p 0/Z;A,Z p}
-        {p 0/A;A,A p}
-        {p ε/Z;Z   q}
-        {p ε/A;A   q}
-        {q 1/A;ε   q}
-        {q ε/Z;Z   r>}
+        { p 0/A;A,A p}
+        { p ε/Z;Z   q}
+        { p ε/A;A   q}
+        { q 1/A;ε   q}
+        { q ε/Z;Z   r>}
     }
 } -body {
     M print
