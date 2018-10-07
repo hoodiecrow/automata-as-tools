@@ -12,7 +12,7 @@ oo::class create ::automata::ValueSets {
         matrix add columns 5
     }
 
-    forward matrix matrix
+    forward Matrix matrix
 
     method ExtractRow found {
         if {[llength $found] > 0} {
@@ -38,21 +38,20 @@ oo::class create ::automata::ValueSets {
             -index -1
             -hidden 0
         } $args]
-        my matrix add row [list $name $vset $vals $args $desc]
+        my Matrix add row [list $name $vset $vals $args $desc]
     }
 
-    method _set {key row val} {
-        my matrix set cell [my GetCol $key] $row $val
+    method Set {key row val} {
+        my Matrix set cell [my GetCol $key] $row $val
     }
 
-    method _get {key row} {
-        my matrix get cell [my GetCol $key] $row
+    method Get {key row} {
+        my Matrix get cell [my GetCol $key] $row
     }
 
     method set {name symbol} {
-        log::log d [info level 0] 
-        set row [my ExtractRow [my matrix search column 0 $name]]
-        array set options [my _get opts $row]
+        set row [my ExtractRow [my Matrix search column 0 $name]]
+        array set options [my Get opts $row]
         if no {
             # TODO would be nice to have at initial assignment
             if {$symbol eq {}} {
@@ -63,42 +62,41 @@ oo::class create ::automata::ValueSets {
             set symbol {}
         }
         # first element eq @ means that the value is an immutable enumeration
-        if {[my _get vset $row] ne "@"} {
-            set old [my _get val $row]
+        if {[my Get vset $row] ne "@"} {
+            set old [my Get val $row]
             if {$options(-plural)} {
                 if {$symbol ni $old} {
                     set new [linsert $old end $symbol]
                     if {$options(-sorted)} {
-                        my _set val $row [lsort -dictionary -unique $new]
+                        my Set val $row [lsort -dictionary -unique $new]
                     } else {
-                        my _set val $row $new
+                        my Set val $row $new
                     }
                 }
             } else {
-                my _set val $row $symbol
+                my Set val $row $symbol
             }
             # if the vset has an extendable subset, extend it
-            set sup [my _get vset $row]
+            set sup [my Get vset $row]
             if {$sup ni {# @ N}} {
                 my set $sup $symbol
             }
         }
-        log::log d "val = [my _get val $row] ($symbol)"
         return $symbol
     }
 
-    forward getname my _get name
-    forward gettype my _get vset
-    forward getopts my _get opts
-    forward getdesc my _get desc
+    forward getname my Get name
+    forward gettype my Get vset
+    forward getopts my Get opts
+    forward getdesc my Get desc
 
     method getval row {
-        array set options [my _get opts $row]
+        array set options [my Get opts $row]
         if {$options(-index) >= 0} {
-            set vset [my _get vset $row]
+            set vset [my Get vset $row]
             switch $vset {
                 "#" {
-                    lindex [my _get val $row] $options(-index)
+                    lindex [my Get val $row] $options(-index)
                 }
                 "N" {
                     return $options(-index)
@@ -108,13 +106,12 @@ oo::class create ::automata::ValueSets {
                 }
             }
         } else {
-            my _get val $row
+            my Get val $row
         }
     }
 
     method get name {
-        log::log d [info level 0] 
-        my getval [my ExtractRow [my matrix search column 0 $name]]
+        my getval [my ExtractRow [my Matrix search column 0 $name]]
     }
 
     method succ {name val} {
@@ -133,13 +130,12 @@ oo::class create ::automata::ValueSets {
 
 
     method in {name symbol} {
-        log::log d [info level 0] 
-        expr {$symbol in [my getval [my ExtractRow [my matrix search column 0 $name]]]}
+        expr {$symbol in [my getval [my ExtractRow [my Matrix search column 0 $name]]]}
     }
 
     method print {} {
         set str {}
-        for {set row 0} {$row < [my matrix rows]} {incr row} {
+        for {set row 0} {$row < [my Matrix rows]} {incr row} {
             array set options [my getopts $row]
             if {$options(-hidden)} {
                 continue
@@ -153,7 +149,7 @@ oo::class create ::automata::ValueSets {
                     }
                 }]
                 append str [format "%-15s %s = {%s}\n" [my getdesc $row] [my getname $row] [join $values ", "]]
-            } elseif {[my _get vset $row] eq "@"} {
+            } elseif {[my Get vset $row] eq "@"} {
                 set values [my getval $row]
                 if {[llength $values] eq 1} {
                     append str [format "%-15s %s = %s\n" [my getdesc $row] [my getname $row] $values]
@@ -173,8 +169,8 @@ oo::class create ::automata::ValueSets {
 
     method dump {} {
         set res {}
-        for {set row 0} {$row < [my matrix rows]} {incr row} {
-            append res [my matrix get row $row] \n
+        for {set row 0} {$row < [my Matrix rows]} {incr row} {
+            append res [my Matrix get row $row] \n
         }
         return $res
     }
@@ -184,51 +180,46 @@ oo::class create ::automata::ValueSets {
 oo::class create ::automata::Table {
     constructor args {
         ::struct::matrix matrix
-        matrix add columns [llength $args]
-        matrix add row [lmap arg $args {string index $arg 0}]
-        matrix add row [lmap arg $args {string index $arg 1}]
+        matrix add rows 2
+        foreach arg $args {
+            matrix add column [split $arg {}]
+        }
     }
 
-    forward matrix matrix
+    forward Matrix matrix
 
     method get {key1 {key2 *}} {
-        log::log d [info level 0] 
-        set rows1 [lmap idx [my matrix search rect 0 2 0 end $key1] {
+        set rows1 [lmap idx [my Matrix search rect 0 2 0 end $key1] {
             lindex $idx 1
         }]
         set rows $rows1
         if {$key2 ne "*"} {
-            log::log d \$key2=$key2 
-            set rows2 [lmap idx [my matrix search rect 1 2 1 end $key2] {
+            set rows2 [lmap idx [my Matrix search rect 1 2 1 end $key2] {
                 lindex $idx 1
             }]
-            log::log d \$rows2=$rows2 
             set rows [list]
-            for {set row 2} {$row < [my matrix rows]} {incr row} {
+            for {set row 2} {$row < [my Matrix rows]} {incr row} {
                 if {$row in $rows1 && $row in $rows2} {
                     lappend rows $row
                 }
             }
         }
-        set result [list]
-        foreach row $rows {
-            lappend result [my matrix get row $row]
+        lmap row $rows {
+            my Matrix get row $row
         }
-        return $result
     }
 
     method add args {
-        log::log d [info level 0] 
-        if {[llength $args] ne [my matrix columns]} {
+        if {[llength $args] ne [my Matrix columns]} {
             return -code error [format {can't add table row}]
         }
         set values [list]
         set col 0
         foreach arg $args {
             set val {}
-            set t [my matrix get cell $col 0]
+            set t [my Matrix get cell $col 0]
             if {[llength $arg] > 1} {
-                if {[my matrix get cell $col 1] ne "*"} {
+                if {[my Matrix get cell $col 1] ne "*"} {
                     return -code error [format {can't add multiple symbols}]
                 }
                 foreach symbol $arg {
@@ -242,14 +233,14 @@ oo::class create ::automata::Table {
             lappend values $val
             incr col
         }
-        my matrix add row $values
+        my Matrix add row $values
     }
 
     method print {} {
         append str "Transitions\n"
         append str [format "%-5s %-5s %-5s %s\n" q0 inp q1 out]
-        for {set row 2} {$row < [my matrix rows]} {incr row} {
-            set out [lassign [my matrix get row $row] q0 inp q1]
+        for {set row 2} {$row < [my Matrix rows]} {incr row} {
+            set out [lassign [my Matrix get row $row] q0 inp q1]
             if {$inp eq {}} {
                 set inp ε
             }
@@ -264,8 +255,8 @@ oo::class create ::automata::Table {
 
     method dump {} {
         set res {}
-        for {set row 0} {$row < [my matrix rows]} {incr row} {
-            append res [my matrix get row $row] \n
+        for {set row 0} {$row < [my Matrix rows]} {incr row} {
+            append res [my Matrix get row $row] \n
         }
         return $res
     }
@@ -281,36 +272,31 @@ oo::class create ::automata::ID {
         }
     }
 
-    forward matrix matrix
+    forward Matrix matrix
 
     method make args {
-        log::log d [info level 0] 
         set res [dict create]
-        for {set row 0} {$row < [my matrix rows]} {incr row} {
+        for {set row 0} {$row < [my Matrix rows]} {incr row} {
             set val [lindex $args $row]
             # TODO check valid input
-            set key [my matrix get cell 0 $row]
+            set key [my Matrix get cell 0 $row]
             dict set res $key {}
             foreach symbol $val {
-                my vsets set [string index [my matrix get cell 2 $row] 0] $symbol
-                log::log d "vset = [my matrix get cell 2 $row]"
-                if {[string index [my matrix get cell 2 $row] 1] eq "*"} {
+                my vsets set [string index [my Matrix get cell 2 $row] 0] $symbol
+                if {[string index [my Matrix get cell 2 $row] 1] eq "*"} {
                     dict lappend res $key $symbol
-                    log::log d "appending: \$res=$res"
                 } else {
                     dict set res $key $symbol
-                    log::log d "replacing: \$res=$res"
                 }
             }
         }
-        log::log d \$res=$res 
         return $res
     }
 
     method print {} {
         append str "Instantaneous description\n"
-        for {set row 0} {$row < [my matrix rows]} {incr row} {
-            lassign [my matrix get row $row] name desc vset
+        for {set row 0} {$row < [my Matrix rows]} {incr row} {
+            lassign [my Matrix get row $row] name desc vset
             append str [format "%-22s %s: %s\n" $desc $name $vset]
         }
         return $str
