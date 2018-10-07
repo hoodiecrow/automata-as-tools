@@ -178,27 +178,29 @@ oo::class create ::automata::ValueSets {
 }
 
 oo::class create ::automata::Table {
+    variable formats
+
     constructor args {
         ::struct::matrix matrix
-        matrix add rows 2
-        foreach arg $args {
-            matrix add column [split $arg {}]
-        }
+        matrix add columns [llength $args]
+        set formats [lmap arg $args {
+            split $arg {}
+        }]
     }
 
     forward Matrix matrix
 
     method get {key1 {key2 *}} {
-        set rows1 [lmap idx [my Matrix search rect 0 2 0 end $key1] {
+        set rows1 [lmap idx [my Matrix search column 0 $key1] {
             lindex $idx 1
         }]
         set rows $rows1
         if {$key2 ne "*"} {
-            set rows2 [lmap idx [my Matrix search rect 1 2 1 end $key2] {
+            set rows2 [lmap idx [my Matrix search column 1 $key2] {
                 lindex $idx 1
             }]
             set rows [list]
-            for {set row 2} {$row < [my Matrix rows]} {incr row} {
+            for {set row 0} {$row < [my Matrix rows]} {incr row} {
                 if {$row in $rows1 && $row in $rows2} {
                     lappend rows $row
                 }
@@ -217,18 +219,16 @@ oo::class create ::automata::Table {
         set col 0
         foreach arg $args {
             set val {}
-            set t [my Matrix get cell $col 0]
+            lassign [lindex $formats $col] t p
             if {[llength $arg] > 1} {
-                if {[my Matrix get cell $col 1] ne "*"} {
+                if {$p ne "*"} {
                     return -code error [format {can't add multiple symbols}]
                 }
                 foreach symbol $arg {
-                    set symbol [my vsets set $t $symbol]
-                    lappend val $symbol
+                    lappend val [my vsets set $t $symbol]
                 }
             } else {
-                set arg [my vsets set $t $arg]
-                set val $arg
+                set val [my vsets set $t $arg]
             }
             lappend values $val
             incr col
@@ -239,7 +239,7 @@ oo::class create ::automata::Table {
     method print {} {
         append str "Transitions\n"
         append str [format "%-5s %-5s %-5s %s\n" q0 inp q1 out]
-        for {set row 2} {$row < [my Matrix rows]} {incr row} {
+        for {set row 0} {$row < [my Matrix rows]} {incr row} {
             set out [lassign [my Matrix get row $row] q0 inp q1]
             if {$inp eq {}} {
                 set inp ε
@@ -255,6 +255,7 @@ oo::class create ::automata::Table {
 
     method dump {} {
         set res {}
+        append res $formats \n
         for {set row 0} {$row < [my Matrix rows]} {incr row} {
             append res [my Matrix get row $row] \n
         }
@@ -264,11 +265,15 @@ oo::class create ::automata::Table {
 }
 
 oo::class create ::automata::ID {
+    variable formats
+
     constructor args {
         ::struct::matrix matrix
         matrix add columns 3
+        set formats [list]
         foreach {name desc vset} $args {
             matrix add row [list $name $desc $vset]
+            lappend formats [split $vset {}]
         }
     }
 
@@ -281,9 +286,10 @@ oo::class create ::automata::ID {
             # TODO check valid input
             set key [my Matrix get cell 0 $row]
             dict set res $key {}
+            lassign [lindex $formats $row] t p
             foreach symbol $val {
-                my vsets set [string index [my Matrix get cell 2 $row] 0] $symbol
-                if {[string index [my Matrix get cell 2 $row] 1] eq "*"} {
+                my vsets set $t $symbol
+                if {$p eq "*"} {
                     dict lappend res $key $symbol
                 } else {
                     dict set res $key $symbol

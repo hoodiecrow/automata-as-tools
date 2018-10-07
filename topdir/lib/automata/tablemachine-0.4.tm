@@ -46,7 +46,6 @@ oo::class create ::automata::FSM {
                 if {[string match <* $from]} {
                     set from [string trimleft $from <]
                     my vsets set S [string trimright $from >]
-                    my vsets set S [string trimright $from >]
                 }
                 foreach name {from next} {
                     if {[string match *> [set $name]]} {
@@ -182,12 +181,10 @@ oo::class create ::automata::FST {
                 if {[string match <* $from]} {
                     set from [string trimleft $from <]
                     my vsets set S [string trimright $from >]
-                    my vsets set S [string trimright $from >]
                 }
                 foreach name {from next} {
                     if {[string match *> [set $name]]} {
                         set $name [string trimright [set $name] >]
-                        my vsets set F [set $name]
                         my vsets set F [set $name]
                     }
                 }
@@ -449,12 +446,10 @@ oo::class create ::automata::PDA {
                 if {[string match <* $from]} {
                     set from [string trimleft $from <]
                     my vsets set S [string trimright $from >]
-                    my vsets set S [string trimright $from >]
                 }
                 foreach name {from next} {
                     if {[string match *> [set $name]]} {
                         set $name [string trimright [set $name] >]
-                        my vsets set F [set $name]
                         my vsets set F [set $name]
                     }
                 }
@@ -586,12 +581,10 @@ oo::class create ::automata::BTM {
                     if {[string match <* $from]} {
                         set from [string trimleft $from <]
                         my vsets set S [string trimright $from >]
-                        my vsets set S [string trimright $from >]
                     }
                     foreach name {from next} {
                         if {[string match *> [set $name]]} {
                             set $name [string trimright [set $name] >]
-                            my vsets set F [set $name]
                             my vsets set F [set $name]
                         }
                     }
