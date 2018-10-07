@@ -271,7 +271,7 @@ Specify which actual instruction set to use when instantiating machine.
 oo::class create ::automata::KTR {
     mixin ::automata::CodeMachine
 
-    variable table iddef directions
+    variable table iddef
     
     constructor args {
         my add doc preamble {
@@ -329,54 +329,31 @@ Test numbers:
             ipointer "instruction pointer" Q 
         }
         my values O "Operations"      #+ -hidden 1
-        set directions {e 0 n 1 w 2 s 3}
     }
 
-    method Turn {varName {a 1}} {
-        upvar 1 $varName facing
-        set f [dict get $directions $facing]
-        set facing [dict get [lreverse $directions] [expr {($f + $a + 4) % 4}]]
+    method Turn {facing {turn left}} {
+        switch $turn {
+            left  { dict get {e n n w w s s e} $facing }
+            front { set facing }
+            right { dict get {e s s w w n n e} $facing }
+        }
     }
 
-    method RMove {width height varName1 varName2 facing walls} {
-        upvar 1 $varName1 xpos $varName2 ypos
+    method _Move {xpos ypos facing} {
         switch $facing {
-            e { incr xpos    }
-            n { incr ypos    }
+            e { incr xpos }
+            n { incr ypos }
             w { incr xpos -1 }
             s { incr ypos -1 }
-        }
-        if {[my CheckCollision $width $height $xpos $ypos $walls]} {
-            return -code error [format {collision with a wall!}]
-        }
-    }
-
-    method Look {xpos ypos facing {ddir 0}} {
-        set f [dict get $directions $facing]
-        switch [expr {($f + $ddir + 4) % 4}] {
-            0 { incr xpos }
-            1 { incr ypos }
-            2 { incr xpos -1 }
-            3 { incr ypos -1 }
         }
         return [list $xpos $ypos]
     }
 
-    method FindBeeper {xpos ypos beepers} {
-        foreach {X Y} $beepers {
-            if {$X eq $xpos && $Y eq $ypos} {
-                return 1
-            }
-        }
-        return 0
-    }
-
     method CheckCollision {width height xpos ypos walls} {
-        set _walls [list 0 $ypos [expr {$width + 1}] $ypos $xpos 0 $xpos [expr {$height + 1}]]
-        foreach {X Y} [concat $_walls $walls] {
-            if {$X eq $xpos && $Y eq $ypos} {return 1}
-        }
-        return 0
+        incr width
+        incr height
+        lappend walls 0 $ypos $width $ypos $xpos 0 $xpos $height
+        expr {[list $xpos $ypos] in [lmap {x y} $walls {list $x $y}]}
     }
 
     method Test {id idx} {
@@ -394,19 +371,21 @@ Test numbers:
             } $idx]
             switch $label {
                 front-is-clear {
-                    expr {![my CheckCollision $width $height {*}[my Look $xpos $ypos $facing] $walls]}
+                    expr {![my CheckCollision $width $height {*}[my _Move $xpos $ypos [my Turn $facing front]] $walls]}
                 }
                 left-is-clear {
-                    expr {![my CheckCollision $width $height {*}[my Look $xpos $ypos $facing +1] $walls]}
+                    expr {![my CheckCollision $width $height {*}[my _Move $xpos $ypos [my Turn $facing]] $walls]}
                 }
                 right-is-clear {
-                    expr {![my CheckCollision $width $height {*}[my Look $xpos $ypos $facing -1] $walls]}
+                    expr {![my CheckCollision $width $height {*}[my _Move $xpos $ypos [my Turn $facing right]] $walls]}
                 }
-                next-to-a-beeper { my FindBeeper $xpos $ypos $beepers }
-                facing-east  { expr {$facing eq e} }
-                facing-north { expr {$facing eq n} }
-                facing-west  { expr {$facing eq w} }
-                facing-south { expr {$facing eq s} }
+                next-to-a-beeper {
+                    expr {[list $xpos $ypos] in [lmap {x y} $beepers {list $x $y}]}
+                }
+                facing-east  { expr {$facing eq "e"} }
+                facing-north { expr {$facing eq "n"} }
+                facing-west  { expr {$facing eq "w"} }
+                facing-south { expr {$facing eq "s"} }
                 any-beepers-in-beeper-bag { expr {$bag > 0} }
             }
         }
@@ -417,36 +396,38 @@ Test numbers:
         # unpack ID
         dict with id {
             # get move
-            set next [my vsets succ Q $ipointer]
             lassign [lindex [$table get $ipointer 0] 0] - - - code
-            lassign $code tag _a _b _c _d _e
-            lassign [lindex [$table get $ipointer $flag] 0] - - i
+            lassign $code tag testnumber
+            lassign [lindex [$table get $ipointer $flag] 0] - - next
             set flag 0
             switch $tag {
                 HALT  {
                     return
                 }
                 TURN  {
-                    my Turn facing
+                    set facing [my Turn $facing left]
                 }
                 MOVE  {
-                    my RMove $width $height xpos ypos $facing $walls
+                    lassign [my _Move $xpos $ypos $facing] xpos ypos
+                    if {[my CheckCollision $width $height $xpos $ypos $walls]} {
+                        return -code error [format {collision with a wall!}]
+                    }
                 }
                 TAKE - DROP {
                 }
                 TEST: {
-                    set flag [my Test $id $_a]
+                    set flag [my Test $id $testnumber]
                 }
                 RET   {
-                    set returns [lassign $returns i]
+                    set returns [lassign $returns next]
                 }
                 CALL: {
-                    set returns [linsert $returns 0 $next]
+                    set returns [linsert $returns 0 [my vsets succ Q $ipointer]]
                 }
                 NOP {}
             }
         }
-        if {[my vsets in F $i]} {
+        if {[my vsets in F $next]} {
             return
         }
         # build new ID
@@ -456,7 +437,7 @@ Test numbers:
         lappend _id $flag
         lappend _id $beepers
         lappend _id $walls
-        lappend _id $i
+        lappend _id $next
         return [list [$iddef make {*}$_id]]
     }
 
