@@ -222,12 +222,12 @@ Specify which actual instruction set to use when instantiating machine.
             registers {} {a list of initial register cells}
         }
         my values A "Flag symbols"    {@ 0 1}
-        my values I "Instructions"    [linsert $instructionSet 0 @] -hidden 1
         my values Q "Addresses"       N+
         my values S "Start address"   Q
         my values F "Final address"   Q
         my values E "Erase symbol"    {@ 0}
         my values O "Operations"      #+ -hidden 1
+        my values I "Instructions"    [linsert $instructionSet 0 @] -hidden 1
         my values V "Register values" N -hidden 1
         my table Q A Q O*
         my id {
@@ -309,10 +309,11 @@ Test numbers:
         }
         my values A "Flag symbols"    {@ 0 1}
         my values B "Facing"          {@ e n w s} -hidden 1
-        my values I "Instructions"    {@ JZ: J: TURN MOVE TAKE DROP TEST: RET CALL:} -hidden 1
         my values Q "Addresses"       N+
         my values S "Start address"   Q
         my values F "Final address"   Q
+        my values O "Operations"      #+ -hidden 1
+        my values I "Instructions"    {@ JZ: J: TURN MOVE TAKE DROP TEST: RET CALL:} -hidden 1
         my values V "Values"          N -hidden 1
         my table Q A Q O*
         my id {
@@ -328,7 +329,6 @@ Test numbers:
             walls    "wall coords"         V*
             ipointer "instruction pointer" Q 
         }
-        my values O "Operations"      #+ -hidden 1
     }
 
     method Turn {facing {turn left}} {
@@ -479,11 +479,11 @@ is set by compiling a program.  The tape uses a binary symbol set
         }
         my values A "Tape symbols"    {@ 0 1}
         my values B "Move symbols"    {@ L R} -hidden 1
-        my values I "Instructions"    {@ JZ: J: PRINT ERASE ROLL:} -hidden 1
         my values Q "Addresses"       N+
         my values S "Start address"   Q
         my values F "Final address"   Q
         my values O "Operations"      #+ -hidden 1
+        my values I "Instructions"    {@ JZ: J: PRINT ERASE ROLL:} -hidden 1
         my values V "Values"          N -hidden 1
         my table Q A Q O*
         my id {
@@ -560,11 +560,11 @@ A simple sort of virtual Stack Machine.
             runargs {stack "a list of stack symbols"}
         }
         my values A "Flag symbols"    {@ 0 1}
-        my values I "Instructions"    {@ JZ: JSZ: JSE: J: PUSH INC DEC CLR DUP EQ EQL ADD MUL} -hidden 1
         my values Q "Addresses"       N+
         my values S "Start address"   Q
         my values F "Final address"   Q
         my values O "Operations"      #+ -hidden 1
+        my values I "Instructions"    {@ JZ: JSZ: JSE: J: PUSH INC DEC CLR DUP EQ EQL ADD MUL} -hidden 1
         my values V "Values"          N -hidden 1
         my table Q A Q O*
         my id {
