@@ -25,12 +25,8 @@ oo::class create ::automata::FSM {
             input "remaining input" A*
             state "current state"   Q 
         }
-        my installRunMethod {
-            -accept Accept {[[accept]] the input}
-            -classify Classify {[[classify]] the input}
-            default Accept {[[accept]] the input}
-            a {} {a list of input symbols}
-        }
+        my runAs accept "accept the input" {input "a list of input symbols"}
+        my runAs classify "classify the input" {input "a list of input symbols"}
     }
 
     method compile tuples {
@@ -49,30 +45,27 @@ oo::class create ::automata::FSM {
     }
 
     method Exec id {
-        # unpack ID
         dict with id {
-            # get epsilons
-            set targets [lmap row [$table get $state {}] {
-                lindex $row 2
-            }]
-            set ids [lmap target $targets {
-                $iddef make $input $target
-            }]
             set _tail [lassign $input top]
-            set targets [lmap row [$table get $state $top] {
-                lindex $row 2
-            }]
-            lappend ids {*}[lmap target $targets {
-                $iddef make $_tail $target
+            set ids [$table map $state {inputSymbol target} {
+                if {$inputSymbol eq {}} {
+                    # epsilon move: pass input on to next id
+                    $iddef make $input $target
+                } elseif {$inputSymbol eq $top} {
+                    # consuming move: pass input less one symbol to next id
+                    $iddef make $_tail $target
+                } else {
+                    continue
+                }
             }]
         }
         return $ids
     }
 
-    method Accept arglist {
+    method Accept args {
         log::log d [info level 0] 
         # Are we in a final state when all input symbols are consumed?
-        lassign $arglist a
+        lassign $args a
         set input [list {*}$a]
         set ids [lmap state [my vsets get S] {
             $iddef make $input $state
@@ -90,9 +83,9 @@ oo::class create ::automata::FSM {
         return 0
     }
 
-    method Classify arglist {
+    method Classify args {
         # What state are we in when all input symbols are consumed?
-        lassign $arglist a
+        lassign $args a
         set input [list {*}$a]
         set ids [lmap state [my vsets get S] {
             $iddef make $input $state
@@ -120,27 +113,19 @@ oo::class create ::automata::FST {
     variable table iddef
 
     constructor args {
-        if no {
-            option -recognize "recognize two input/output symbol lists" Recognize
-            option -translate "translate an input symbol list and build an output symbol list" Translate
-            option -reconstruct "reconstruct an input symbol list from an output symbol list" Reconstruct
-            option -generate "generate two input/output symbol lists for a given number of steps"  Generate
-            runargs {
-                a "(for `-recognize` and `-translate`) an input symbol list"
-                b "(for `-recognize` and `-reconstruct`) an output symbol list"
-                steps "(for `-generate`) a number of steps"
-            }
+        my runAs recognize   "recognize two symbol lists" {
+            input "a list of symbols"
+            output "a list of symbols"
         }
-        my installRunMethod {
-            -recognize Recognize {[[recognize]] two input/output symbol lists.}
-            -translate Translate {[[translate]] an input symbol list and build an output symbol list.}
-            -reconstruct Reconstruct {[[reconstruct]] an input symbol list from an output symbol list.}
-            -generate Generate {[[generate]] two input/output symbol lists for a given number of steps.} 
-            {a b} {} {(for `-recognize`) two input/output symbol lists}
-            a     {} {(for `-translate`) an input symbol list}
-            b     {} {(for `-reconstruct`) an output symbol list}
-            steps {} {(for `-generate`) a number of steps}
+        my runAs translate   "translate a symbol list into another" {
+            input "a list of symbols"
+            output "a list of symbols"
         }
+        my runAs reconstruct "translate a symbol list into another, backwards" {
+            input "a list of symbols"
+            output "a list of symbols"
+        }
+        my runAs generate "generate two symbol lists for a given number of steps" {steps "number of steps to take"}
         my values A "Input symbols"  #+ -epsilon ε
         my values B "Output symbols" #+ -epsilon ε
         my values Q "State symbols"  #+ -sorted 0
@@ -170,41 +155,43 @@ oo::class create ::automata::FST {
     }
 
     method Exec-recognize id {
-        # unpack ID
         dict with id {
-            # get epsilons
-            set tuples [$table get $state {}]
             set itail [lassign $input itop]
             set otail [lassign $output otop]
-            # get moves
-            lappend tuples {*}[$table get $state $itop]
-            set ids [lmap tuple $tuples {
-                # q1 from tuple
-                lassign $tuple - inp q1 out
-                if {$inp eq {}} {
-                    lset tuple 1 $input
+            set ids [$table map $state {iSym target oSym} {
+                if {$iSym eq {}} {
+                    if {$oSym eq {}} {
+                        $iddef make $input $target $output
+                    } elseif {$oSym eq $otop} {
+                        # consume output token
+                        $iddef make $input $target $otail
+                    } else {
+                        # reject invalid transition
+                        continue
+                    }
+                } elseif {$iSym eq $itop} {
+                    if {$oSym eq {}} {
+                        # consume input token
+                        $iddef make $itail $target $output
+                    } elseif {$oSym eq $otop} {
+                        # consume input and output token
+                        $iddef make $itail $target $otail
+                    } else {
+                        # reject invalid transition
+                        continue
+                    }
                 } else {
-                    # consume input token
-                    lset tuple 1 $itail
-                }
-                if {$out eq {}} {
-                    lset tuple 3 $output
-                } elseif {$out ne $otop} {
                     # reject invalid transition
                     continue
-                } else {
-                    # consume output token
-                    lset tuple 3 $otail
                 }
-                $iddef make {*}[lrange $tuple 1 end]
             }]
         }
         return $ids
     }
 
-    method Recognize arglist {
+    method Recognize args {
         # Are we in a final state when all symbols in input and output are consumed?
-        lassign $arglist a b
+        lassign $args a b
         set input [list {*}$a]
         set output [list {*}$b]
         set ids [lmap state [my vsets get S] {
@@ -225,37 +212,34 @@ oo::class create ::automata::FST {
     }
 
     method Exec-translate id {
-        # unpack ID
         dict with id {
             set itail [lassign $input itop]
-            # get epsilons
-            set tuples [$table get $state {}]
-            # get moves
-            lappend tuples {*}[$table get $state $itop]
-            set ids [lmap tuple $tuples {
-                # q1 from tuple
-                lassign $tuple - inp q1 out
-                if {$inp eq {}} {
-                    lset tuple 1 $input
+            set ids [$table map $state {iSym target oSym} {
+                if {$iSym eq {}} {
+                    if {$oSym eq {}} {
+                        $iddef make $input $target $output
+                    } else {
+                        # emit output token
+                        $iddef make $input $target [linsert $output end $oSym]
+                    }
+                } elseif {$iSym eq $itop} {
+                    if {$oSym eq {}} {
+                        # consume input token
+                        $iddef make $itail $target $output
+                    } else {
+                        # consume input token, emit output token
+                        $iddef make $itail $target [linsert $output end $oSym]
+                    }
                 } else {
-                    # consume input token
-                    lset tuple 1 $itail
+                    continue
                 }
-                if {$out eq {}} {
-                    lset tuple 3 $output
-                } else {
-                    # emit output token
-                    lset tuple 3 [linsert $output end [lindex $out 0]]
-                }
-                $iddef make {*}[lrange $tuple 1 end]
             }]
         }
-        return $ids
     }
 
-    method Translate arglist {
+    method Translate args {
         # What symbols have been added to output when all input symbols in a are consumed?
-        lassign $arglist a
+        lassign $args a
         set input [list {*}$a]
         set ids [lmap state [my vsets get S] {
             $iddef make $input $state {}
@@ -275,38 +259,39 @@ oo::class create ::automata::FST {
     }
 
     method Exec-reconstruct id {
-        # unpack ID
         dict with id {
             set otail [lassign $output otop]
-            # get moves
-            set tuples [$table get $state *]
-            set ids [lmap tuple $tuples {
-                # q1 from tuple
-                lassign $tuple - inp q1 out
-                if {$inp eq {}} {
-                    lset tuple 1 $input
+            set ids [$table map $state {iSym target oSym} {
+                if {$iSym eq {}} {
+                    if {$oSym eq {}} {
+                        $iddef make $input $target $output
+                    } elseif {$oSym eq $otop} {
+                        # consume output token
+                        $iddef make $input $target $otail
+                    } else {
+                        # reject invalid transition
+                        continue
+                    }
                 } else {
-                    # emit input token
-                    lset tuple 1 [linsert $input end [lindex $inp 0]]
+                    if {$oSym eq {}} {
+                        # emit input token
+                        $iddef make [linsert $input end $iSym] $target $output
+                    } elseif {$oSym eq $otop} {
+                        # emit input token, consume output token
+                        $iddef make [linsert $input end $iSym] $target $otail
+                    } else {
+                        # reject invalid transition
+                        continue
+                    }
                 }
-                if {$out eq {}} {
-                    lset tuple 3 $output
-                } elseif {$out ne $otop} {
-                    # reject invalid transition
-                    continue
-                } else {
-                    # consume output token
-                    lset tuple 3 $otail
-                }
-                $iddef make {*}[lrange $tuple 1 end]
             }]
         }
         return $ids
     }
 
-    method Reconstruct arglist {
+    method Reconstruct args {
         # What symbols have been added to input when all symbols in output are consumed?
-        lassign $arglist b
+        lassign $args b
         set output [list {*}$b]
         set ids [lmap state [my vsets get S] {
             $iddef make {} $state $output
@@ -326,34 +311,32 @@ oo::class create ::automata::FST {
     }
 
     method Exec-generate id {
-        # unpack ID
         dict with id {
-            # get moves
-            set tuples [$table get $state *]
-            set ids [lmap tuple $tuples {
-                # q1 from tuple
-                lassign $tuple - inp q1 out
-                if {$inp eq {}} {
-                    lset tuple 1 $input
+            set ids [$table map $state {iSym target oSym} {
+                if {$iSym eq {}} {
+                    if {$oSym eq {}} {
+                        $iddef make $input $target $output
+                    } else {
+                        # emit output token
+                        $iddef make $input $target [linsert $output end $oSym]
+                    }
                 } else {
-                    # emit input token
-                    lset tuple 1 [linsert $input end [lindex $inp 0]]
+                    if {$oSym eq {}} {
+                        # emit input token
+                        $iddef make [linsert $input end $iSym] $target $output
+                    } else {
+                        # emit input and output token
+                        $iddef make [linsert $input end $iSym] $target [linsert $output end $oSym]
+                    }
                 }
-                if {$out eq {}} {
-                    lset tuple 3 $output
-                } else {
-                    # emit output token
-                    lset tuple 3 [linsert $output end [lindex $out 0]]
-                }
-                $iddef make {*}[lrange $tuple 1 end]
             }]
         }
         return $ids
     }
 
-    method Generate arglist {
+    method Generate args {
         # If we take N steps into the transition sequence (or sequence powerset), what do we get in input and output?
-        lassign $arglist steps
+        lassign $args steps
         set ids [lmap state [my vsets get S] {
             $iddef make {} $state {}
         }]
@@ -379,17 +362,8 @@ oo::class create ::automata::PDA {
     variable table iddef
 
     constructor args {
-        if no {
-            option -accept "accepts the input (default)" Accept
-            option -classify "classifies the input" Classify
-            runargs {a "a list of input symbols"}
-        }
-        my installRunMethod {
-            -accept Accept {[[accept]] the input}
-            -classify Classify {[[classify]] the input}
-            default Accept {[[accept]] the input}
-            a {} {a list of input symbols}
-        }
+        my runAs accept "accept the input" {input "a list of input symbols"}
+        my runAs classify "classify the input" {input "a list of input symbols"}
         my values A "Input symbols" #+ -epsilon ε
         my values B "Stack symbols" #+ -epsilon ε -sorted 0
         my values Q "State symbols" #+ -sorted 0
@@ -424,43 +398,43 @@ oo::class create ::automata::PDA {
     }
 
     method Exec id {
-        # unpack ID
         dict with id {
             set itail [lassign $input itop]
             set _tail [lassign $stack _top]
-            # get epsilons
-            set tuples [$table get $state {}]
-            # get moves
-            lappend tuples {*}[$table get $state $itop]
-            set ids [lmap tuple $tuples {
-                # q1 from tuple
-                lassign $tuple - inp q1 O _o
-                if {$inp eq {}} {
-                    lset tuple 1 $input
+            set ids [$table map $state {iSym target _Sym _Push} {
+                if {$iSym eq {}} {
+                    if {$_Sym eq {}} {
+                        $iddef make $input $target $stack
+                    } elseif {$_Sym eq $_top} {
+                        # consume stack token
+                        $iddef make $input $target [concat $_Push $_tail]
+                    } else {
+                        # reject invalid transition
+                        continue
+                    }
+                } elseif {$iSym eq $itop} {
+                    if {$_Sym eq {}} {
+                        # consume input token
+                        $iddef make $itail $target $stack
+                    } elseif {$_Sym eq $_top} {
+                        # consume input and stack token
+                        $iddef make $itail $target [concat $_Push $_tail]
+                    } else {
+                        # reject invalid transition
+                        continue
+                    }
                 } else {
-                    # consume input token
-                    lset tuple 1 $itail
-                }
-                if {$O ne $_top} {
                     # reject invalid transition
                     continue
-                } else {
-                    # push stack
-                    lset tuple 3 [concat {*}$_o $_tail]
                 }
-                # TODO ??
-                $iddef make {*}[apply {tuple {
-                    set _tail [lassign $tuple - input state stack]
-                    list $input $state $stack
-                }} $tuple]
             }]
         }
         return $ids
     }
 
-    method Accept arglist {
+    method Accept args {
         # Are we in a final state when all input symbols are consumed and the stack has only one item?
-        lassign $arglist a
+        lassign $args a
         set input [list {*}$a]
         set stack [list [my vsets get Z]]
         set ids [lmap state [my vsets get S] {
@@ -479,9 +453,9 @@ oo::class create ::automata::PDA {
         return 0
     }
 
-    method Classify arglist {
+    method Classify args {
         # What state are we in when all input symbols are consumed and the stack has only one item?
-        lassign $arglist a
+        lassign $args a
         set input [list {*}$a]
         set stack [list [my vsets get Z]]
         set ids [lmap state [my vsets get S] {
@@ -509,13 +483,6 @@ oo::class create ::automata::BTM {
     variable table iddef
 
     constructor args {
-        if no {
-            runargs {tape "initial tape contents"}
-        }
-        my installRunMethod {
-            tape {} {a list of initial tape symbols}
-            ?head? {} {initial head position}
-        }
         my values A "Tape symbols"  #+ -epsilon ε
         my values B "Print symbols" {@ E P N} -sorted 0
         my values C "Move symbols"  {@ L R N} -sorted 0
@@ -529,6 +496,7 @@ oo::class create ::automata::BTM {
             head  "current index" I 
             state "current state" Q 
         }
+        my runAs run "run the machine" {tape "initial tape contents"}
     }
 
     method compile tuples {
@@ -563,25 +531,28 @@ oo::class create ::automata::BTM {
     }
 
     method Exec id {
-        # unpack ID
+        log::log d [info level 0] 
         dict with id {
             if {[my vsets in F $state]} {
                 return
             }
-            # should always be 0 or 1 tuples
-            set tuples [$table get $state [lindex $tape $head]]
-            set ids [lmap tuple $tuples {
-                lassign $tuple - - next print move
-                my Print tape $head $print
-                log::log d \$move=$move 
-                my Move tape head $move
-                $iddef make $tape $head $next
+            set cur [lindex $tape $head]
+            set ids [$table map $state {sym target print move} {
+                if {$sym eq $cur} {
+                    my Print tape $head $print
+                    my Move tape head $move
+                    $iddef make $tape $head $target
+                } else {
+                    # reject invalid transition
+                    continue
+                }
             }]
         }
         return $ids
     }
 
     method Run tape {
+        log::log d [info level 0] 
         #: Run this tape from start index, return tape, current index, and ending state.
         set tape [list {*}$tape]
         set ids [lmap state [my vsets get S] {

@@ -25,18 +25,14 @@ test dfa-1.0 {accept binary numbers that are multiples of 3} -body {
         { s2  0 s1}
         { s2  1 s2}
     }
-    if no {
-        oo::objdefine M method tabledump {} {variable table ; $table dump}
-        puts [M tabledump]
-    }
     set res {}
-    lappend res [M run {1}]
-    lappend res [M run {0 1}]
-    lappend res [M run {1 1}]
-    lappend res [M run {0 0 1}]
-    lappend res [M run {1 0 1}]
-    lappend res [M run {0 1 1}]
-    lappend res [M run {1 1 1}]
+    lappend res [M accept {1}]
+    lappend res [M accept {0 1}]
+    lappend res [M accept {1 1}]
+    lappend res [M accept {0 0 1}]
+    lappend res [M accept {1 0 1}]
+    lappend res [M accept {0 1 1}]
+    lappend res [M accept {1 1 1}]
     set res
 } -cleanup {
     M destroy
@@ -51,12 +47,12 @@ test dfa-1.1 {find even number of ones/zeros} -setup $m -body {
         { s2  1 s2}
     }
     set res {}
-    lappend res [M run {1 1}]
-    lappend res [M run {1 0}]
-    lappend res [M run {0 1}]
-    lappend res [M run {0 0}]
-    lappend res [M run {1 0 0 1 1 1}]
-    lappend res [M run {1 0 0 1 1 0}]
+    lappend res [M accept {1 1}]
+    lappend res [M accept {1 0}]
+    lappend res [M accept {0 1}]
+    lappend res [M accept {0 0}]
+    lappend res [M accept {1 0 0 1 1 1}]
+    lappend res [M accept {1 0 0 1 1 0}]
     set res
 } -cleanup {
     M destroy
@@ -98,12 +94,12 @@ test nfa-1.0 {} -setup $m -body {
         { s1 1 s1>}
     }
     set res {}
-    lappend res [M run {1}]
-    lappend res [M run {0}]
-    lappend res [M run {1 1}]
-    lappend res [M run {1 0}]
-    lappend res [M run {0 1}]
-    lappend res [M run {0 0}]
+    lappend res [M accept {1}]
+    lappend res [M accept {0}]
+    lappend res [M accept {1 1}]
+    lappend res [M accept {1 0}]
+    lappend res [M accept {0 1}]
+    lappend res [M accept {0 0}]
     set res
 } -cleanup {
     M destroy
@@ -124,12 +120,12 @@ test nfa-1.1 {find even number of ones/zeros} -setup $m -body {
         { s4 1 s3 }
     }
     set res {}
-    lappend res [M run {1 1}]
-    lappend res [M run {1 0}]
-    lappend res [M run {0 1}]
-    lappend res [M run {0 0}]
-    lappend res [M run {1 0 0 1 1 1}]
-    lappend res [M run {1 0 0 1 1 0}]
+    lappend res [M accept {1 1}]
+    lappend res [M accept {1 0}]
+    lappend res [M accept {0 1}]
+    lappend res [M accept {0 0}]
+    lappend res [M accept {1 0 0 1 1 1}]
+    lappend res [M accept {1 0 0 1 1 0}]
     set res
 } -cleanup {
     M destroy

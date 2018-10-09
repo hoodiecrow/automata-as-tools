@@ -214,13 +214,8 @@ Specify which actual instruction set to use when instantiating machine.
 * `-instructionset 3` : (INC, CPY, JE), (Elgot-Robinson (1964), Minsky (1967))
 * `-instructionset 4` : (INC, DEC, CLR, CPY, J, JZ) (default: Shepherdson and Sturgis (1963))
         }
-        if no {
-            runargs {registers "a list of register cells"}
-        }
         my installOperations $instructionSet
-        my installRunMethod {
-            registers {} {a list of initial register cells}
-        }
+        my runAs run "run the machine" {registers "a list of initial register cells"}
         my values A "Flag symbols"    {@ 0 1}
         my values Q "Addresses"       N+
         my values S "Start address"   Q
@@ -292,20 +287,11 @@ Test numbers:
 | 8     | any-beepers-in-beeper |
         }
         my installOperations {JT: JNT: J: HALT TURN MOVE TAKE DROP TEST: RET CALL:}
-        my installRunMethod {
-            world   {} {a list of width, height values (integer)}
-            robot   {} {a list of x, y, n, f values (integer)}
-            beepers {} {an even-sized list of x, y values}
-            walls   {} {an even-sized list of x, y values}
-            ?start? {} {initial state}
-        }
-        if no {
-            runargs {
-                world   "a list of width, height values"
-                robot   "a list of x, y, n, f values"
-                beepers "an even-sized list of x, y values"
-                walls   "an even-sized list of x, y values"
-            }
+        my runAs run "run the machine" {
+            world   "a list of width, height values (integer)"
+            robot   "a list of x, y, n, f values (integer)"
+            beepers "an even-sized list of x, y values"
+            walls   "an even-sized list of x, y values"
         }
         my values A "Flag symbols"    {@ 0 1}
         my values B "Facing"          {@ e n w s} -hidden 1
@@ -470,13 +456,7 @@ is set by compiling a program.  The tape uses a binary symbol set
 (here, 0, 1).
         }
         my installOperations {JZ: JNZ: J: PRINT ERASE ROLL: NOP HALT}
-        my installRunMethod {
-            tape {} {a list of initial tape symbols}
-            ?head? {} {initial head position}
-        }
-        if no {
-            runargs {tape "a (part of a) list of tape symbols"}
-        }
+        my runAs run "run the machine" {tape "a list of symbols"}
         my values A "Tape symbols"    {@ 0 1}
         my values B "Move symbols"    {@ L R} -hidden 1
         my values Q "Addresses"       N+
@@ -553,12 +533,7 @@ oo::class create ::automata::SM {
 A simple sort of virtual Stack Machine.
         }
         my installOperations {JSZ: JSNZ: JSE: JSNE: J: PUSH INC DEC CLR DUP EQ EQL ADD MUL}
-        my installRunMethod {
-            stack {} {a list of initial stack symbols}
-        }
-        if no {
-            runargs {stack "a list of stack symbols"}
-        }
+        my runAs run "run the machine" {}
         my values A "Flag symbols"    {@ 0 1}
         my values Q "Addresses"       N+
         my values S "Start address"   Q

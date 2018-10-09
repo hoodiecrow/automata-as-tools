@@ -253,6 +253,19 @@ oo::class create ::automata::Table {
         my Matrix add row $values
     }
 
+    method map {state varnames body} {
+        # use continue in the body to avoid collecting empty IDs
+        set temp [list]
+        foreach varname $varnames {
+            upvar 1 $varname $varname
+        }
+        foreach cell [my Matrix search column 0 $state] {
+            lassign [my Matrix get row [lindex $cell 1]] - {*}$varnames
+            lappend temp [uplevel 1 $body]
+        }
+        set temp
+    }
+
     method print {} {
         append str "Transitions\n"
         append str [format "%-5s %-5s %-5s %s\n" q0 inp q1 out]
@@ -334,7 +347,7 @@ oo::class create ::automata::ID {
 oo::class create ::automata::Configuration {
     mixin ::automata::Documentation
 
-    variable vsets table iddef components
+    variable vsets table iddef
 
     #: Handles machine configurations, including instantaneous descriptions.
 
@@ -377,6 +390,10 @@ oo::class create ::automata::Configuration {
         set iddef [::automata::ID new {*}$def]
     }
 
+    method runAs {name desc params} {
+        oo::objdefine [self] forward $name my [string totitle $name]
+    }
+    
     method get {what args} {
         switch $what {
             doc {
