@@ -46,7 +46,7 @@ namespace eval automata {
 }
 
 oo::class create ::automata::Documentation {
-    variable components doc
+    variable table iddef
 
     method AddDoc {what args} {
         switch $what {
@@ -143,7 +143,37 @@ oo::class create ::automata::Documentation {
         }
     }
 
+    method Header s {
+        format "\n## $s\n"
+    }
+
     method doc fn {
+        variable runas
+        set str {}
+        append str [my Header Definition]
+        set class [info object class [self]]
+        append str "\nclass `$class`\n"
+        append str "\nrequires `[info class mixins $class]`\n"
+        append str [format "\nThe configuration for `%s` is (%s | %s | %s)\n" [namespace tail $class] [my vsets getNames] [$table getNames] [$iddef getNames]]
+        append str "\nwhere\n"
+        append str [my vsets document]\n
+        append str "\nand the \[\[Instantaneous Description|id]] (ID) is:\n"
+        append str [$iddef document]\n
+        append str [my Header Usage]
+        foreach r $runas {
+            append str [format "\n*machine* `%s %s` : %s\n" [lindex $r 0] [dict keys [lindex $r end]] [lindex $r 1]]
+            foreach {n d} [lindex $r end] {
+                append str [format "\n* `%s` : %s\n" $n $d]
+            }
+        }
+        if {$fn ne {}} {
+            ::fileutil::writeFile -encoding utf-8 $fn $str
+        } else {
+            return $str
+        }
+    }
+
+    method __doc fn {
         return
         if {![info exists doc]} {
             return

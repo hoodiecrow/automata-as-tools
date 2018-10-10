@@ -36,7 +36,7 @@ test ktr-1.0 {} -setup {
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {{3 3} {3 2 0 s} {} 0 {3 2} {2 1 2 2} 12}
+} -result {{3 3} {3 2 0 s} {} {3 2} {2 1 2 2} 0 17}
 
 test ktr-1.1 {print 1.0} -setup {
     ::automata::KTR create M
@@ -91,8 +91,8 @@ q0    inp   q1    out
 10    1     11    MOVE
 11    0     0     NOP
 11    1     0     NOP
-12    0     13    HALT
-12    1     13    HALT
+12    0     17    HALT
+12    1     17    HALT
 13    0     14    TURN
 13    1     14    TURN
 14    0     15    TURN
@@ -109,9 +109,9 @@ robot y                ypos: V
 #robot's beepers       bag: V
 robot facing           facing: B
 return stack           returns: Q*
-test flag              flag: A
 beeper coords          beepers: V*
 wall coords            walls: V*
+test flag              flag: A
 instruction pointer    ipointer: Q
 }
 

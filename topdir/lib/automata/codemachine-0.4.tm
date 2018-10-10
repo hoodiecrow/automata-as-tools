@@ -80,6 +80,10 @@ oo::class create ::automata::CodeMachine {
                     J* {
                         set addresses [list $next $a]
                     }
+                    HALT {
+                        set end [my vsets get F]
+                        set addresses [list $end $end]
+                    }
                     default {
                         set addresses [list $next $next]
                     }
@@ -232,31 +236,42 @@ Specify which actual instruction set to use when instantiating machine.
 
     }
 
+    method SetFlag {registers tag args} {
+        lassign $args a b
+        expr {[lindex $registers $a] eq [lindex $registers $b]}
+    }
+
+    method ExecCode {varName code} {
+        upvar 1 $varName registers
+        lassign $code tag a b
+        switch $tag {
+            INC: { lset registers $a [expr {[lindex $registers $a] + 1}] }
+            DEC: { lset registers $a [expr {[lindex $registers $a] - 1}] }
+            CLR: { lset registers $a [lindex $registers 0] }
+            CPY: { lset registers $a [lindex $registers $b] }
+            NOP  {}
+        }
+        if {[lindex $registers 0] ne 0} {
+            return -code error [format {register 0 has been changed}]
+        }
+    }
+
     method Exec id {
-        # unpack ID
         dict with id {
             if {[my vsets in F $ipointer]} {
                 return
             }
-            # get move
-            lassign [lindex [$table get $ipointer 0] 0] - - - code
-            lassign $code tag a b
-            set flag [expr {[lindex $registers $a] eq [lindex $registers $b]}]
-            lassign [lindex [$table get $ipointer $flag] 0] - - next
-            # build new ID
-            switch $tag {
-                INC: { lset registers $a [expr {[lindex $registers $a] + 1}] }
-                DEC: { lset registers $a [expr {[lindex $registers $a] - 1}] }
-                CLR: { lset registers $a [lindex $registers 0] }
-                CPY: { lset registers $a [lindex $registers $b] }
-                NOP  {}
-            }
-            if {[lindex $registers 0] ne 0} {
-                return -code error [format {registers 0 has been changed}]
-            }
-            set res [list [$iddef make $registers $next]]
+            set ids [$table map $ipointer {iSym target code} {
+                set flag [my SetFlag $registers {*}$code]
+                if {$iSym eq $flag} {
+                    my ExecCode registers $code
+                    $iddef make $registers $target
+                } else {
+                    continue
+                }
+            }]
         }
-        return $res
+        return $ids
     }
 
     forward Run my SingleThread Exec
@@ -310,9 +325,9 @@ Test numbers:
             bag      "#robot's beepers"    V 
             facing   "robot facing"        B 
             returns  "return stack"        Q*
-            flag     "test flag"           A 
             beepers  "beeper coords"       V*
             walls    "wall coords"         V*
+            flag     "test flag"           A 
             ipointer "instruction pointer" Q 
         }
     }
@@ -342,7 +357,7 @@ Test numbers:
         expr {[list $xpos $ypos] in [lmap {x y} $walls {list $x $y}]}
     }
 
-    method Test {id idx} {
+    method SetFlag {id idx} {
         dict with id {
             set label [lindex {
                 front-is-clear
@@ -377,54 +392,65 @@ Test numbers:
         }
     }
 
-    method Exec id {
-        log::log d [info level 0] 
-        # unpack ID
+    method ExecCode {id code} {
+        lassign $code tag a
         dict with id {
-            # get move
-            lassign [lindex [$table get $ipointer 0] 0] - - - code
-            lassign $code tag testnumber
-            lassign [lindex [$table get $ipointer $flag] 0] - - next
-            set flag 0
             switch $tag {
                 HALT  {
-                    return
+                    return [list flag 0]
                 }
                 TURN  {
-                    set facing [my Turn $facing left]
+                    return [list facing [my Turn $facing left] flag 0]
                 }
                 MOVE  {
                     lassign [my _Move $xpos $ypos $facing] xpos ypos
                     if {[my CheckCollision $width $height $xpos $ypos $walls]} {
                         return -code error [format {collision with a wall!}]
                     }
+                    return [list xpos $xpos ypos $ypos flag 0]
                 }
                 TAKE - DROP {
                 }
                 TEST: {
-                    set flag [my Test $id $testnumber]
+                    return [list flag [my SetFlag $id $a]]
                 }
                 RET   {
                     set returns [lassign $returns next]
+                    return [list returns $returns ipointer $next flag 0]
                 }
                 CALL: {
                     set returns [linsert $returns 0 [my vsets succ Q $ipointer]]
+                    return [list returns $returns flag 0]
                 }
-                NOP {}
+                NOP {
+                    return [list flag 0]
+                }
             }
         }
-        if {[my vsets in F $next]} {
+    }
+
+    method Exec id {
+        log::log d [info level 0] 
+        dict with id {
+        if {[my vsets in F $ipointer]} {
             return
         }
-        # build new ID
-        lappend _id $width $height
-        lappend _id $xpos $ypos $bag $facing
-        lappend _id $returns
-        lappend _id $flag
-        lappend _id $beepers
-        lappend _id $walls
-        lappend _id $next
-        return [list [$iddef make {*}$_id]]
+            set ids [$table map $ipointer {iSym target code} {
+                if {$iSym eq $flag} {
+                    set d [my ExecCode $id $code]
+                    if {[dict exists $d ipointer]} {
+                        set target [dict get $d ipointer]
+                    } else {
+                        dict set d ipointer $target
+                    }
+                    $iddef make {*}[dict values [dict merge $id $d]]
+                } else {
+                    continue
+                }
+            }]
+        }
+        log::log d \$ids=$ids 
+        return $ids
     }
 
     method Run {world robot beepers walls} {
@@ -432,9 +458,9 @@ Test numbers:
         lappend id {*}$world
         lappend id {*}$robot
         lappend id [list]
-        lappend id 0
         lappend id $beepers
         lappend id $walls
+        lappend id 0
         lappend id [my vsets get S]
         set id [$iddef make {*}$id]
         set results [my search $id Exec]
@@ -475,20 +501,10 @@ is set by compiling a program.  The tape uses a binary symbol set
 
     # Print and Move are borrowed from the BTM
 
-    method Exec id {
-        # unpack ID
+    method ExecCode {id code} {
+        log::log d [info level 0] 
         dict with id {
-            if {[my vsets in F $ipointer]} {
-                return
-            }
-            # should always be 0 or 1 tuples
-            set tuples [$table get $ipointer [lindex $tape $head]]
-            if {[llength $tuples] eq 0} {
-                return
-            }
-            set tuple [lindex $tuples 0]
-            lassign $tuple - - i code
-            lassign $code tag a b
+            lassign $code tag a
             switch $tag {
                 HALT  {
                     return
@@ -502,7 +518,30 @@ is set by compiling a program.  The tape uses a binary symbol set
                 }
                 NOP {}
             }
-            set ids [list [$iddef make $tape $head $i]]
+        }
+        return $id
+    }
+
+    method Exec id {
+        dict with id {
+            if {[my vsets in F $ipointer]} {
+                return
+            }
+            set flag [lindex $tape $head]
+            set ids [$table map $ipointer {iSym target code} {
+                if {$iSym eq $flag} {
+                    set d [my ExecCode $id $code]
+                    # in a PTM, target always overrides ipointer
+                    log::log d \$d=$d 
+                    if {$d eq {}} {
+                        continue
+                    }
+                    dict set d ipointer $target
+                    $iddef make {*}[dict values $d]
+                } else {
+                    continue
+                }
+            }]
         }
         return $ids
     }
@@ -548,43 +587,53 @@ A simple sort of virtual Stack Machine.
         }
     }
 
+    method SetFlag {stack tag args} {
+        lassign $args a b
+        lassign $stack TOP
+        if {$b == 0} {
+            set flag [expr {$TOP == 0}]
+        } else {
+            set flag [expr {$TOP == [lindex $stack 1]}]
+        }
+        return $flag
+    }
+
+    method ExecCode {stack code} {
+        lassign $code tag a b c d e f
+        switch $tag {
+            PUSH {
+                set stack [linsert $stack 0 $a]
+            }
+            INC - DEC - CLR {
+                lset stack 0 [my ALU $tag $stack 0]
+            }
+            DUP {
+                set stack [linsert $stack 0 $TOP]
+            }
+            EQ - EQL - ADD - MUL {
+                set v [my ALU $tag $stack 0 1]
+                set stack [lreplace $stack 0 1 $v]
+            }
+        }
+        return $stack
+    }
+
     method Exec id {
-        # unpack ID
         dict with id {
             if {[my vsets in F $ipointer]} {
                 return
             }
-            lassign [lindex [$table get $ipointer 0] 0] - - - code
-            lassign $code tag a b c d e f
-            lassign $stack TOP
-            if {$b == 0} {
-                set flag [expr {$TOP == 0}]
-            } else {
-                set flag [expr {$TOP == [lindex $stack 1]}]
-            }
-            lassign [lindex [$table get $ipointer $flag] 0] - - i
-            # get move
-            switch $tag {
-                PUSH {
-                    set stack [linsert $stack 0 $a]
+            set ids [$table map $ipointer {iSym target code} {
+                set f [my SetFlag $stack {*}$code]
+                if {$iSym eq $f} {
+                    set s [my ExecCode $stack $code]
+                    $iddef make $s $target
+                } else {
+                    continue
                 }
-                INC - DEC - CLR {
-                    lset stack 0 [my ALU $tag $stack 0]
-                }
-                DUP {
-                    set stack [linsert $stack 0 $TOP]
-                }
-                EQ - EQL - ADD - MUL {
-                    set v [my ALU $tag $stack 0 1]
-                    set stack [lreplace $stack 0 1 $v]
-                }
-            }
-            if {[lindex $stack 0] < 0} {
-                return -code error [format {negative value in top of stack}]
-            }
-            # build new ID
-            list [$iddef make $stack $i]
+            }]
         }
+        return $ids
     }
 
     forward Run my SingleThread Exec

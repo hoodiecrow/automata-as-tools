@@ -50,7 +50,6 @@ oo::class create ::automata::ValueSets {
     }
 
     method set {name symbol} {
-        log::log d [info level 0] 
         set row [my ExtractRow [my Matrix search column 0 $name]]
         array set options [my Get opts $row]
         if no {
@@ -103,7 +102,7 @@ oo::class create ::automata::ValueSets {
     }
 
     forward getname my Get name
-    forward gettype my Get vset
+    forward getvset my Get vset
     forward getopts my Get opts
     forward getdesc my Get desc
 
@@ -180,8 +179,49 @@ oo::class create ::automata::ValueSets {
         return $str
     }
 
+    method getNames {} {
+        join [my Matrix get column 0] ", "
+    }
+
+    method DocVSDesc vset {
+        switch $vset {
+            "#" { lindex " (⊆ the set of all symbols)" }
+            "N" { lindex " (⊂ ℕ : 0, 1, 2, ...)" }
+            default {
+                lindex " (⊂ $vset)"
+            }
+        }
+    }
+
     method document {} {
-        ;
+        set str {}
+        for {set row 0} {$row < [my Matrix rows]} {incr row} {
+            lassign [my Matrix get row $row] name vset val opts desc
+            array set options $opts
+            if {$options(-hidden)} {
+                continue
+            }
+            if {$options(-plural)} {
+                set values [lmap val [my getval $row] {
+                    if {$val eq {}} {
+                        continue
+                    } else {
+                        set val
+                    }
+                }]
+                append str [format "\n* `%s` is the set of %s%s" $name [string tolower $desc] [my DocVSDesc $vset]]
+            } elseif {[my Get vset $row] eq "@"} {
+                set values [my getval $row]
+                if {[llength $values] eq 1} {
+                    append str [format "\n* `%s` is the set of %s = %s" $name [string tolower $desc] $values]
+                } else {
+                    append str [format "\n* `%s` is the set of %s = {%s}" $name [string tolower $desc] [join $values ", "]]
+                }
+            } else {
+                append str [format "\n* `%s` is a %s = %s" $name [string tolower $desc] [my getval $row]]
+            }
+        }
+        return $str
     }
 
     method dump {} {
@@ -279,6 +319,10 @@ oo::class create ::automata::Table {
         return $str
     }
 
+    method getNames {} {
+        join $formats "×"
+    }
+
     method document {} {
         ;
     }
@@ -310,6 +354,7 @@ oo::class create ::automata::ID {
     forward Matrix matrix
 
     method make args {
+        log::log d [info level 0] 
         set res [dict create]
         for {set row 0} {$row < [my Matrix rows]} {incr row} {
             set val [lindex $args $row]
@@ -338,8 +383,17 @@ oo::class create ::automata::ID {
         return $str
     }
 
+    method getNames {} {
+        join [lmap f $formats {join $f {}}] ", "
+    }
+
     method document {} {
-        ;
+        set str {}
+        for {set row 0} {$row < [my Matrix rows]} {incr row} {
+            lassign [my Matrix get row $row] name desc vset
+            append str [format "\n* `%s` is the current %s (%s)" $name [string tolower $desc] $vset]
+        }
+        return $str
     }
 
 }
@@ -391,6 +445,8 @@ oo::class create ::automata::Configuration {
     }
 
     method runAs {name desc params} {
+        variable runas
+        lappend runas [list $name $desc $params]
         oo::objdefine [self] forward $name my [string totitle $name]
     }
     
