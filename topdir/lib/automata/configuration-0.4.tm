@@ -12,6 +12,10 @@ oo::class create ::automata::ValueSets {
         matrix add columns 5
     }
 
+    destructor {
+        matrix destroy
+    }
+
     forward Matrix matrix
 
     method ExtractRow found {
@@ -245,6 +249,10 @@ oo::class create ::automata::Table {
         }]
     }
 
+    destructor {
+        matrix destroy
+    }
+
     forward Matrix matrix
 
     method get {key1 {key2 *}} {
@@ -351,6 +359,10 @@ oo::class create ::automata::ID {
         }
     }
 
+    destructor {
+        matrix destroy
+    }
+
     forward Matrix matrix
 
     method make args {
@@ -415,6 +427,8 @@ oo::class create ::automata::Configuration {
 
     destructor {
         catch {$vsets destroy}
+        catch {$table destroy}
+        catch {$iddef destroy}
     }
 
     method print {} {

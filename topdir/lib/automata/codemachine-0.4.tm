@@ -15,6 +15,17 @@ oo::class create ::automata::CodeMachine {
         next {*}$args
     }
 
+    method addTable args {
+        log::log d [info level 0] 
+        $table add {*}$args
+    }
+
+    if no {
+        method compile tokens {
+            ::automata::Compiler compile [self] $tokens
+        }
+    } else {
+
     method compile tokens {
         #: Convert source code to transition configuration.
         foreach token $tokens {
@@ -154,6 +165,8 @@ oo::class create ::automata::CodeMachine {
         }
     }
 
+    }
+
     method ALU {op data args} {
         # Shared between KTR and SM
         switch $op {
@@ -204,21 +217,6 @@ oo::class create ::automata::CM {
             3 {INC: CPY: JE:}
             4 {INC: DEC: CLR: CPY: J: JZ:}
         } $is]
-        my add doc preamble {
-A Counter Machine is the simplest form of Register Machine.
-
-The number of registers is determined by the length of the list passed to the `run` method. Registers are indexed in the same way as a list index (0, 1, 2, ...).
-
-Register #0 is reserved for the value 0. It is an error to set it to another value.
-
-Specify which actual instruction set to use when instantiating machine.
-
-* `-instructionset 1` : (INC, DEC, JZ), (Minsky (1961, 1967), Lambek (1961))
-* `-instructionset 2` : (CLR, INC, JE), (Ershov (1958), Peter (1958) as interpreted by Shepherdson-Sturgis (1964); Minsky (1967); Schönhage (1980))
-* `-instructionset 3` : (INC, CPY, JE), (Elgot-Robinson (1964), Minsky (1967))
-* `-instructionset 4` : (INC, DEC, CLR, CPY, J, JZ) (default: Shepherdson and Sturgis (1963))
-        }
-        my installOperations $instructionSet
         my runAs run "run the machine" {registers "a list of initial register cells"}
         my values A "Flag symbols"    {@ 0 1}
         my values Q "Addresses"       N+
@@ -284,24 +282,6 @@ oo::class create ::automata::KTR {
     variable table iddef
     
     constructor args {
-        my add doc preamble {
-This is a very limited Karel the Robot that can only walk around, not interact with beepers.
-
-Test numbers:
-
-| Number | Test                      |
-| :---:  | :---                      |
-| 0    | front-is-clear    |
-| 1    | left-is-clear     |
-| 2    | right-is-clear    |
-| 3    | next-to-a-beeper     |
-| 4  | facing-east          |
-| 5   | facing-north         |
-| 6  | facing-west          |
-| 7  | facing-south         |
-| 8     | any-beepers-in-beeper |
-        }
-        my installOperations {JT: JNT: J: HALT TURN MOVE TAKE DROP TEST: RET CALL:}
         my runAs run "run the machine" {
             world   "a list of width, height values (integer)"
             robot   "a list of x, y, n, f values (integer)"
@@ -476,12 +456,6 @@ oo::class create ::automata::PTM {
     variable table iddef
 
     constructor args {
-        my add doc preamble {
-A Post-Turing Machine is essentially a TM. The transition matrix
-is set by compiling a program.  The tape uses a binary symbol set
-(here, 0, 1).
-        }
-        my installOperations {JZ: JNZ: J: PRINT ERASE ROLL: NOP HALT}
         my runAs run "run the machine" {tape "a list of symbols"}
         my values A "Tape symbols"    {@ 0 1}
         my values B "Move symbols"    {@ L R} -hidden 1
@@ -568,10 +542,6 @@ oo::class create ::automata::SM {
     variable table iddef
 
     constructor args {
-        my add doc preamble {
-A simple sort of virtual Stack Machine.
-        }
-        my installOperations {JSZ: JSNZ: JSE: JSNE: J: PUSH INC DEC CLR DUP EQ EQL ADD MUL}
         my runAs run "run the machine" {}
         my values A "Flag symbols"    {@ 0 1}
         my values Q "Addresses"       N+

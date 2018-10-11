@@ -119,10 +119,8 @@ oo::class create ::automata::FST {
         }
         my runAs translate   "translate a symbol list into another" {
             input "a list of symbols"
-            output "a list of symbols"
         }
         my runAs reconstruct "translate a symbol list into another, backwards" {
-            input "a list of symbols"
             output "a list of symbols"
         }
         my runAs generate "generate two symbol lists for a given number of steps" {steps "number of steps to take"}
