@@ -278,11 +278,11 @@ test dfst-2.4 {edge detector, print} -setup $m -body {
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -output {Input symbols   A = {0, 1}
-Output symbols  B = {0, 1}
-State symbols   Q = {si, s0, s1}
-Start symbols   S = {si}
-Final symbols   F = {s0, s1}
+} -output {Input symbols     A = {0, 1}
+Output symbols    B = {0, 1}
+State symbols     Q = {si, s0, s1}
+Start symbols     S = {si}
+Final symbols     F = {s0, s1}
 Transitions
 q0    inp   q1    out
 si    0     s0    0

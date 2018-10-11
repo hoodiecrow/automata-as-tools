@@ -86,12 +86,12 @@ test pda-1.3 {} -setup {
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -output {Input symbols   A = {0, 1}
-Stack symbols   B = {Z, A}
-State symbols   Q = {p, q, r}
-Start symbol    S = p
-Initial stack   Z = Z
-Final symbols   F = {r}
+} -output {Input symbols     A = {0, 1}
+Stack symbols     B = {Z, A}
+State symbols     Q = {p, q, r}
+Start symbol      S = p
+Initial stack     Z = Z
+Final symbols     F = {r}
 Transitions
 q0    inp   q1    out
 p     0     p     Z {A Z}

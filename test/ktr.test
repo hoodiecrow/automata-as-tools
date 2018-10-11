@@ -61,10 +61,10 @@ test ktr-1.1 {print 1.0} -setup {
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -output {Flag symbols    A = {0, 1}
-Addresses       Q = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17}
-Start address   S = 0
-Final address   F = 17
+} -output {Flag symbols      A = {0, 1}
+Addresses         Q = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17}
+Start address     S = 0
+Final address     F = 17
 Transitions
 q0    inp   q1    out
 0     0     1     {TEST: 3}

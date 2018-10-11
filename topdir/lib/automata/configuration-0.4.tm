@@ -168,16 +168,16 @@ oo::class create ::automata::ValueSets {
                         set val
                     }
                 }]
-                append str [format "%-15s %s = {%s}\n" [my getdesc $row] [my getname $row] [join $values ", "]]
+                append str [format "%-17s %s = {%s}\n" [my getdesc $row] [my getname $row] [join $values ", "]]
             } elseif {[my Get vset $row] eq "@"} {
                 set values [my getval $row]
                 if {[llength $values] eq 1} {
-                    append str [format "%-15s %s = %s\n" [my getdesc $row] [my getname $row] $values]
+                    append str [format "%-17s %s = %s\n" [my getdesc $row] [my getname $row] $values]
                 } else {
-                    append str [format "%-15s %s = {%s}\n" [my getdesc $row] [my getname $row] [join $values ", "]]
+                    append str [format "%-17s %s = {%s}\n" [my getdesc $row] [my getname $row] [join $values ", "]]
                 }
             } else {
-                append str [format "%-15s %s = %s\n" [my getdesc $row] [my getname $row] [my getval $row]]
+                append str [format "%-17s %s = %s\n" [my getdesc $row] [my getname $row] [my getval $row]]
             }
         }
         return $str

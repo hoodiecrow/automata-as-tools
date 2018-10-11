@@ -35,10 +35,10 @@ test sm-1.1 {print 1.0} -setup {
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -output {Flag symbols    A = {0, 1}
-Addresses       Q = {0, 1, 2, 3, 4, 5}
-Start address   S = 0
-Final address   F = 5
+} -output {Flag symbols      A = {0, 1}
+Addresses         Q = {0, 1, 2, 3, 4, 5}
+Start address     S = 0
+Final address     F = 5
 Transitions
 q0    inp   q1    out
 0     0     1     {PUSH 2}
@@ -86,10 +86,10 @@ test sm-2.1 {Print 2.0} -setup {
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -output {Flag symbols    A = {0, 1}
-Addresses       Q = {0, 1, 2, 3, 4, 5}
-Start address   S = 0
-Final address   F = 5
+} -output {Flag symbols      A = {0, 1}
+Addresses         Q = {0, 1, 2, 3, 4, 5}
+Start address     S = 0
+Final address     F = 5
 Transitions
 q0    inp   q1    out
 0     0     1     {PUSH 3}

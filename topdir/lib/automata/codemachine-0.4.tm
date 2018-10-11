@@ -1,6 +1,7 @@
 ::tcl::tm::path add [file dirname [file dirname [file normalize [info script]]]]
 
 package require automata::machine
+package require automata::compiler
 
 namespace eval automata {}
 
@@ -26,7 +27,7 @@ oo::class create ::automata::CodeMachine {
         }
     } else {
 
-    method compile tokens {
+    method Compile tokens {
         #: Convert source code to transition configuration.
         foreach token $tokens {
             my AddOp $token
@@ -218,20 +219,25 @@ oo::class create ::automata::CM {
             4 {INC: DEC: CLR: CPY: J: JZ:}
         } $is]
         my runAs run "run the machine" {registers "a list of initial register cells"}
-        my values A "Flag symbols"    {@ 0 1}
-        my values Q "Addresses"       N+
-        my values S "Start address"   Q
-        my values F "Final address"   Q
-        my values E "Erase symbol"    {@ 0}
-        my values O "Operations"      #+ -hidden 1
-        my values I "Instructions"    [linsert $instructionSet 0 @] -hidden 1
-        my values V "Register values" N -hidden 1
-        my table Q A Q O*
+        my values A "Flag symbols"     {@ 0 1}
+        my values P "Print directives" N+ -hidden 1
+        my values M "Move directives"  {@ L R} -hidden 1
+        my values Q "Addresses"        N+
+        my values S "Start address"    Q
+        my values F "Final address"    Q
+        my values E "Erase symbol"     {@ 0}
+        my values O "Operations"       #+ -hidden 1
+        my values I "Instructions"     [linsert $instructionSet 0 @] -hidden 1
+        my values V "Register values"  N -hidden 1
+        my table Q A Q P M O*
         my id {
             registers "register cells"      V*
             ipointer  "instruction pointer" Q 
         }
+    }
 
+    method compile tokens {
+        ::automata::Compiler compile [self] $tokens
     }
 
     method SetFlag {registers tag args} {
@@ -254,12 +260,27 @@ oo::class create ::automata::CM {
         }
     }
 
+    method ExecCode {varName code} {
+        upvar 1 $varName registers
+        lassign $code tag a b
+        switch $tag {
+            I { lset registers $a [expr {[lindex $registers $a] + 1}] }
+            D { lset registers $a [expr {[lindex $registers $a] - 1}] }
+            CL { lset registers $a [lindex $registers 0] }
+            CP { lset registers $a [lindex $registers $b] }
+            N  {}
+        }
+        if {[lindex $registers 0] ne 0} {
+            return -code error [format {register 0 has been changed}]
+        }
+    }
+
     method Exec id {
         dict with id {
             if {[my vsets in F $ipointer]} {
                 return
             }
-            set ids [$table map $ipointer {iSym target code} {
+            set ids [$table map $ipointer {iSym target print move code} {
                 set flag [my SetFlag $registers {*}$code]
                 if {$iSym eq $flag} {
                     my ExecCode registers $code
@@ -310,6 +331,10 @@ oo::class create ::automata::KTR {
             flag     "test flag"           A 
             ipointer "instruction pointer" Q 
         }
+    }
+
+    method compile tokens {
+        my Compile $tokens
     }
 
     method Turn {facing {turn left}} {
@@ -457,20 +482,25 @@ oo::class create ::automata::PTM {
 
     constructor args {
         my runAs run "run the machine" {tape "a list of symbols"}
-        my values A "Tape symbols"    {@ 0 1}
-        my values B "Move symbols"    {@ L R} -hidden 1
-        my values Q "Addresses"       N+
-        my values S "Start address"   Q
-        my values F "Final address"   Q
-        my values O "Operations"      #+ -hidden 1
-        my values I "Instructions"    {@ JZ: J: PRINT ERASE ROLL:} -hidden 1
-        my values V "Values"          N -hidden 1
-        my table Q A Q O*
+        my values A "Tape symbols"     {@ 0 1}
+        my values P "Print directives" N+ -hidden 1
+        my values M "Move directives"  {@ L R} -hidden 1
+        my values Q "Addresses"        N+
+        my values S "Start address"    Q
+        my values F "Final address"    Q
+        my values O "Operations"       #+ -hidden 1
+        my values I "Instructions"     {@ JZ: J: PRINT ERASE ROLL:} -hidden 1
+        my values V "Values"           N -hidden 1
+        my table Q A Q P M O*
         my id {
             tape     "tape contents"       A*
             head     "current index"       V 
             ipointer "instruction pointer" Q 
         }
+    }
+
+    method compile tokens {
+        ::automata::Compiler compile [self] $tokens
     }
 
     # Print and Move are borrowed from the BTM
@@ -480,17 +510,10 @@ oo::class create ::automata::PTM {
         dict with id {
             lassign $code tag a
             switch $tag {
-                HALT  {
+                H  {
                     return
                 }
-                PRINT: {
-                    lset tape $head [lindex [my vsets get A] $a]
-                }
-                ROLL: {
-                    # PTM has reversed sense of movement
-                    my Move tape head [string map {R L L R} $a]
-                }
-                NOP {}
+                N {}
             }
         }
         return $id
@@ -502,7 +525,7 @@ oo::class create ::automata::PTM {
                 return
             }
             set flag [lindex $tape $head]
-            set ids [$table map $ipointer {iSym target code} {
+            set ids [$table map $ipointer {iSym target print move code} {
                 if {$iSym eq $flag} {
                     set d [my ExecCode $id $code]
                     # in a PTM, target always overrides ipointer
@@ -511,6 +534,17 @@ oo::class create ::automata::PTM {
                         continue
                     }
                     dict set d ipointer $target
+                    if {$print > 0} {
+                        dict with d {
+                            lset tape $head [lindex [my vsets get A] [expr {$print - 1}]]
+                        }
+                    }
+                    if {$move ne "N"} {
+                        dict with d {
+                            # PTM has reversed sense of movement
+                            my Move tape head [string map {R L L R} $move]
+                        }
+                    }
                     $iddef make {*}[dict values $d]
                 } else {
                     continue
@@ -543,18 +577,22 @@ oo::class create ::automata::SM {
 
     constructor args {
         my runAs run "run the machine" {}
-        my values A "Flag symbols"    {@ 0 1}
-        my values Q "Addresses"       N+
-        my values S "Start address"   Q
-        my values F "Final address"   Q
-        my values O "Operations"      #+ -hidden 1
-        my values I "Instructions"    {@ JZ: JSZ: JSE: J: PUSH INC DEC CLR DUP EQ EQL ADD MUL} -hidden 1
-        my values V "Values"          N -hidden 1
+        my values A "Flag symbols"     {@ 0 1}
+        my values Q "Addresses"        N+
+        my values S "Start address"    Q
+        my values F "Final address"    Q
+        my values O "Operations"       #+ -hidden 1
+        my values I "Instructions"     {@ JZ: JSZ: JSE: J: PUSH INC DEC CLR DUP EQ EQL ADD MUL} -hidden 1
+        my values V "Values"           N -hidden 1
         my table Q A Q O*
         my id {
             stack    "stack contents"      V*
             ipointer "instruction pointer" Q 
         }
+    }
+
+    method compile tokens {
+        my Compile $tokens
     }
 
     method SetFlag {stack tag args} {

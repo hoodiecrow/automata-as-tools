@@ -70,10 +70,10 @@ test dfa-1.2 {find even number of ones/zeros: print the machine} -setup $m -body
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -output {Input symbols   A = {0, 1}
-State symbols   Q = {s1, s2}
-Start symbols   S = {s1}
-Final symbols   F = {s1}
+} -output {Input symbols     A = {0, 1}
+State symbols     Q = {s1, s2}
+Start symbols     S = {s1}
+Final symbols     F = {s1}
 Transitions
 q0    inp   q1    out
 s1    0     s2    

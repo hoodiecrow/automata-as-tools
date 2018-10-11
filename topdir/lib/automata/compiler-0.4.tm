@@ -65,51 +65,51 @@ oo::objdefine ::automata::Compiler {
 
     method compileNOP {addr args} {
         set next [expr {$addr + 1}]
-        return [list [list $next $next] N N [list N]]
+        return [list [list $next $next] 0 N [list N]]
     }
 
     method compileJ: {addr args} {
         lassign $args a
-        return [list [list $a $a] N N [list N]]
+        return [list [list $a $a] 0 N [list N]]
     }
 
     method compileCALL: {addr args} {
         lassign $args a
-        return [list [list $a $a] N N [list G]]
+        return [list [list $a $a] 0 N [list G]]
     }
 
     method compileRET {addr args} {
         set end [$machine vsets get F]
-        return [list [list $end $end] N N [list R]]
+        return [list [list $end $end] 0 N [list R]]
     }
 
     method compileJNZ: {addr args} {
         lassign $args a b
         set next [expr {$addr + 1}]
-        return [list [list $a $next] N N [list JC $b 0]]
+        return [list [list $a $next] 0 N [list JC $b 0]]
     }
 
     method compileJZ: {addr args} {
         lassign $args a b
         set next [expr {$addr + 1}]
-        return [list [list $next $a] N N [list JC $b 0]]
+        return [list [list $next $a] 0 N [list JC $b 0]]
     }
 
     method compileJNE: {addr args} {
         lassign $args a b c
         set next [expr {$addr + 1}]
-        return [list [list $a $next] N N [list JC $b $c]]
+        return [list [list $a $next] 0 N [list JC $b $c]]
     }
 
     method compileJE: {addr args} {
         lassign $args a b c
         set next [expr {$addr + 1}]
-        return [list [list $next $a] N N [list JC $b $c]]
+        return [list [list $next $a] 0 N [list JC $b $c]]
     }
 
     method compileHALT {addr args} {
-        set end [my vsets get F]
-        return [list [list $end $end] N N [list H]]
+        set end [$machine vsets get F]
+        return [list [list $end $end] 0 N [list H]]
     }
 
     method compileTEST {addr args} {
@@ -126,115 +126,115 @@ oo::objdefine ::automata::Compiler {
             facing-west
             any-beepers-in-beeper-bag
         } $lbl]
-        return [list [list $next $next] N N [list T $code]]
+        return [list [list $next $next] 0 N [list T $code]]
     }
 
     method compilePRINT: {addr args} {
         lassign $args a
         set next [expr {$addr + 1}]
-        return [list [list $next $next] $a N {}]
+        return [list [list $next $next] [expr {$a + 1}] N {}]
     }
 
     method compilePRINT {addr args} {
         set next [expr {$addr + 1}]
-        return [list [list $next $next] 1 N {}]
+        return [list [list $next $next] 2 N {}]
     }
 
     method compileERASE {addr args} {
         set next [expr {$addr + 1}]
-        return [list [list $next $next] 0 N {}]
+        return [list [list $next $next] 1 N {}]
     }
 
     method compileROLL: {addr args} {
         lassign $args a
         set next [expr {$addr + 1}]
-        return [list [list $next $next] N $a {}]
+        return [list [list $next $next] 0 $a {}]
     }
 
     method compileINC: {addr args} {
         lassign $args a
         set next [expr {$addr + 1}]
-        return [list [list $next $next] N N [list I $a]]
+        return [list [list $next $next] 0 N [list I $a]]
     }
 
     method compileINC {addr args} {
         set next [expr {$addr + 1}]
-        return [list [list $next $next] N N [list I 0]]
+        return [list [list $next $next] 0 N [list I 0]]
     }
 
     method compileDEC: {addr args} {
         lassign $args a
         set next [expr {$addr + 1}]
-        return [list [list $next $next] N N [list D $a]]
+        return [list [list $next $next] 0 N [list D $a]]
     }
 
     method compileDEC {addr args} {
         set next [expr {$addr + 1}]
-        return [list [list $next $next] N N [list D 0]]
+        return [list [list $next $next] 0 N [list D 0]]
     }
 
     method compileCLR: {addr args} {
         lassign $args a
         set next [expr {$addr + 1}]
-        return [list [list $next $next] N N [list CL $a]]
+        return [list [list $next $next] 0 N [list CL $a]]
     }
 
     method compileCPY: {addr args} {
         lassign $args a b
         set next [expr {$addr + 1}]
-        return [list [list $next $next] N N [list CP $a $b]]
+        return [list [list $next $next] 0 N [list CP $a $b]]
     }
 
     method compilePUSH {addr args} {
         lassign $args val
         set next [expr {$addr + 1}]
-        return [list [list $next $next] N N [list PUSH $val]]
+        return [list [list $next $next] 0 N [list PUSH $val]]
     }
 
     method compileDUP {addr args} {
         lassign $args val
         set next [expr {$addr + 1}]
-        return [list [list $next $next] N N [list CP 0 0]]
+        return [list [list $next $next] 0 N [list CP 0 0]]
     }
 
     method compileEQ {addr args} {
         set next [expr {$addr + 1}]
-        return [list [list $next $next] N N [list EQ]]
+        return [list [list $next $next] 0 N [list EQ]]
     }
 
     method compileEQL {addr args} {
         set next [expr {$addr + 1}]
-        return [list [list $next $next] N N [list EQL]]
+        return [list [list $next $next] 0 N [list EQL]]
     }
 
     method compileADD {addr args} {
         set next [expr {$addr + 1}]
-        return [list [list $next $next] N N [list ADD]]
+        return [list [list $next $next] 0 N [list ADD]]
     }
 
     method compileMUL {addr args} {
         set next [expr {$addr + 1}]
-        return [list [list $next $next] N N [list MUL]]
+        return [list [list $next $next] 0 N [list MUL]]
     }
 
     method compileTURN {addr args} {
         set next [expr {$addr + 1}]
-        return [list [list $next $next] N N [list TURN]]
+        return [list [list $next $next] 0 N [list TURN]]
     }
 
     method compileMOVE {addr args} {
         set next [expr {$addr + 1}]
-        return [list [list $next $next] N N [list MOVE]]
+        return [list [list $next $next] 0 N [list MOVE]]
     }
 
     method compileTAKE {addr args} {
         set next [expr {$addr + 1}]
-        return [list [list $next $next] N N [list TAKE]]
+        return [list [list $next $next] 0 N [list TAKE]]
     }
 
     method compileDROP {addr args} {
         set next [expr {$addr + 1}]
-        return [list [list $next $next] N N [list DROP]]
+        return [list [list $next $next] 0 N [list DROP]]
     }
 
 }
