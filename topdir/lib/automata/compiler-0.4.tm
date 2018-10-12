@@ -115,7 +115,7 @@ oo::objdefine ::automata::Compiler {
         return [list [list $end $end] 0 N [list H]]
     }
 
-    method compileTEST {addr args} {
+    method compileTEST: {addr args} {
         lassign $args lbl
         set next [expr {$addr + 1}]
         set code [lsearch -exact {

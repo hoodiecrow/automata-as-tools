@@ -21,177 +21,8 @@ oo::class create ::automata::CodeMachine {
         $table add {*}$args
     }
 
-    if no {
-        method compile tokens {
-            ::automata::Compiler compile [self] $tokens
-        }
-    } else {
-
-    method Compile tokens {
-        #: Convert source code to transition configuration.
-        foreach token $tokens {
-            my AddOp $token
-        }
-        my GetOps
-    }
-
-    method AddOp token {
-        variable addr
-        variable program
-        variable jumps
-        if {![info exists addr]} {
-            set addr 0
-        }
-        if {![info exists jumps]} {
-            dict set jumps BEG_OF_CODE $addr
-        }
-        if {![regexp {(\w+:?)(.*)} $token -> cmd lbl]} {
-            return -code error [format {syntax error: %s} $token]
-        }
-        set lblargs [regexp -all -inline {[-+\w]+} $lbl]
-        if {[string match *: $cmd] && [llength $lblargs] eq 0} {
-            dict set jumps [string trimright $cmd :] $addr
-        } else {
-            dict set program $addr cmd $cmd
-            dict set program $addr lbl $lblargs
-            dict set jumps END_OF_CODE [incr addr]
-        }
-    }
-
-    method GetOps {} {
-        variable program
-        variable jumps
-        my vsets set S [dict get $jumps BEG_OF_CODE]
-        my vsets set F [dict get $jumps END_OF_CODE]
-        dict for {addr data} $program {
-            dict with data {
-                lassign $lbl a b c d e f
-                set next [expr {$addr + 1}]
-                if {[regexp {^[-+]\d+$} $a]} {
-                    set a [expr $addr$a]
-                } elseif {[dict exists $jumps $a]} {
-                    set a [dict get $jumps $a]
-                }
-                # Conditional jumps:
-                # JN.* jump if not cond(flag)
-                # J.*  jump if (flag)
-                #
-                # Flag setting:
-                # CM:  reg/a eq reg/b
-                # KTR: 0 or as set by TEST:
-                # PTM: tape/head
-                # SM:  stack/0 eq 0 (JZ) or stack/a eq stack/b (JE)
-                switch -glob $cmd {
-                    J: - CALL: {
-                        set addresses [list $a $a]
-                    }
-                    JN* {
-                        set addresses [list $a $next]
-                        set cmd [string replace $cmd 1 1]
-                    }
-                    J* {
-                        set addresses [list $next $a]
-                    }
-                    HALT {
-                        set end [my vsets get F]
-                        set addresses [list $end $end]
-                    }
-                    default {
-                        set addresses [list $next $next]
-                    }
-                }
-                switch $cmd {
-                    JZ: {
-                        set code [list JC: $b 0]
-                    }
-                    JE: {
-                        set code [list JC: $b $c]
-                    }
-                    J: {
-                        set code NOP
-                    }
-                    CALL: {
-                        set code $cmd
-                    }
-                    TEST: {
-                        set code [list $cmd [lsearch -exact {
-                            front-is-clear
-                            left-is-clear
-                            right-is-clear
-                            next-to-a-beeper
-                            facing-north
-                            facing-south
-                            facing-east
-                            facing-west
-                            any-beepers-in-beeper-bag
-                        } $lbl]]
-                    }
-                    PRINT {
-                        set code [list PRINT: 1]
-                    }
-                    ERASE {
-                        set code [list PRINT: 0]
-                    }
-                    ROLL: {
-                        set code [list ROLL: $a]
-                    }
-                    INC - DEC - EQ - EQL - ADD - MUL {
-                        set code $cmd
-                    }
-                    INC: - DEC: - CLR: {
-                        set code [list $cmd $a]
-                    }
-                    CPY: {
-                        set code [list $cmd $a $b]
-                    }
-                    default {
-                        if {[string is entier -strict $cmd]} {
-                            set code [list PUSH $cmd]
-                        } else {
-                            set code $cmd
-                        }
-                    }
-                }
-                set code [lmap c $code {
-                    if {$c eq {}} {
-                        continue
-                    } else {
-                        set c
-                    }
-                }]
-                foreach inp [my vsets get A] next $addresses {
-                    $table add $addr $inp $next $code
-                }
-            }
-        }
-    }
-
-    }
-
-    method ALU {op data args} {
-        # Shared between KTR and SM
-        switch $op {
-            INC { set res [expr {[lindex $data {*}$args] + 1}] }
-            DEC { set res [expr {[lindex $data {*}$args] - 1}] }
-            CLR { set res 0 }
-            default {
-                if {[string is upper -strict $op]} {
-                    set op [dict get {
-                        EQ  eq
-                        EQL ==
-                        ADD +
-                        MUL *
-                    } $op]
-                }
-                set res [::tcl::mathop::$op {*}[lmap arg $args {
-                    lindex $data $arg
-                }]]
-            }
-        }
-        if {$res < 0} {
-            return -code error [format {result less than 0}]
-        }
-        return $res
+    method compile tokens {
+        ::automata::Compiler compile [self] $tokens
     }
 
     method SingleThread {fn data} {
@@ -234,10 +65,6 @@ oo::class create ::automata::CM {
             registers "register cells"      V*
             ipointer  "instruction pointer" Q 
         }
-    }
-
-    method compile tokens {
-        ::automata::Compiler compile [self] $tokens
     }
 
     method SetFlag {registers tag args} {
@@ -295,15 +122,17 @@ oo::class create ::automata::KTR {
             beepers "an even-sized list of x, y values"
             walls   "an even-sized list of x, y values"
         }
-        my values A "Flag symbols"    {@ 0 1}
-        my values B "Facing"          {@ e n w s} -hidden 1
-        my values Q "Addresses"       N+
-        my values S "Start address"   Q
-        my values F "Final address"   Q
-        my values O "Operations"      #+ -hidden 1
-        my values I "Instructions"    {@ JZ: J: TURN MOVE TAKE DROP TEST: RET CALL:} -hidden 1
-        my values V "Values"          N -hidden 1
-        my table Q A Q O*
+        my values A "Flag symbols"     {@ 0 1}
+        my values B "Facing"           {@ e n w s} -hidden 1
+        my values P "Print directives" N+ -hidden 1
+        my values M "Move directives"  {@ L R} -hidden 1
+        my values Q "Addresses"        N+
+        my values S "Start address"    Q
+        my values F "Final address"    Q
+        my values O "Operations"       #+ -hidden 1
+        my values I "Instructions"     {@ JZ: J: TURN MOVE TAKE DROP TEST: RET CALL:} -hidden 1
+        my values V "Values"           N -hidden 1
+        my table Q A Q P M O*
         my id {
             width    "world width"         V 
             height   "world height"        V 
@@ -319,10 +148,6 @@ oo::class create ::automata::KTR {
         }
     }
 
-    method compile tokens {
-        my Compile $tokens
-    }
-
     method Turn {facing {turn left}} {
         switch $turn {
             left  { dict get {e n n w w s s e} $facing }
@@ -332,6 +157,7 @@ oo::class create ::automata::KTR {
     }
 
     method _Move {xpos ypos facing} {
+        log::log d [info level 0] 
         switch $facing {
             e { incr xpos }
             n { incr ypos }
@@ -348,99 +174,103 @@ oo::class create ::automata::KTR {
         expr {[list $xpos $ypos] in [lmap {x y} $walls {list $x $y}]}
     }
 
-    method SetFlag {id idx} {
-        dict with id {
-            set label [lindex {
-                front-is-clear
-                left-is-clear
-                right-is-clear
-                next-to-a-beeper
-                facing-north
-                facing-south
-                facing-east
-                facing-west
-                any-beepers-in-beeper-bag
-            } $idx]
-            switch $label {
-                front-is-clear {
-                    expr {![my CheckCollision $width $height {*}[my _Move $xpos $ypos [my Turn $facing front]] $walls]}
+    method SetFlag {id code} {
+        dict with id {}
+        lassign $code tag a b
+        switch $tag {
+            JC {
+                if {$b == 0} {
+                    set flag [expr {$flag != 0}]
+                } else {
+                    return -code error [format {bad conditional jump: %s} $code]
                 }
-                left-is-clear {
-                    expr {![my CheckCollision $width $height {*}[my _Move $xpos $ypos [my Turn $facing]] $walls]}
-                }
-                right-is-clear {
-                    expr {![my CheckCollision $width $height {*}[my _Move $xpos $ypos [my Turn $facing right]] $walls]}
-                }
-                next-to-a-beeper {
-                    expr {[list $xpos $ypos] in [lmap {x y} $beepers {list $x $y}]}
-                }
-                facing-east  { expr {$facing eq "e"} }
-                facing-north { expr {$facing eq "n"} }
-                facing-west  { expr {$facing eq "w"} }
-                facing-south { expr {$facing eq "s"} }
-                any-beepers-in-beeper-bag { expr {$bag > 0} }
             }
         }
+        return $flag
     }
 
     method ExecCode {id code} {
         lassign $code tag a
         dict with id {
+            set flag 0
+            set next {}
             switch $tag {
-                HALT  {
-                    return [list flag 0]
-                }
+                H  { return -level 2 }
+                N { }
                 TURN  {
-                    return [list facing [my Turn $facing left] flag 0]
+                    set facing [my Turn $facing left]
                 }
                 MOVE  {
                     lassign [my _Move $xpos $ypos $facing] xpos ypos
                     if {[my CheckCollision $width $height $xpos $ypos $walls]} {
                         return -code error [format {collision with a wall!}]
                     }
-                    return [list xpos $xpos ypos $ypos flag 0]
                 }
                 TAKE - DROP {
                 }
-                TEST: {
-                    return [list flag [my SetFlag $id $a]]
+                T {
+                    set label [lindex {
+                        front-is-clear
+                        left-is-clear
+                        right-is-clear
+                        next-to-a-beeper
+                        facing-north
+                        facing-south
+                        facing-east
+                        facing-west
+                        any-beepers-in-beeper-bag
+                    } $a]
+                    set flag [switch $label {
+                        front-is-clear {
+                            expr {![my CheckCollision $width $height {*}[my _Move $xpos $ypos [my Turn $facing front]] $walls]}
+                        }
+                        left-is-clear {
+                            expr {![my CheckCollision $width $height {*}[my _Move $xpos $ypos [my Turn $facing]] $walls]}
+                        }
+                        right-is-clear {
+                            expr {![my CheckCollision $width $height {*}[my _Move $xpos $ypos [my Turn $facing right]] $walls]}
+                        }
+                        next-to-a-beeper {
+                            expr {[list $xpos $ypos] in [lmap {x y} $beepers {list $x $y}]}
+                        }
+                        facing-east  { expr {$facing eq "e"} }
+                        facing-north { expr {$facing eq "n"} }
+                        facing-west  { expr {$facing eq "w"} }
+                        facing-south { expr {$facing eq "s"} }
+                        any-beepers-in-beeper-bag { expr {$bag > 0} }
+                    }]
                 }
-                RET   {
+                R   {
                     set returns [lassign $returns next]
-                    return [list returns $returns ipointer $next flag 0]
                 }
-                CALL: {
+                G {
+                    log::log d \$ipointer=$ipointer 
                     set returns [linsert $returns 0 [my vsets succ Q $ipointer]]
-                    return [list returns $returns flag 0]
-                }
-                NOP {
-                    return [list flag 0]
                 }
             }
+            log::log d \$flag=$flag 
+            set ipointer $next
         }
+        return $id
     }
 
     method Exec id {
         log::log d [info level 0] 
-        dict with id {
+        dict with id {}
         if {[my vsets in F $ipointer]} {
             return
         }
-            set ids [$table map $ipointer {iSym target code} {
-                if {$iSym eq $flag} {
-                    set d [my ExecCode $id $code]
-                    if {[dict exists $d ipointer]} {
-                        set target [dict get $d ipointer]
-                    } else {
-                        dict set d ipointer $target
-                    }
-                    $iddef make {*}[dict values [dict merge $id $d]]
-                } else {
-                    continue
+        set ids [$table map $ipointer {iSym target print move code} {
+            if {$iSym eq [my SetFlag $id $code]} {
+                set d [my ExecCode $id $code]
+                if {[dict get $d ipointer] eq {}} {
+                    dict set d ipointer $target
                 }
-            }]
-        }
-        log::log d \$ids=$ids 
+                set d
+            } else {
+                continue
+            }
+        }]
         return $ids
     }
 
@@ -483,10 +313,6 @@ oo::class create ::automata::PTM {
             head     "current index"       V 
             ipointer "instruction pointer" Q 
         }
-    }
-
-    method compile tokens {
-        ::automata::Compiler compile [self] $tokens
     }
 
     # Print and Move are borrowed from the BTM
@@ -569,10 +395,6 @@ oo::class create ::automata::SM {
             stack    "stack contents"      V*
             ipointer "instruction pointer" Q 
         }
-    }
-
-    method compile tokens {
-        ::automata::Compiler compile [self] $tokens
     }
 
     method SetFlag {stack tag args} {
