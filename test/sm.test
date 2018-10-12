@@ -41,16 +41,16 @@ Start address     S = 0
 Final address     F = 5
 Transitions
 q0    inp   q1    out
-0     0     1     {PUSH 2}
-0     1     1     {PUSH 2}
-1     0     2     {PUSH 3}
-1     1     2     {PUSH 3}
-2     0     3     ADD
-2     1     3     ADD
-3     0     4     {PUSH 4}
-3     1     4     {PUSH 4}
-4     0     5     MUL
-4     1     5     MUL
+0     0     1     0 N {PUSH 2}
+0     1     1     0 N {PUSH 2}
+1     0     2     0 N {PUSH 3}
+1     1     2     0 N {PUSH 3}
+2     0     3     0 N ADD
+2     1     3     0 N ADD
+3     0     4     0 N {PUSH 4}
+3     1     4     0 N {PUSH 4}
+4     0     5     0 N MUL
+4     1     5     0 N MUL
 Instantaneous description
 stack contents         stack: V*
 instruction pointer    ipointer: Q
@@ -92,16 +92,16 @@ Start address     S = 0
 Final address     F = 5
 Transitions
 q0    inp   q1    out
-0     0     1     {PUSH 3}
-0     1     1     {PUSH 3}
-1     0     2     {JC: 0 0}
-1     1     4     {JC: 0 0}
-2     0     3     DEC
-2     1     3     DEC
-3     0     1     NOP
-3     1     1     NOP
-4     0     5     NOP
-4     1     5     NOP
+0     0     1     0 N {PUSH 3}
+0     1     1     0 N {PUSH 3}
+1     0     2     0 N {JC 0 0}
+1     1     4     0 N {JC 0 0}
+2     0     3     0 N {D 0}
+2     1     3     0 N {D 0}
+3     0     1     0 N N
+3     1     1     0 N N
+4     0     5     0 N N
+4     1     5     0 N N
 Instantaneous description
 stack contents         stack: V*
 instruction pointer    ipointer: Q

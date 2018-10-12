@@ -21,6 +21,9 @@ oo::objdefine ::automata::Compiler {
         if {![info exists jumps]} {
             dict set jumps BEG_OF_CODE $addr
         }
+        if {[string is entier -strict $token]} {
+            set token PUSH:$token
+        }
         if {![regexp {(\w+:?)(.*)} $token -> cmd lbl]} {
             return -code error [format {syntax error: %s} $token]
         }
@@ -185,7 +188,7 @@ oo::objdefine ::automata::Compiler {
         return [list [list $next $next] 0 N [list CP $a $b]]
     }
 
-    method compilePUSH {addr args} {
+    method compilePUSH: {addr args} {
         lassign $args val
         set next [expr {$addr + 1}]
         return [list [list $next $next] 0 N [list PUSH $val]]

@@ -245,51 +245,37 @@ oo::class create ::automata::CM {
         expr {[lindex $registers $a] eq [lindex $registers $b]}
     }
 
-    method ExecCode {varName code} {
-        upvar 1 $varName registers
-        lassign $code tag a b
-        switch $tag {
-            INC: { lset registers $a [expr {[lindex $registers $a] + 1}] }
-            DEC: { lset registers $a [expr {[lindex $registers $a] - 1}] }
-            CLR: { lset registers $a [lindex $registers 0] }
-            CPY: { lset registers $a [lindex $registers $b] }
-            NOP  {}
+    method ExecCode {id code} {
+        dict with id {
+            lassign $code tag a b
+            switch $tag {
+                I { lset registers $a [expr {[lindex $registers $a] + 1}] }
+                D { lset registers $a [expr {[lindex $registers $a] - 1}] }
+                CL { lset registers $a [lindex $registers 0] }
+                CP { lset registers $a [lindex $registers $b] }
+                N  {}
+            }
+            if {[lindex $registers 0] ne 0} {
+                return -code error [format {register 0 has been changed}]
+            }
         }
-        if {[lindex $registers 0] ne 0} {
-            return -code error [format {register 0 has been changed}]
-        }
-    }
-
-    method ExecCode {varName code} {
-        upvar 1 $varName registers
-        lassign $code tag a b
-        switch $tag {
-            I { lset registers $a [expr {[lindex $registers $a] + 1}] }
-            D { lset registers $a [expr {[lindex $registers $a] - 1}] }
-            CL { lset registers $a [lindex $registers 0] }
-            CP { lset registers $a [lindex $registers $b] }
-            N  {}
-        }
-        if {[lindex $registers 0] ne 0} {
-            return -code error [format {register 0 has been changed}]
-        }
+        return $id
     }
 
     method Exec id {
-        dict with id {
-            if {[my vsets in F $ipointer]} {
-                return
-            }
-            set ids [$table map $ipointer {iSym target print move code} {
-                set flag [my SetFlag $registers {*}$code]
-                if {$iSym eq $flag} {
-                    my ExecCode registers $code
-                    $iddef make $registers $target
-                } else {
-                    continue
-                }
-            }]
+        dict with id {}
+        if {[my vsets in F $ipointer]} {
+            return
         }
+        set ids [$table map $ipointer {iSym target print move code} {
+            set flag [my SetFlag $registers {*}$code]
+            if {$iSym eq $flag} {
+                set d [my ExecCode $id $code]
+                dict set d ipointer $target
+            } else {
+                continue
+            }
+        }]
         return $ids
     }
 
@@ -511,7 +497,7 @@ oo::class create ::automata::PTM {
             lassign $code tag a
             switch $tag {
                 H  {
-                    return
+                    return -code continue
                 }
                 N {}
             }
@@ -520,37 +506,29 @@ oo::class create ::automata::PTM {
     }
 
     method Exec id {
-        dict with id {
-            if {[my vsets in F $ipointer]} {
-                return
-            }
-            set flag [lindex $tape $head]
-            set ids [$table map $ipointer {iSym target print move code} {
-                if {$iSym eq $flag} {
-                    set d [my ExecCode $id $code]
-                    # in a PTM, target always overrides ipointer
-                    log::log d \$d=$d 
-                    if {$d eq {}} {
-                        continue
-                    }
-                    dict set d ipointer $target
-                    if {$print > 0} {
-                        dict with d {
-                            lset tape $head [lindex [my vsets get A] [expr {$print - 1}]]
-                        }
-                    }
-                    if {$move ne "N"} {
-                        dict with d {
-                            # PTM has reversed sense of movement
-                            my Move tape head [string map {R L L R} $move]
-                        }
-                    }
-                    $iddef make {*}[dict values $d]
-                } else {
-                    continue
-                }
-            }]
+        dict with id {}
+        if {[my vsets in F $ipointer]} {
+            return
         }
+        set flag [lindex $tape $head]
+        set ids [$table map $ipointer {iSym target print move code} {
+            if {$iSym eq $flag} {
+                set d [my ExecCode $id $code]
+                dict with d {
+                    # in a PTM, target always overrides ipointer
+                    set ipointer $target
+                    if {$print > 0} {
+                        lset tape $head [lindex [my vsets get A] $print-1]
+                    }
+                    # PTM has reversed sense of movement
+                    my Move tape head [string map {R L L R} $move]
+                }
+                set d
+            } else {
+                continue
+            }
+        }]
+        log::log d \$id=$id,\ \$ids=$ids 
         return $ids
     }
 
@@ -578,13 +556,15 @@ oo::class create ::automata::SM {
     constructor args {
         my runAs run "run the machine" {}
         my values A "Flag symbols"     {@ 0 1}
+        my values P "Print directives" N+ -hidden 1
+        my values M "Move directives"  {@ L R} -hidden 1
         my values Q "Addresses"        N+
         my values S "Start address"    Q
         my values F "Final address"    Q
         my values O "Operations"       #+ -hidden 1
         my values I "Instructions"     {@ JZ: JSZ: JSE: J: PUSH INC DEC CLR DUP EQ EQL ADD MUL} -hidden 1
         my values V "Values"           N -hidden 1
-        my table Q A Q O*
+        my table Q A Q P M O*
         my id {
             stack    "stack contents"      V*
             ipointer "instruction pointer" Q 
@@ -592,7 +572,7 @@ oo::class create ::automata::SM {
     }
 
     method compile tokens {
-        my Compile $tokens
+        ::automata::Compiler compile [self] $tokens
     }
 
     method SetFlag {stack tag args} {
@@ -606,41 +586,64 @@ oo::class create ::automata::SM {
         return $flag
     }
 
-    method ExecCode {stack code} {
-        lassign $code tag a b c d e f
-        switch $tag {
-            PUSH {
-                set stack [linsert $stack 0 $a]
-            }
-            INC - DEC - CLR {
-                lset stack 0 [my ALU $tag $stack 0]
-            }
-            DUP {
-                set stack [linsert $stack 0 $TOP]
-            }
-            EQ - EQL - ADD - MUL {
-                set v [my ALU $tag $stack 0 1]
-                set stack [lreplace $stack 0 1 $v]
+    method ExecCode {id code} {
+        dict with id {
+            lassign $code tag a b c d e f
+            switch $tag {
+                PUSH {
+                    set stack [linsert $stack 0 $a]
+                }
+                I {
+                    lset stack $a [expr {[lindex $stack $a] + 1}]
+                }
+                D {
+                    lset stack $a [expr {[lindex $stack $a] - 1}]
+                }
+                CL {
+                    if {$a eq {}} {
+                        set stack [linsert $stack 0 0]
+                    } else {
+                        lset stack $a 0
+                    }
+                }
+                DUP {
+                    set stack [linsert $stack 0 [lindex $stack $a]]
+                }
+                EQ {
+                    set stack [lassign $stack a b]
+                    set stack [linsert $stack 0 [expr {$a eq $b}]]
+                }
+                EQL {
+                    set stack [lassign $stack a b]
+                    set stack [linsert $stack 0 [expr {$a == $b}]]
+                }
+                ADD {
+                    set stack [lassign $stack a b]
+                    set stack [linsert $stack 0 [expr {$a + $b}]]
+                }
+                MUL {
+                    set stack [lassign $stack a b]
+                    set stack [linsert $stack 0 [expr {$a * $b}]]
+                }
             }
         }
-        return $stack
+        return $id
     }
 
     method Exec id {
-        dict with id {
-            if {[my vsets in F $ipointer]} {
-                return
-            }
-            set ids [$table map $ipointer {iSym target code} {
-                set f [my SetFlag $stack {*}$code]
-                if {$iSym eq $f} {
-                    set s [my ExecCode $stack $code]
-                    $iddef make $s $target
-                } else {
-                    continue
-                }
-            }]
+        dict with id {}
+        if {[my vsets in F $ipointer]} {
+            return
         }
+        set ids [$table map $ipointer {iSym target print move code} {
+            set flag [my SetFlag $stack {*}$code]
+            if {$iSym eq $flag} {
+                set d [my ExecCode $id $code]
+                dict set d ipointer $target
+            } else {
+                continue
+            }
+        }]
         return $ids
     }
 
