@@ -72,18 +72,27 @@ oo::class create ::automata::CM {
         expr {[lindex $registers $a] eq [lindex $registers $b]}
     }
 
+    method Store {data addr value} {
+        log::log d [info level 0] 
+        lreplace $data $addr $addr $value
+    }
+
     method ExecCode {id code} {
+        log::log d [info level 0] 
+        lassign $code tag a b c
         dict with id {
-            lassign $code tag a b
-            switch $tag {
-                I { lset registers $a [expr {[lindex $registers $a] + 1}] }
-                D { lset registers $a [expr {[lindex $registers $a] - 1}] }
-                CL { lset registers $a [lindex $registers 0] }
-                CP { lset registers $a [lindex $registers $b] }
-                N  {}
+            foreach v [list $a $b $c] var {aval bval cval} {
+                set $var [try {lindex $registers $v} on error {} {}]
             }
-            if {[lindex $registers 0] ne 0} {
-                return -code error [format {register 0 has been changed}]
+            switch $tag {
+                CP   { lset registers $a $bval }
+                D    { lset registers $a [expr {$aval - 1}] }
+                I    { lset registers $a [expr {$aval + 1}] }
+                CL   { set registers [my Store $registers $a 0] }
+                EQ   { set registers [my Store $registers $a [expr {$bval eq $cval}]] }
+                EQL  { set registers [my Store $registers $a [expr {$bval == $cval}]] }
+                ADD  { set registers [my Store $registers $a [expr {$bval + $cval}]] }
+                MUL  { set registers [my Store $registers $a [expr {$bval * $cval}]] }
             }
         }
         return $id
@@ -196,7 +205,6 @@ oo::class create ::automata::KTR {
             set next {}
             switch $tag {
                 H  { return -level 2 }
-                N { }
                 TURN  {
                     set facing [my Turn $facing left]
                 }
@@ -206,8 +214,7 @@ oo::class create ::automata::KTR {
                         return -code error [format {collision with a wall!}]
                     }
                 }
-                TAKE - DROP {
-                }
+                TAKE - DROP {}
                 T {
                     set label [lindex {
                         front-is-clear
@@ -240,13 +247,8 @@ oo::class create ::automata::KTR {
                         any-beepers-in-beeper-bag { expr {$bag > 0} }
                     }]
                 }
-                R   {
-                    set returns [lassign $returns next]
-                }
-                G {
-                    log::log d \$ipointer=$ipointer 
-                    set returns [linsert $returns 0 [my vsets succ Q $ipointer]]
-                }
+                R   { set returns [lassign $returns next] }
+                G { set returns [linsert $returns 0 [my vsets succ Q $ipointer]] }
             }
             log::log d \$flag=$flag 
             set ipointer $next
@@ -322,10 +324,7 @@ oo::class create ::automata::PTM {
         dict with id {
             lassign $code tag a
             switch $tag {
-                H  {
-                    return -code continue
-                }
-                N {}
+                H  { return -code continue }
             }
         }
         return $id
@@ -420,18 +419,19 @@ oo::class create ::automata::SM {
         log::log d [info level 0] 
         lassign $code tag a
         dict with id {
-            lassign $stack top sec
-            set val [lindex $stack $a]
+            foreach v [list $a 0 1] var {aval bval cval} {
+                set $var [lindex $stack $v]
+            }
             switch $tag {
-                CP   { lset stack $a $val }
-                D    { lset stack $a [expr {$val - 1}] }
-                I    { lset stack $a [expr {$val + 1}] }
+                CP   { lset stack $a $bval }
+                D    { lset stack $a [expr {$aval - 1}] }
+                I    { lset stack $a [expr {$aval + 1}] }
                 CL   { set stack [my Store $stack $a 0] }
-                DUP  { set stack [my Store $stack -1 $top] }
-                EQ   { set stack [my Store $stack 1 [expr {$top eq $sec}]] }
-                EQL  { set stack [my Store $stack 1 [expr {$top == $sec}]] }
-                ADD  { set stack [my Store $stack 1 [expr {$top + $sec}]] }
-                MUL  { set stack [my Store $stack 1 [expr {$top * $sec}]] }
+                DUP  { set stack [my Store $stack -1 $bval] }
+                EQ   { set stack [my Store $stack 1 [expr {$bval eq $cval}]] }
+                EQL  { set stack [my Store $stack 1 [expr {$bval == $cval}]] }
+                ADD  { set stack [my Store $stack 1 [expr {$bval + $cval}]] }
+                MUL  { set stack [my Store $stack 1 [expr {$bval * $cval}]] }
                 PUSH { set stack [my Store $stack -1 $a] }
             }
         }
