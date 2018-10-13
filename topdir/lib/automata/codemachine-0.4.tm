@@ -408,45 +408,31 @@ oo::class create ::automata::SM {
         return $flag
     }
 
+    method Store {data addr value} {
+        log::log d [info level 0] 
+        if {$addr eq {}} {
+            set addr -1
+        }
+        lreplace $data -1 $addr $value
+    }
+
     method ExecCode {id code} {
+        log::log d [info level 0] 
+        lassign $code tag a
         dict with id {
-            lassign $code tag a b c d e f
+            lassign $stack top sec
+            set val [lindex $stack $a]
             switch $tag {
-                PUSH {
-                    set stack [linsert $stack 0 $a]
-                }
-                I {
-                    lset stack $a [expr {[lindex $stack $a] + 1}]
-                }
-                D {
-                    lset stack $a [expr {[lindex $stack $a] - 1}]
-                }
-                CL {
-                    if {$a eq {}} {
-                        set stack [linsert $stack 0 0]
-                    } else {
-                        lset stack $a 0
-                    }
-                }
-                DUP {
-                    set stack [linsert $stack 0 [lindex $stack $a]]
-                }
-                EQ {
-                    set stack [lassign $stack a b]
-                    set stack [linsert $stack 0 [expr {$a eq $b}]]
-                }
-                EQL {
-                    set stack [lassign $stack a b]
-                    set stack [linsert $stack 0 [expr {$a == $b}]]
-                }
-                ADD {
-                    set stack [lassign $stack a b]
-                    set stack [linsert $stack 0 [expr {$a + $b}]]
-                }
-                MUL {
-                    set stack [lassign $stack a b]
-                    set stack [linsert $stack 0 [expr {$a * $b}]]
-                }
+                CP   { lset stack $a $val }
+                D    { lset stack $a [expr {$val - 1}] }
+                I    { lset stack $a [expr {$val + 1}] }
+                CL   { set stack [my Store $stack $a 0] }
+                DUP  { set stack [my Store $stack -1 $top] }
+                EQ   { set stack [my Store $stack 1 [expr {$top eq $sec}]] }
+                EQL  { set stack [my Store $stack 1 [expr {$top == $sec}]] }
+                ADD  { set stack [my Store $stack 1 [expr {$top + $sec}]] }
+                MUL  { set stack [my Store $stack 1 [expr {$top * $sec}]] }
+                PUSH { set stack [my Store $stack -1 $a] }
             }
         }
         return $id
