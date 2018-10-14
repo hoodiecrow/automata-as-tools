@@ -7,6 +7,192 @@ namespace import ::tcltest::*
 
 package require automata::tablemachine
 
+test fst-2.0 {} -body {
+    ::automata::FST create M {
+        {table 0 a/a 1}
+        {table 1 b/b 0}
+        {start 0}
+        {final 0}
+    }
+    set res {}
+    lappend res [M recognize {a b a b} {a b a b}]
+    lappend res [M recognize {a b a b} {a b a c}]
+    set res
+} -cleanup {
+    log::lvSuppressLE i 1
+    M destroy
+} -result {1 0}
+
+test fst-2.1 {} -body {
+    ::automata::FST create M {
+        {table 0 a/a 1}
+        {table 1 b/b 2}
+        {table 2 ε/c 0}
+        {start 0}
+        {final 0}
+    }
+    set res {}
+    lappend res [M recognize {a b a b} {a b c a b c}]
+    lappend res [M recognize {a b a b} {a b a b c}]
+    set res
+} -cleanup {
+    log::lvSuppressLE i 1
+    M destroy
+} -result {1 0}
+
+test recognize-1.0 {recognize relation {a b} -> {x y}} -body {
+    ::automata::FST create M {
+        {table 1 a/x 1}
+        {table 1 b/y 2}
+        {table 2 ε/ε 1}
+        {start 1}
+        {final 1}
+    }
+    M recognize {a a} {x x}
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result 1
+
+test recognize-1.1 {recognize relation {a b} -> {x (y y)}} -body {
+    ::automata::FST create M {
+        {table 1 a/x 1}
+        {table 1 b/y 2}
+        {table 2 ε/y 1}
+        {start 1}
+        {final 1}
+    }
+    set res {}
+    lappend res [M recognize {a b a} {x y y x}]
+    lappend res [M recognize {b a a b} {y y x x y}]
+    lappend res [M recognize {a b a b} {x y y x y y}]
+    set res
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {1 0 1}
+
+test recognize-1.2 {recognize {a*(b+c+)?} relation {a b c} -> {x y z}} -body {
+    ::automata::FST create M {
+        {table 1 a/x 1}
+        {table 1 b/y 2}
+        {table 2 b/y 2}
+        {table 2 c/z 3}
+        {table 3 c/z 3}
+        {table 3 ε/ε 1}
+        {start 1}
+        {final 1}
+    }
+    set res {}
+    lappend res [M recognize {a b c} {x y z}]
+    lappend res [M recognize {a c b} {x z x}]
+    lappend res [M recognize {a b b c c a b c} {x y y z z x y z}]
+    lappend res [M recognize {a b c} {x x x}]
+    set res
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {1 0 1 0}
+
+test dfst-1.1 {} -body {
+    ::automata::FST create M {
+        {table 1 a/a 2}
+        {table 2 ε/a 1}
+        {start 1}
+        {final 1}
+    }
+    M recognize {a a} {a a a a}
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result 1
+
+test dfst-1.2 {} -body {
+    ::automata::FST create M {
+        {table 1 a/a 2}
+        {table 2 ε/a 1}
+        {start 1}
+        {final 1}
+    }
+    M translate {a a}
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {{a a a a}}
+
+test dfst-2.0 {The output becomes 1 and remains 1 thereafter when at least two 0's and two 1's have occurred as inputs} -body {
+    ::automata::FST create M {
+        {table A 0/0 D}
+        {table A 1/0 B}
+        {table B 0/0 E}
+        {table B 1/0 C}
+        {table C 0/0 F}
+        {table C 1/0 C}
+        {table D 0/0 G}
+        {table D 1/0 E}
+        {table E 0/0 H}
+        {table E 1/0 F}
+        {table F 0/0 I}
+        {table F 1/0 F}
+        {table G 0/0 G}
+        {table G 1/0 H}
+        {table H 0/0 H}
+        {table H 1/0 I}
+        {table I 0/1 I}
+        {table I 1/1 I}
+        {start A}
+        {final A B C D E F G H I}
+    }
+    set res {}
+    lappend res [M translate {1 1}]
+    lappend res [M translate {1 1 0 0}]
+    lappend res [M translate {1 1 0 0 1 0 1 1}]
+    set res
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {{{0 0}} {{0 0 0 0}} {{0 0 0 0 1 1 1 1}}}
+
+test dfst-2.1 {edge detector} -body {
+    ::automata::FST create M {
+        {table si 0/0 s0}
+        {table si 1/0 s1}
+        {table s0 0/0 s0}
+        {table s0 1/1 s1}
+        {table s1 0/1 s0}
+        {table s1 1/0 s1}
+        {start si}
+        {final s0 s1}
+    }
+    set res {}
+    lappend res [M translate {1 1 0}]
+    lappend res [M translate {0 0 1}]
+    lappend res [M translate {1 1 0 0 1 0 1 1}]
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {{{0 0 1}} {{0 0 1}} {{0 0 1 0 1 1 1 0}}}
+
+
+
+if {[package vcompare [package present automata::tablemachine] 0.4] > 0} { 
+    cleanupTests ; return 
+} 
+ 
+test fst-1.0 {} -body {
+    ::automata::FST create M {
+        {table 0 a/a 1}
+        {table 1 b/b 0}
+        {start 0}
+        {final 0}
+    }
+    M generate 4
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {{{a b a b} 0 {a b a b}}}
+
+
 set mc FST
 set m [subst {::automata::$mc create M}]
 {*}$m

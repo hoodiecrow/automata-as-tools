@@ -13,8 +13,6 @@ idx of q within Q → R
 
 output relation function; indexed lookup
 
-(R or T) → (Q, B, O*) (M:1)
-
 FSM: Q × Aε → Q
 
 FST: Q × Aε → (Q, B)

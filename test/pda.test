@@ -9,6 +9,11 @@ namespace import ::tcltest::*
 
 package require automata::tablemachine
 
+if {[package vcompare [package present automata::tablemachine] 0.4] > 0} { 
+    cleanupTests ; return 
+} 
+ 
+
 set mc PDA
 set m [subst {::automata::$mc create M}]
 {*}$m

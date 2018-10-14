@@ -9,6 +9,109 @@ namespace import ::tcltest::*
 
 package require automata::tablemachine
 
+test dfa-1.0 {accept binary numbers that are multiples of 3} -body {
+    ::automata::FSM create M {
+        {table s0 0 s0}
+        {table s0 1 s1}
+        {table s1 0 s2}
+        {table s1 1 s0}
+        {table s2 0 s1}
+        {table s2 1 s2}
+        {start s0}
+        {final s0}
+    }
+    set res {}
+    lappend res [M accept {1}]
+    lappend res [M accept {0 1}]
+    lappend res [M accept {1 1}]
+    lappend res [M accept {0 0 1}]
+    lappend res [M accept {1 0 1}]
+    lappend res [M accept {0 1 1}]
+    lappend res [M accept {1 1 1}]
+    set res
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {0 0 1 0 0 1 0}
+
+test dfa-1.1 {find even number of ones/zeros} -body {
+    ::automata::FSM create M {
+        {table s1 0 s2}
+        {table s1 1 s1}
+        {table s2 0 s1}
+        {table s2 1 s2}
+        {start s1}
+        {final s1}
+    }
+    set res {}
+    lappend res [M accept {1 1}]
+    lappend res [M accept {1 0}]
+    lappend res [M accept {0 1}]
+    lappend res [M accept {0 0}]
+    lappend res [M accept {1 0 0 1 1 1}]
+    lappend res [M accept {1 0 0 1 1 0}]
+    set res
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {1 0 0 1 1 0}
+
+test nfa-1.0 {} -body {
+    ::automata::FSM create M {
+        {table s0 0 s0}
+        {table s0 1 s0}
+        {table s0 1 s1}
+        {table s1 0 s0}
+        {table s1 1 s1}
+        {start s0}
+        {final s1}
+    }
+    set res {}
+    lappend res [M accept {1}]
+    lappend res [M accept {0}]
+    lappend res [M accept {1 1}]
+    lappend res [M accept {1 0}]
+    lappend res [M accept {0 1}]
+    lappend res [M accept {0 0}]
+    set res
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {1 0 1 0 1 0}
+
+test nfa-1.1 {find even number of ones/zeros} -body {
+    ::automata::FSM create M {
+        {table s0 ε s1}
+        {table s0 ε s3}
+        {table s1 0 s2}
+        {table s1 1 s1}
+        {table s2 0 s1}
+        {table s2 1 s2}
+        {table s3 0 s3}
+        {table s3 1 s4}
+        {table s4 0 s4}
+        {table s4 1 s3}
+        {start s0}
+        {final s1 s3}
+    }
+    set res {}
+    lappend res [M accept {1 1}]
+    lappend res [M accept {1 0}]
+    lappend res [M accept {0 1}]
+    lappend res [M accept {0 0}]
+    lappend res [M accept {1 0 0 1 1 1}]
+    lappend res [M accept {1 0 0 1 1 0}]
+    set res
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {1 0 0 1 1 0}
+
+if {[package vcompare [package present automata::tablemachine] 0.4] > 0} { 
+    cleanupTests ; return 
+} 
+ 
+
 set mc FSM
 set m [subst {::automata::$mc create M}]
 {*}$m
