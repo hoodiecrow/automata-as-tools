@@ -1,6 +1,38 @@
 
 version 0.5
 
+(half of) transition relation function; table
+
+rows: Q
+
+columns: Aε
+
+idx of q within Q → R
+
+# Q × Aε → output tuple
+
+output relation function; indexed lookup
+
+(R or T) → (Q, B, O*) (M:1)
+
+FSM: Q × Aε → Q
+
+FST: Q × Aε → (Q, B)
+
+PDA: Q × (Aε, B) → (Q, B*)
+
+BTM: Q → (Q₀, Q₁, B, O)
+
+CM:  Q → (Q₀, Q₁, B, O)
+
+KTR: Q → (Q₀, Q₁, B, O)
+
+PTM: Q → (Q₀, Q₁, B, O)
+
+SM:  Q → (Q₀, Q₁, B, O)
+
+---
+
 transition relation function
 
 a table Q × Aε → Q  or  Q × Aε × B → (Q, B*)
