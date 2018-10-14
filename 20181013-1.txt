@@ -1,0 +1,23 @@
+
+version 0.5
+
+transition relation function
+
+a table Q × Aε → Q  or  Q × Aε × B → (Q, B*)
+
+table/1: Q i0 × Aε i1 → Q
+
+i0 = index within Q
+i1 = row number
+
+output function
+
+B = output alphabet, including blank
+M = {L, R, N}
+
+a table B × M × O*  
+
+a) i0 → (B, M, O*)
+b) i1 → (B, M, O*)
+
+all code machines are a): the instruction number keys the output table (look out for JC)
