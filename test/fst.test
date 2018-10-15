@@ -8,11 +8,15 @@ namespace import ::tcltest::*
 package require automata::tablemachine
 
 test fst-1.0 {} -body {
-    ::automata::FST create M {
-        {table 0 a/a 1}
-        {table 1 b/b 0}
-        {start 0}
-        {final 0}
+    ::automata::Automaton create M {
+        table Q A B T
+        tuples {*}{
+            {0 a/a 1}
+            {1 b/b 0}
+        }
+        start 0
+        final 0
+        frame input state output
     }
     M generate 4
 } -cleanup {
@@ -50,11 +54,15 @@ test fst-1.2 {} -body {
 } -result {{{a b a b} 0 {a b c a b c}} {{a b b a} 1 {a b c d c a}} {{a b b b} 2 {a b c d c d}} {{b a b a} 1 {d c a b c a}} {{b a b b} 2 {d c a b c d}} {{b b a b} 2 {d c d c a b}} {{b b b} 0 {d c d c d c}}}
 
 test fst-2.0 {} -body {
-    ::automata::FST create M {
-        {table 0 a/a 1}
-        {table 1 b/b 0}
-        {start 0}
-        {final 0}
+    ::automata::Automaton create M {
+        table Q A B T
+        tuples {*}{
+            {0 a/a 1}
+            {1 b/b 0}
+        }
+        start 0
+        final 0
+        frame input state output
     }
     set res {}
     lappend res [M recognize {a b a b} {a b a b}]
@@ -191,11 +199,15 @@ test dfst-1.1 {} -body {
 } -result 1
 
 test dfst-1.2 {} -body {
-    ::automata::FST create M {
-        {table 1 a/a 2}
-        {table 2 ε/a 1}
-        {start 1}
-        {final 1}
+    ::automata::Automaton create M {
+        table Q A B T
+        tuples {*}{
+            {1 a/a 2}
+            {2 _/a 1}
+        }
+        start 1
+        final 1
+        frame input state output
     }
     M translate {a a}
 } -cleanup {
@@ -204,11 +216,15 @@ test dfst-1.2 {} -body {
 } -result {{a a a a}}
 
 test dfst-1.3 {} -body {
-    ::automata::FST create M {
-        {table 1 a/a 2}
-        {table 2 ε/a 1}
-        {start 1}
-        {final 1}
+    ::automata::Automaton create M {
+        table Q A B T
+        tuples {*}{
+            {1 a/a 2}
+            {2 _/a 1}
+        }
+        start 1
+        final 1
+        frame input state output
     }
     M reconstruct {a a a a}
 } -cleanup {

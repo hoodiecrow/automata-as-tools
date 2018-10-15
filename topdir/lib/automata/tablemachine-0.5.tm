@@ -10,6 +10,356 @@ oo::class create ::automata::TableMachine {
 
 }
 
+proc ::oo::objdefine::table args {
+    set obj [lindex [info level -1] 1]
+    [info object namespace $obj]::my SetLabels $args
+}
+
+proc ::oo::objdefine::tuples args {
+    set obj [lindex [info level -1] 1]
+    set my [info object namespace $obj]::my
+    foreach tuple $args {
+        $my AddRows $tuple
+    }
+}
+
+proc ::oo::objdefine::start args {
+    set obj [lindex [info level -1] 1]
+    [info object namespace $obj]::my SetValue S $args
+}
+
+proc ::oo::objdefine::final args {
+    set obj [lindex [info level -1] 1]
+    [info object namespace $obj]::my SetValue F $args
+}
+
+proc ::oo::objdefine::stack args {
+    set obj [lindex [info level -1] 1]
+    [info object namespace $obj]::my SetValue Z $args
+}
+
+proc ::oo::objdefine::frame args {
+    set obj [lindex [info level -1] 1]
+    [info object namespace $obj]::my SetFrame $args
+}
+
+oo::class create ::automata::Automaton {
+    variable labels values frame
+    constructor script {
+        lassign {} labels frame
+        ::struct::matrix matrix
+        oo::objdefine [self] $script
+    }
+    method SelectQ {varName state body} {
+        upvar 1 $varName var
+        for {set row 0} {$row < [matrix rows]} {incr row} {
+            set var [matrix get row $row]
+            if {[lindex $var 0] eq $state} {uplevel 1 $body}
+        }
+    }
+    method AddRows tuple {
+        matrix add row [regexp -all -inline {\w+} $tuple]
+    }
+    method SetLabels lbls {
+        set labels $lbls
+        matrix add columns [llength $labels]
+        foreach v $labels {
+            my SetValue $v
+        }
+    }
+    method SetValue {name {value {}}} {
+        set values($name) $value
+    }
+    method SetFrame frm {
+        set frame $frm
+    }
+    method RecognizeA f {
+        set fs [list]
+        dict with f {
+            set tail [lassign $input top]
+            my SelectQ tuple $state {
+                lassign $tuple q a t
+                if {$a eq "_"} {
+                    lappend fs [dict create input $input state $t]
+                } elseif {$a eq $top} {
+                    lappend fs [dict create input $tail state $t]
+                }
+            }
+        }
+        return $fs
+    }
+    method RecognizeAB f {
+        log::log d [info level 0] 
+        set fs [list]
+        dict with f {
+            set itail [lassign $input itop]
+            set otail [lassign $output otop]
+            my SelectQ tuple $state {
+                lassign $tuple q a b target
+                if {$a eq "_"} {
+                    if {$b eq "_"} {
+                        lappend fs [dict create input $input state $target output $output]
+                    } elseif {$b eq $otop} {
+                        lappend fs [dict create input $input state $target output $otail]
+                    }
+                } elseif {$a eq $itop} {
+                    if {$b eq "_"} {
+                        lappend fs [dict create input $itail state $target output $output]
+                    } elseif {$b eq $otop} {
+                        lappend fs [dict create input $itail state $target output $otail]
+                    }
+                }
+            }
+        }
+        return $fs
+    }
+    method TranslateAB f {
+        log::log d [info level 0] 
+        set fs [list]
+        dict with f {
+            set itail [lassign $input itop]
+            my SelectQ tuple $state {
+                lassign $tuple q a b target
+                if {$a eq "_"} {
+                    if {$b eq "_"} {
+                        lappend fs [dict create input $input state $target output $output]
+                    } else {
+                        lappend fs [dict create input $input state $target output [linsert $output end $b]]
+                    }
+                } elseif {$a eq $itop} {
+                    if {$b eq "_"} {
+                        lappend fs [dict create input $itail state $target output $output]
+                    } else {
+                        lappend fs [dict create input $itail state $target output [linsert $output end $b]]
+                    }
+                }
+            }
+        }
+        return $fs
+    }
+    method TranslateBA f {
+        log::log d [info level 0] 
+        set fs [list]
+        dict with f {
+            set otail [lassign $output otop]
+            my SelectQ tuple $state {
+                lassign $tuple q a b target
+                if {$a eq "_"} {
+                    if {$b eq "_"} {
+                        lappend fs [dict create input $input state $target output $output]
+                    } elseif {$b eq $otop} {
+                        lappend fs [dict create input $input state $target output $otail]
+                    }
+                } else {
+                    if {$b eq "_"} {
+                        lappend fs [dict create input [linsert $input end $a] state $target output $output]
+                    } elseif {$b eq $otop} {
+                        lappend fs [dict create input [linsert $input end $a] state $target output $otail]
+                    }
+                }
+            }
+        }
+        return $fs
+    }
+    method Generate f {
+        set fs [list]
+        dict with f {
+            my SelectQ tuple $state {
+                lassign $tuple q a b target
+                if {$a eq "_"} {
+                    if {$b eq "_"} {
+                        lappend fs [dict create input $input state $target output $output]
+                    } else {
+                        lappend fs [dict create input $input state $target output [linsert $output end $b]]
+                    }
+                } else {
+                    if {$b eq "_"} {
+                        lappend fs [dict create input [linsert $input end $a] state $target output $output]
+                    } else {
+                        lappend fs [dict create input [linsert $input end $a] state $target output [linsert $output end $b]]
+                    }
+                }
+            }
+        }
+        log::log d \$fs=$fs 
+        return $fs
+    }
+    method StackRecognize f {
+        set fs [list]
+        dict with f {
+            set itail [lassign $input itop]
+            set _tail [lassign $stack _top]
+            my SelectQ tuple $state {
+                lassign $tuple q a b bs target
+                if {$bs eq "_"} {
+                    set bs {}
+                }
+                if {$a eq "_"} {
+                    if {$b eq "_"} {
+                        lappend fs [dict create input $input state $target stack $stack]
+                    } elseif {$b eq $_top} {
+                        # consume stack token
+                        lappend fs [dict create input $input state $target stack [concat [split $bs {}] $_tail]]
+                    }
+                } elseif {$a eq $itop} {
+                    if {$b eq "_"} {
+                        # consume input token
+                        lappend fs [dict create input $itail state $target stack $stack]
+                    } elseif {$b eq $_top} {
+                        # consume input and stack token
+                        lappend fs [dict create input $itail state $target stack [concat [split $bs {}] $_tail]]
+                    }
+                }
+            }
+        }
+        return $fs
+    }
+    method search {f fn {steps {}}} {
+        log::log d [info level 0] 
+        if {$steps ne {}} {
+            if {$steps <= 0} {
+                return [list $f]
+            } else {
+                incr steps -1
+            }
+        }
+        set fs [my $fn $f]
+        if {[llength $fs] eq 0} {
+            return [list $f]
+        }
+        set fs [lsort -unique $fs]
+        return [concat {*}[lmap f $fs {
+            my search $f $fn $steps
+        }]]
+    }
+    method accept args {
+        log::log d [info level 0] 
+        # Are we in a final state when all input symbols are consumed?
+        lassign $args a
+        set input [list {*}$a]
+        set fs [lmap state $values(S) {
+            dict create input $input state $state
+        }]
+        set results [concat {*}[lmap f $fs {
+            my search $f RecognizeA
+        }]]
+        lmap result $results {
+            dict with result {
+                if {[llength $input] == 0 && $state in $values(F)} {
+                    return 1
+                }
+            }
+        }
+        return 0
+    }
+    method recognize args {
+        log::log d [info level 0] 
+        # Are we in a final state when all symbols in input and output are consumed?
+        lassign $args a b
+        set input [list {*}$a]
+        set output [list {*}$b]
+        set fs [lmap state $values(S) {
+            dict create input $input state $state output $output
+        }]
+        set results [concat {*}[lmap f $fs {
+            my search $f RecognizeAB
+        }]]
+        lmap result $results {
+            dict with result {
+                if {[llength $input] == 0 && $state in $values(F) && [llength $output] == 0} {
+                    return 1
+                }
+            }
+        }
+        return 0
+    }
+    method translate args {
+        # What symbols have been added to output when all input symbols in a are consumed?
+        lassign $args a
+        set input [list {*}$a]
+        set fs [lmap state $values(S) {
+            dict create input $input state $state output {}
+        }]
+        set results [concat {*}[lmap f $fs {
+            my search $f TranslateAB
+        }]]
+        log::log d \$results=$results 
+        lmap result $results {
+            dict with result {
+                if {[llength $input] == 0 && $state in $values(F)} {
+                    set output
+                } else {
+                    continue
+                }
+            }
+        }
+    }
+    method reconstruct args {
+        # What symbols have been added to input when all symbols in output are consumed?
+        lassign $args b
+        set output [list {*}$b]
+        set fs [lmap state $values(S) {
+            dict create input {} state $state output $output
+        }]
+        set results [concat {*}[lmap f $fs {
+            my search $f TranslateBA
+        }]]
+        lmap result $results {
+            dict with result {
+                if {$state in $values(F) && [llength $output] == 0} {
+                    set input
+                } else {
+                    continue
+                }
+            }
+        }
+    }
+    method generate args {
+        # If we take N steps into the transition sequence (or sequence powerset), what do we get in input and output?
+        lassign $args steps
+        set fs [lmap state $values(S) {
+            dict create input {} state $state output {}
+        }]
+        set results [concat {*}[lmap f $fs {
+            my search $f Generate $steps
+        }]]
+        lmap result $results {
+            dict with result {
+                if {$state in $values(F)} {
+                    dict values $result
+                } else {
+                    continue
+                }
+            }
+        }
+    }
+    method acceptPDA args {
+        log::log d [info level 0] 
+        # Are we in a final state when all input symbols are consumed and the stack has only one item?
+        lassign $args a
+        set input [list {*}$a]
+        set stack [list $values(Z)]
+        set fs [lmap state $values(S) {
+            dict create input $input state $state stack $stack
+        }]
+        set results [concat {*}[lmap f $fs {
+            my search $f StackRecognize
+        }]]
+        lmap result $results {
+            dict with result {
+                if {[llength $input] eq 0 && $state in $values(F) && [llength $stack] eq 1} {
+                    return 1
+                }
+            }
+        }
+        return 0
+    }
+
+    method dump args {
+        list $labels [matrix serialize] [array get values] $frame
+    }
+}
+
 oo::class create ::automata::FSM {
     mixin ::automata::TableMachine
 
