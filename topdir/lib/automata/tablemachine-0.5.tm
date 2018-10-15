@@ -33,6 +33,11 @@ proc ::oo::objdefine::final args {
     [info object namespace $obj]::my SetValue F $args
 }
 
+proc ::oo::objdefine::print args {
+    set obj [lindex [info level -1] 1]
+    [info object namespace $obj]::my SetValue B $args
+}
+
 proc ::oo::objdefine::stack args {
     set obj [lindex [info level -1] 1]
     [info object namespace $obj]::my SetValue Z $args
@@ -184,7 +189,7 @@ oo::class create ::automata::Automaton {
         log::log d \$fs=$fs 
         return $fs
     }
-    method StackRecognize f {
+    method RecognizeStack f {
         set fs [list]
         dict with f {
             set itail [lassign $input itop]
@@ -214,6 +219,46 @@ oo::class create ::automata::Automaton {
         }
         return $fs
     }
+    method RecognizeTape f {
+        log::log d [info level 0] 
+        set fs [list]
+        dict with f {
+            if {$state in $values(F)} {
+                return
+            }
+            set cur [lindex $tape $head]
+            my SelectQ tuple $state {
+                lassign $tuple q a print move target
+                if {$a eq $cur} {
+                    if {$print in {N 0}} {
+                        set t $tape
+                    } else {
+                        set t [lreplace $tape $head $head [lindex $values(B) [string map {E 1 P 2} $print]-1]]
+                    }
+                    set h $head
+                    switch $move {
+                        L {
+                            incr h
+                            if {$h >= [expr {[llength $t] - 1}]} {
+                                lappend t [lindex $values(B) 0]
+                            }
+                        }
+                        R {
+                            if {$h < 1} {
+                                set t [linsert $t 0 [lindex $values(B) 0]]
+                            } else {
+                                incr h -1
+                            }
+                        }
+                        N {}
+                    }
+                    lappend fs [dict create tape $t head $h state $target]
+                }
+            }
+        }
+        return $fs
+    }
+
     method search {f fn {steps {}}} {
         log::log d [info level 0] 
         if {$steps ne {}} {
@@ -343,7 +388,7 @@ oo::class create ::automata::Automaton {
             dict create input $input state $state stack $stack
         }]
         set results [concat {*}[lmap f $fs {
-            my search $f StackRecognize
+            my search $f RecognizeStack
         }]]
         lmap result $results {
             dict with result {
@@ -354,6 +399,27 @@ oo::class create ::automata::Automaton {
         }
         return 0
     }
+    method runBTM tape {
+        log::log d [info level 0] 
+        #: Run this tape from start index, return tape, current index, and ending state.
+        set tape [list {*}$tape]
+        set fs [lmap state $values(S) {
+            dict create tape $tape head 0 state $state
+        }]
+        set results [concat {*}[lmap f $fs {
+            my search $f RecognizeTape
+        }]]
+        lmap result $results {
+            dict with result {
+                if {$state in $values(F)} {
+                    dict values $result
+                } else {
+                    continue
+                }
+            }
+        }
+    }
+
 
     method dump args {
         list $labels [matrix serialize] [array get values] $frame

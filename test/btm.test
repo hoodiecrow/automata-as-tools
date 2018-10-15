@@ -7,6 +7,28 @@ namespace import ::tcltest::*
 
 package require automata::tablemachine
 
+test btm-1.0 {3 state, 2 symbol busy beaver} -setup {} -body {
+    ::automata::Automaton create M {
+        table Q A P M T
+        tuples {*}{
+            {A 0/P;R B}
+            {A 1/P;L C}
+            {B 0/P;L A}
+            {B 1/P;R B}
+            {C 0/P;L B}
+            {C 1/P;R H}
+        }
+        start A
+        final H
+        print 0 1
+        frame tape head state
+    }
+    M runBTM {0}
+} -cleanup {
+    M destroy
+    log::lvSuppressLE i 1
+} -result {{{1 1 1 1 1 1 0} 1 H}}
+
 if {[package vcompare [package present automata::tablemachine] 0.4] > 0} { 
     cleanupTests ; return 
 } 
