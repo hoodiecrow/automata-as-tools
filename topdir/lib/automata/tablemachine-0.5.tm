@@ -227,6 +227,7 @@ oo::class create ::automata::FST {
     }
 
     method Exec-reconstruct id {
+        log::log d [info level 0] 
         set ids [list]
         dict with id {
             set otail [lassign $output otop]
@@ -242,13 +243,14 @@ oo::class create ::automata::FST {
                     } else {
                         if {$b eq "_"} {
                             lappend ids [dict create input [linsert $input end $a] state $target output $output]
-                        } else {
+                        } elseif {$b eq $otop} {
                             lappend ids [dict create input [linsert $input end $a] state $target output $otail]
                         }
                     }
                 }
             }
         }
+        log::log d \$ids=$ids 
         return $ids
     }
 
@@ -262,6 +264,7 @@ oo::class create ::automata::FST {
         set results [concat {*}[lmap id $ids {
             my search $id Exec-reconstruct
         }]]
+        log::log d \$results=$results 
         lmap result $results {
             dict with result {
                 if {$state in $values(F) && [llength $output] == 0} {
@@ -274,41 +277,43 @@ oo::class create ::automata::FST {
     }
 
     method Exec-generate id {
+        set ids [list]
         dict with id {
-            set ids [$table map $state {iSym target oSym} {
-                if {$iSym eq {}} {
-                    if {$oSym eq {}} {
-                        $iddef make $input $target $output
+            for {set row 0} {$row < [matrix rows]} {incr row} {
+                lassign [matrix get row $row] q a target b
+                if {$q eq $state} {
+                    if {$a eq "_"} {
+                        if {$b eq "_"} {
+                            lappend ids [dict create input $input state $target output $output]
+                        } else {
+                            lappend ids [dict create input $input state $target output [linsert $output end $b]]
+                        }
                     } else {
-                        # emit output token
-                        $iddef make $input $target [linsert $output end $oSym]
-                    }
-                } else {
-                    if {$oSym eq {}} {
-                        # emit input token
-                        $iddef make [linsert $input end $iSym] $target $output
-                    } else {
-                        # emit input and output token
-                        $iddef make [linsert $input end $iSym] $target [linsert $output end $oSym]
+                        if {$b eq "_"} {
+                            lappend ids [dict create input [linsert $input end $a] state $target output $output]
+                        } else {
+                            lappend ids [dict create input [linsert $input end $a] state $target output [linsert $output end $b]]
+                        }
                     }
                 }
-            }]
+            }
         }
+        log::log d \$ids=$ids 
         return $ids
     }
 
-    method Generate args {
+    method generate args {
         # If we take N steps into the transition sequence (or sequence powerset), what do we get in input and output?
         lassign $args steps
-        set ids [lmap state [my vsets get S] {
-            $iddef make {} $state {}
+        set ids [lmap state $values(S) {
+            dict create input {} state $state output {}
         }]
         set results [concat {*}[lmap id $ids {
             my search $id Exec-generate $steps
         }]]
         lmap result $results {
             dict with result {
-                if {[my vsets in F $state]} {
+                if {$state in $values(F)} {
                     dict values $result
                 } else {
                     continue
