@@ -7,57 +7,61 @@ namespace import ::tcltest::*
 
 ::tcltest::loadTestedCommands
 
-package require automata::codemachine
+package require automata::machine
 
-set mc PTM
-set m [subst {::automata::$mc create M}]
-{*}$m
-M doc [file join ~ code automata-as-tools.wiki class.$mc.md]
-M destroy
+if no {
+    set mc PTM
+    set m [subst {::automata::$mc create M}]
+    {*}$m
+    M doc [file join ~ code automata-as-tools.wiki class.$mc.md]
+    M destroy
+}
 
-test ptm-1.0 {2 state, 2 symbol busy beaver} -setup {} -body {
-    ::automata::PTM create M
-    M compile {
-        A:	JZ:+4,0
-            PRINT
-            ROLL:R
-            J:B
-            PRINT
-            ROLL:L
-            J:B
-        B:	JZ:+4,0
-            PRINT
-            ROLL:L
-            J:A
-            PRINT
-            NOP
-            J:H
-        H:	HALT
+test ptm-1.0 {2 state, 2 symbol busy beaver} -body {
+    ::automata::PTM create M {
+        code {
+            A:	JNZ:+4,0
+                PRINT
+                HEAD:R
+                J:B
+                PRINT
+                HEAD:L
+                J:B
+            B:	JNZ:+4,0
+                PRINT
+                HEAD:L
+                J:A
+                PRINT
+                NOP
+                J:H
+            H:	HALT
+        }
     }
     M run {0}
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {{{1 1 1 1} 1 14}}
+} -result {{1 1 1 1} 1 14}
 
-test ptm-1.1 {2 state, 2 symbol busy beaver, print} -setup {} -body {
-    ::automata::PTM create M
-    M compile {
-        A:	JZ:+4,0
-            PRINT
-            ROLL:R
-            J:B
-            PRINT
-            ROLL:L
-            J:B
-        B:	JZ:+4,0
-            PRINT
-            ROLL:L
-            J:A
-            PRINT
-            NOP
-            J:H
-        H:	HALT
+test ptm-1.1 {2 state, 2 symbol busy beaver, print} -constraints PRINT -body {
+    ::automata::PTM create M {
+        code {
+            A:	JNZ:+4,0
+                PRINT
+                HEAD:R
+                J:B
+                PRINT
+                HEAD:L
+                J:B
+            B:	JNZ:+4,0
+                PRINT
+                HEAD:L
+                J:A
+                PRINT
+                NOP
+                J:H
+            H:	HALT
+        }
     }
     M print
 } -cleanup {
@@ -105,31 +109,37 @@ current index          head: V
 instruction pointer    ipointer: Q
 }
 
-test ptm-1.2 {multiply two numbers in unary} -setup {} -body {
-    ::automata::PTM create M
-    M compile {
-        begin:   ROLL:R JZ:-1,0 ROLL:R JZ:-1,0 ROLL:R PRINT
-                 ROLL:L
-        a_loop:  ROLL:L JZ:-1,0 ROLL:L JZ:-1,0 ROLL:R
-                 ERASE
-                 ROLL:R JNZ:done,0
-                 ROLL:R JZ:-1,0 ROLL:R
-        b_loop:  ROLL:R
-                 JNZ:a_loop,0
-                 ERASE
-                 ROLL:R JZ:-1,0 ROLL:R JZ:-1,0
-                 PRINT
-                 ROLL:L JZ:-1,0 ROLL:L JZ:-1,0 PRINT
-                 JZ:b_loop,0
-                 ROLL:R
-                 JNZ:a_loop,0
-                 ERASE
-        done:    HALT
+test ptm-1.2 {multiply two numbers in unary} -body {
+    ::automata::PTM create M {
+        code {
+            begin:      HEAD:R J1:-1,0 HEAD:R J1:-1,0 HEAD:R PRINT
+                        HEAD:L
+            a_loop:     HEAD:L J1:-1,0 HEAD:L J1:-1,0 HEAD:R
+                        ERASE
+                        HEAD:R J0:done,0
+                        HEAD:R J1:-1,0 HEAD:R
+            b_loop:     HEAD:R
+                        J0:a_loop,0
+                        ERASE
+                        HEAD:R J1:-1,0 HEAD:R J1:-1,0
+                        PRINT
+                        HEAD:L J1:-1,0 HEAD:L J1:-1,0 PRINT
+                        J1:b_loop,0
+                        HEAD:R
+                        J0:a_loop,0
+                        ERASE
+            done:       HALT
+        }
     }
     M run {0 1 1 1 1 0 1 1 1 1 1 0 0}
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {{{0 0 0 0 0 0 1 1 1 1 1 0 1 1 1 1 1 1 1 1 1 1 1 1 1 0} 5 35}}
+} -result {{0 0 0 0 0 0 1 1 1 1 1 0 1 1 1 1 1 1 1 1 1 1 1 1 1 0} 5 35}
+
+if {[package vcompare [package present automata::machine] 0.4] > 0} { 
+    cleanupTests ; return 
+} 
+ 
 
 cleanupTests ; return ; # ---------------------------------

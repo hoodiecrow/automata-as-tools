@@ -7,11 +7,18 @@ namespace import ::tcltest::*
 
 ::tcltest::loadTestedCommands
 
-package require automata::tablemachine
+package require automata::automaton
+
+if no {
+    set mc FSM
+    set m [subst {::automata::$mc create M}]
+    {*}$m
+    M doc [file join ~ code automata-as-tools.wiki class.$mc.md]
+    M destroy
+}
 
 test foo-1.0 {} -body {
-    ::automata::Automaton create M {
-        table Q A T
+    ::automata::FSM create M {
         tuples {*}{ 
             {s1 0 s2}
             {s1 1 s1}
@@ -20,7 +27,6 @@ test foo-1.0 {} -body {
         }
         start s1
         final s1
-        frame input state
     }
     M dump
 } -cleanup {
@@ -28,35 +34,8 @@ test foo-1.0 {} -body {
     log::lvSuppressLE i 1
 } -result {{Q A T} {4 3 {{s1 0 s2} {s1 1 s1} {s2 0 s1} {s2 1 s2}}} {T {} A {} Q {} F s1 S s1} {input state}}
 
-test foo-1.1 {} -body {
-    ::automata::Automaton create M {
-        table Q A T
-        tuples {*}{ 
-            {s1 0 s2}
-            {s1 1 s1}
-            {s2 0 s1}
-            {s2 1 s2}
-        }
-        start s1
-        final s1
-        frame input state
-    }
-    set res {}
-    lappend res [M accept {1 1}]
-    lappend res [M accept {1 0}]
-    lappend res [M accept {0 1}]
-    lappend res [M accept {0 0}]
-    lappend res [M accept {1 0 0 1 1 1}]
-    lappend res [M accept {1 0 0 1 1 0}]
-    set res
-} -cleanup {
-    M destroy
-    log::lvSuppressLE i 1
-} -result {1 0 0 1 1 0}
-
 test dfa-1.0 {accept binary numbers that are multiples of 3} -body {
-    ::automata::Automaton create M {
-        table Q A T
+    ::automata::FSM create M {
         tuples {*}{ 
             {s0 0 s0}
             {s0 1 s1}
@@ -67,7 +46,6 @@ test dfa-1.0 {accept binary numbers that are multiples of 3} -body {
         }
         start s0
         final s0
-        frame input state
     }
     set res {}
     lappend res [M accept {1}]
@@ -85,12 +63,14 @@ test dfa-1.0 {accept binary numbers that are multiples of 3} -body {
 
 test dfa-1.1 {find even number of ones/zeros} -body {
     ::automata::FSM create M {
-        {table s1 0 s2}
-        {table s1 1 s1}
-        {table s2 0 s1}
-        {table s2 1 s2}
-        {start s1}
-        {final s1}
+        tuples {*}{ 
+            {s1 0 s2}
+            {s1 1 s1}
+            {s2 0 s1}
+            {s2 1 s2}
+        }
+        start s1
+        final s1
     }
     set res {}
     lappend res [M accept {1 1}]
@@ -105,113 +85,7 @@ test dfa-1.1 {find even number of ones/zeros} -body {
     log::lvSuppressLE i 1
 } -result {1 0 0 1 1 0}
 
-test nfa-1.0 {} -body {
-    ::automata::FSM create M {
-        {table s0 0 s0}
-        {table s0 1 s0}
-        {table s0 1 s1}
-        {table s1 0 s0}
-        {table s1 1 s1}
-        {start s0}
-        {final s1}
-    }
-    set res {}
-    lappend res [M accept {1}]
-    lappend res [M accept {0}]
-    lappend res [M accept {1 1}]
-    lappend res [M accept {1 0}]
-    lappend res [M accept {0 1}]
-    lappend res [M accept {0 0}]
-    set res
-} -cleanup {
-    M destroy
-    log::lvSuppressLE i 1
-} -result {1 0 1 0 1 0}
-
-test nfa-1.1 {find even number of ones/zeros} -body {
-    ::automata::FSM create M {
-        {table s0 ε s1}
-        {table s0 ε s3}
-        {table s1 0 s2}
-        {table s1 1 s1}
-        {table s2 0 s1}
-        {table s2 1 s2}
-        {table s3 0 s3}
-        {table s3 1 s4}
-        {table s4 0 s4}
-        {table s4 1 s3}
-        {start s0}
-        {final s1 s3}
-    }
-    set res {}
-    lappend res [M accept {1 1}]
-    lappend res [M accept {1 0}]
-    lappend res [M accept {0 1}]
-    lappend res [M accept {0 0}]
-    lappend res [M accept {1 0 0 1 1 1}]
-    lappend res [M accept {1 0 0 1 1 0}]
-    set res
-} -cleanup {
-    M destroy
-    log::lvSuppressLE i 1
-} -result {1 0 0 1 1 0}
-
-if {[package vcompare [package present automata::tablemachine] 0.4] > 0} { 
-    cleanupTests ; return 
-} 
- 
-
-set mc FSM
-set m [subst {::automata::$mc create M}]
-{*}$m
-M doc [file join ~ code automata-as-tools.wiki class.$mc.md]
-M destroy
-
-test dfa-1.0 {accept binary numbers that are multiples of 3} -body {
-    ::automata::FSM create M
-    M compile {
-        {<s0> 0 s0}
-        { s0  1 s1}
-        { s1  0 s2}
-        { s1  1 s0}
-        { s2  0 s1}
-        { s2  1 s2}
-    }
-    set res {}
-    lappend res [M accept {1}]
-    lappend res [M accept {0 1}]
-    lappend res [M accept {1 1}]
-    lappend res [M accept {0 0 1}]
-    lappend res [M accept {1 0 1}]
-    lappend res [M accept {0 1 1}]
-    lappend res [M accept {1 1 1}]
-    set res
-} -cleanup {
-    M destroy
-    log::lvSuppressLE i 1
-} -result {0 0 1 0 0 1 0}
-
-test dfa-1.1 {find even number of ones/zeros} -setup $m -body {
-    M compile {
-        {<s1> 0 s2}
-        { s1  1 s1}
-        { s2  0 s1}
-        { s2  1 s2}
-    }
-    set res {}
-    lappend res [M accept {1 1}]
-    lappend res [M accept {1 0}]
-    lappend res [M accept {0 1}]
-    lappend res [M accept {0 0}]
-    lappend res [M accept {1 0 0 1 1 1}]
-    lappend res [M accept {1 0 0 1 1 0}]
-    set res
-} -cleanup {
-    M destroy
-    log::lvSuppressLE i 1
-} -result {1 0 0 1 1 0}
-
-test dfa-1.2 {find even number of ones/zeros: print the machine} -setup $m -body {
+test dfa-1.2 {find even number of ones/zeros: print the machine} -constraints PRINT -body {
     M compile {
         {<s1> 0 s2}
         { s1  1 s1}
@@ -237,13 +111,17 @@ remaining input        input: A*
 current state          state: Q
 }
 
-test nfa-1.0 {} -setup $m -body {
-    M compile {
-        {<s0 0 s0 }
-        { s0 1 s0 }
-        { s0 1 s1 }
-        { s1 0 s0 }
-        { s1 1 s1>}
+test nfa-1.0 {} -body {
+    ::automata::FSM create M {
+        tuples {*}{ 
+            {s0 0 s0}
+            {s0 1 s0}
+            {s0 1 s1}
+            {s1 0 s0}
+            {s1 1 s1}
+    }
+        start s0
+        final s1
     }
     set res {}
     lappend res [M accept {1}]
@@ -258,18 +136,22 @@ test nfa-1.0 {} -setup $m -body {
     log::lvSuppressLE i 1
 } -result {1 0 1 0 1 0}
 
-test nfa-1.1 {find even number of ones/zeros} -setup $m -body {
-    M compile {
-        {<s0 ε s1>}
-        { s0 ε s3>}
-        { s1 0 s2 }
-        { s1 1 s1 }
-        { s2 0 s1 }
-        { s2 1 s2 }
-        { s3 0 s3 }
-        { s3 1 s4 }
-        { s4 0 s4 }
-        { s4 1 s3 }
+test nfa-1.1 {find even number of ones/zeros} -body {
+    ::automata::FSM create M {
+        tuples {*}{ 
+            {s0 _ s1}
+            {s0 _ s3}
+            {s1 0 s2}
+            {s1 1 s1}
+            {s2 0 s1}
+            {s2 1 s2}
+            {s3 0 s3}
+            {s3 1 s4}
+            {s4 0 s4}
+            {s4 1 s3}
+    }
+        start s0
+        final s1 s3
     }
     set res {}
     lappend res [M accept {1 1}]

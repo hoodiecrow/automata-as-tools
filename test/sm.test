@@ -5,25 +5,30 @@ namespace import ::tcltest::*
 
 ::tcltest::loadTestedCommands
 
-package require automata::codemachine
+package require automata::machine
 
-set mc SM
-set m [subst {::automata::$mc create M}]
-{*}$m
-M doc [file join ~ code automata-as-tools.wiki class.$mc.md]
-M destroy
-
-test sm-1.0 {Calculate 4 x (2 + 3)} -setup {
-    ::automata::SM create M
-} -body {
-    M compile {
-        2 3 ADD 4 MUL
+test sm-1.0 {Calculate 4 x (2 + 3)} -body {
+    ::automata::SM create M {
+        code {
+            2 3 ADD 4 MUL
+        }
     }
     M run {}
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
 } -result {20 5}
+
+if {[package vcompare [package present automata::machine] 0.4] > 0} { 
+    cleanupTests ; return 
+} 
+ 
+
+set mc SM
+set m [subst {::automata::$mc create M}]
+{*}$m
+M doc [file join ~ code automata-as-tools.wiki class.$mc.md]
+M destroy
 
 test sm-1.1 {print 1.0} -setup {
     ::automata::SM create M

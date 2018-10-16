@@ -7,11 +7,18 @@ namespace import ::tcltest::*
 
 ::tcltest::loadTestedCommands
 
-package require automata::tablemachine
+package require automata::automaton
+
+if no {
+    set mc PDA
+    set m [subst {::automata::$mc create M}]
+    {*}$m
+    M doc [file join ~ code automata-as-tools.wiki class.$mc.md]
+    M destroy
+}
 
 test pda-1.0 {0^n1^n | n >= 0} -setup {
-    ::automata::Automaton create M {
-        table Q A B B* T
+    ::automata::PDA create M {
         tuples {*}{
             {p 0/Z;AZ p}
             {p 0/A;AA p}
@@ -23,18 +30,16 @@ test pda-1.0 {0^n1^n | n >= 0} -setup {
         start p
         final r
         stack Z
-        frame input state stack
     }
 } -body {
-    M acceptPDA {}
+    M accept {}
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
 } -result 1
 
 test pda-1.1 {0^n1^n | n >= 0} -setup {
-    ::automata::Automaton create M {
-        table Q A B B* T
+    ::automata::PDA create M {
         tuples {*}{
             {p 0/Z;AZ p}
             {p 0/A;AA p}
@@ -46,35 +51,6 @@ test pda-1.1 {0^n1^n | n >= 0} -setup {
         start p
         final r
         stack Z
-        frame input state stack
-    }
-} -body {
-    M acceptPDA {0 0 0 0 1 1 1 1}
-} -cleanup {
-    M destroy
-    log::lvSuppressLE i 1
-} -result 1
-
-if {[package vcompare [package present automata::tablemachine] 0.4] > 0} { 
-    cleanupTests ; return 
-} 
- 
-
-set mc PDA
-set m [subst {::automata::$mc create M}]
-{*}$m
-M doc [file join ~ code automata-as-tools.wiki class.$mc.md]
-M destroy
-
-test pda-1.1 {} -setup {
-    ::automata::PDA create M
-    M compile {
-        {<p 0/Z;A,Z p}
-        { p 0/A;A,A p}
-        { p ε/Z;Z   q}
-        { p ε/A;A   q}
-        { q 1/A;ε   q}
-        { q ε/Z;Z   r>}
     }
 } -body {
     M accept {0 0 0 0 1 1 1 1}
@@ -84,14 +60,18 @@ test pda-1.1 {} -setup {
 } -result 1
 
 test pda-1.2 {} -setup {
-    ::automata::PDA create M
-    M compile {
-        {<p 0/Z;A,Z p}
-        { p 0/A;A,A p}
-        { p ε/Z;Z   q}
-        { p ε/A;A   q}
-        { q 1/A;ε   q}
-        { q ε/Z;Z   r>}
+    ::automata::PDA create M {
+        tuples {*}{
+            {p 0/Z;AZ p}
+            {p 0/A;AA p}
+            {p _/Z;Z  q}
+            {p _/A;A  q}
+            {q 1/A;_  q}
+            {q _/Z;Z  r}
+        }
+        start p
+        final r
+        stack Z
     }
 } -body {
     set res {}
@@ -105,15 +85,19 @@ test pda-1.2 {} -setup {
     log::lvSuppressLE i 1
 } -result {0 0 1 1}
 
-test pda-1.3 {} -setup {
-    ::automata::PDA create M
-    M compile {
-        {<p 0/Z;A,Z p}
-        { p 0/A;A,A p}
-        { p ε/Z;Z   q}
-        { p ε/A;A   q}
-        { q 1/A;ε   q}
-        { q ε/Z;Z   r>}
+test pda-1.3 {} -constraints PRINT -setup {
+    ::automata::PDA create M {
+        tuples {*}{
+            {p 0/Z;AZ p}
+            {p 0/A;AA p}
+            {p _/Z;Z  q}
+            {p _/A;A  q}
+            {q 1/A;_  q}
+            {q _/Z;Z  r}
+        }
+        start p
+        final r
+        stack Z
     }
 } -body {
     M print
@@ -140,10 +124,8 @@ current state          state: Q
 current stack          stack: B*
 }
 
-cleanupTests ; return
-
-if {[package vcompare [package present automata::pda] 0.1] > 0} { 
+if {[package vcompare [package present automata::automaton] 0.4] > 0} { 
     cleanupTests ; return 
 } 
  
-
+cleanupTests ; return

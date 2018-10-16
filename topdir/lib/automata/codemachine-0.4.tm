@@ -1,3 +1,10 @@
+
+
+
+return
+
+
+
 ::tcl::tm::path add [file dirname [file dirname [file normalize [info script]]]]
 
 package require automata::machine

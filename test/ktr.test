@@ -5,32 +5,34 @@ namespace import ::tcltest::*
 
 ::tcltest::loadTestedCommands
 
-package require automata::codemachine
+package require automata::machine
 
-set mc KTR
-set m [subst {::automata::$mc create M}]
-{*}$m
-M doc [file join ~ code automata-as-tools.wiki class.$mc.md]
-M destroy
+if no {
+    set mc KTR
+    set m [subst {::automata::$mc create M}]
+    {*}$m
+    M doc [file join ~ code automata-as-tools.wiki class.$mc.md]
+    M destroy
+}
 
-test ktr-1.0 {} -setup {
-    ::automata::KTR create M
-} -body {
-    M compile {
-        a:          TEST:next-to-a-beeper
-                    JZ:end,0
-                    TEST:right-is-clear
-                    JNZ:b,0
-                    CALL:turnright
-                    J:c
-        b:          TEST:front-is-clear
-                    JZ:c,0
-                    TURN
-                    J:b
-        c:          MOVE
-                    J:a
-        end:        HALT
-        turnright:  TURN TURN TURN RET
+test ktr-1.0 {} -body {
+    ::automata::KTR create M {
+        code {
+            a:          TEST:next_to_a_beeper
+                        JNZ:end,0
+                        TEST:right_is_clear
+                        JZ:b,0
+                        CALL:turnright
+                        J:c
+            b:          TEST:front_is_clear
+                        JNZ:c,0
+                        TURN
+                        J:b
+            c:          MOVE
+                        J:a
+            end:        HALT
+            turnright:  TURN TURN TURN RET
+        }
     }
     M run {3 3} {1 1 0 e} {3 2} {2 1 2 2}
 } -cleanup {
@@ -38,24 +40,24 @@ test ktr-1.0 {} -setup {
     log::lvSuppressLE i 1
 } -result {{3 3} {3 2 0 s} {} {3 2} {2 1 2 2} 0 12}
 
-test ktr-1.1 {print 1.0} -setup {
-    ::automata::KTR create M
-} -body {
-    M compile {
-        a:          TEST:next-to-a-beeper
-                    JZ:end,0
-                    TEST:right-is-clear
-                    JNZ:b,0
-                    CALL:turnright
-                    J:c
-        b:          TEST:front-is-clear
-                    JZ:c,0
-                    TURN
-                    J:b
-        c:          MOVE
-                    J:a
-        end:        HALT
-        turnright:  TURN TURN TURN RET
+test ktr-1.1 {print 1.0} -constraints PRINT -body {
+    ::automata::KTR create M {
+        code {
+            a:          TEST:next_to_a_beeper
+                        JNZ:end,0
+                        TEST:right_is_clear
+                        JZ:b,0
+                        CALL:turnright
+                        J:c
+            b:          TEST:front_is_clear
+                        JNZ:c,0
+                        TURN
+                        J:b
+            c:          MOVE
+                        J:a
+            end:        HALT
+            turnright:  TURN TURN TURN RET
+        }
     }
     M print
 } -cleanup {
@@ -114,5 +116,10 @@ wall coords            walls: V*
 test flag              flag: A
 instruction pointer    ipointer: Q
 }
+
+if {[package vcompare [package present automata::machine] 0.4] > 0} { 
+    cleanupTests ; return 
+} 
+ 
 
 cleanupTests ; return ; # ---------------------------------

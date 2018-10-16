@@ -5,28 +5,30 @@ namespace import ::tcltest::*
 
 ::tcltest::loadTestedCommands
 
-package require automata::codemachine
+package require automata::machine
 
-set mc CM
-set m [subst {::automata::$mc create M}]
-{*}$m
-M doc [file join ~ code automata-as-tools.wiki class.$mc.md]
-M destroy
+if no {
+    set mc CM
+    set m [subst {::automata::$mc create M}]
+    {*}$m
+    M doc [file join ~ code automata-as-tools.wiki class.$mc.md]
+    M destroy
+}
 
-test cm-1.0 {Implement a CPY operation} -setup {
-    ::automata::CM create M
-} -body {
-    M compile {
-        a:  JZ:b,2
-            DEC:2
-            INC:3
-            INC:1
-            J:a
-        b:  JZ:z,1
-            DEC:1
-            INC:2
-            J:b
-        z:  NOP
+test cm-1.0 {Implement a CPY operation} -body {
+    ::automata::CM create M {
+        code {
+            a:  JZ:b,2
+                DEC:2
+                INC:3
+                INC:1
+                J:a
+            b:  JZ:z,1
+                DEC:1
+                INC:2
+                J:b
+            z:  NOP
+        }
     }
     M run {0 0 2 0 0}
 } -cleanup {
@@ -34,20 +36,20 @@ test cm-1.0 {Implement a CPY operation} -setup {
     log::lvSuppressLE i 1
 } -result {{0 0 2 2 0} 10}
 
-test cm-1.1 {print 1.0} -setup {
-    ::automata::CM create M
-} -body {
-    M compile {
-        a:  JZ:b,2
-            DEC:2
-            INC:3
-            INC:1
-            J:a
-        b:  JZ:z,1
-            DEC:1
-            INC:2
-            J:b
-        z:  NOP
+test cm-1.1 {print 1.0} -constraints PRINT -body {
+    ::automata::CM create M {
+        code {
+            a:  JZ:b,2
+                DEC:2
+                INC:3
+                INC:1
+                J:a
+            b:  JZ:z,1
+                DEC:1
+                INC:2
+                J:b
+            z:  NOP
+        }
     }
     M print
 } -cleanup {
@@ -85,7 +87,7 @@ register cells         registers: V*
 instruction pointer    ipointer: Q
 }
 
-test cm-2.0 {Implement a DEC operation using instruction set 2} -setup {
+test cm-2.0 {Implement a DEC operation using instruction set 2} -constraints SKIP -setup {
     ::automata::CM create M -instructionset 2
 } -body {
     M compile {
