@@ -67,6 +67,7 @@ test dfa-1.0 {accept binary numbers that are multiples of 3} -body {
         }
         start s0
         final s0
+        frame input state
     }
     set res {}
     lappend res [M accept {1}]

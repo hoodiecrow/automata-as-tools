@@ -78,6 +78,46 @@ oo::class create ::automata::Automaton {
     method SetFrame frm {
         set frame $frm
     }
+    method MakeFrame args {
+        foreach key $frame val $args {
+            dict set res $key $val
+        }
+        return $res
+    }
+
+    method Print {tape head print} {
+        if {$head eq -1} {
+            set tape [linsert $tape 0 {}]
+            set head 0
+        }
+        switch $print {
+            N - 0 { return $tape }
+            E { return [lset tape $head [lindex $values(B) 0]] }
+            P { return [lset tape $head [lindex $values(B) 1]] }
+            default {
+                return [lset tape $head [lindex $values(B) $print-1]]
+            }
+        }
+        return $tape
+    }
+    method Roll {tape head move} {
+        switch $move {
+            L {
+                if {[lindex $tape [incr head]+1] eq {}} {
+                    set tape [my Print $tape end+1 E]
+                }
+            }
+            R {
+                if {$head < 1} {
+                    set tape [my Print $tape -1 E]
+                } else {
+                    incr head -1
+                }
+            }
+            N {}
+        }
+        return [list $tape $head]
+    }
     method RecognizeA f {
         set fs [list]
         dict with f {
@@ -85,9 +125,9 @@ oo::class create ::automata::Automaton {
             my SelectQ tuple $state {
                 lassign $tuple q a t
                 if {$a eq "_"} {
-                    lappend fs [dict create input $input state $t]
+                    lappend fs [my MakeFrame $input $t]
                 } elseif {$a eq $top} {
-                    lappend fs [dict create input $tail state $t]
+                    lappend fs [my MakeFrame $tail $t]
                 }
             }
         }
@@ -230,28 +270,8 @@ oo::class create ::automata::Automaton {
             my SelectQ tuple $state {
                 lassign $tuple q a print move target
                 if {$a eq $cur} {
-                    if {$print in {N 0}} {
-                        set t $tape
-                    } else {
-                        set t [lreplace $tape $head $head [lindex $values(B) [string map {E 1 P 2} $print]-1]]
-                    }
-                    set h $head
-                    switch $move {
-                        L {
-                            incr h
-                            if {$h >= [expr {[llength $t] - 1}]} {
-                                lappend t [lindex $values(B) 0]
-                            }
-                        }
-                        R {
-                            if {$h < 1} {
-                                set t [linsert $t 0 [lindex $values(B) 0]]
-                            } else {
-                                incr h -1
-                            }
-                        }
-                        N {}
-                    }
+                    set t [my Print $tape $head $print]
+                    lassign [my Roll $t $head $move] t h
                     lappend fs [dict create tape $t head $h state $target]
                 }
             }
@@ -419,7 +439,6 @@ oo::class create ::automata::Automaton {
             }
         }
     }
-
 
     method dump args {
         list $labels [matrix serialize] [array get values] $frame
