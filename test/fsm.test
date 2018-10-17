@@ -85,12 +85,16 @@ test dfa-1.1 {find even number of ones/zeros} -body {
     log::lvSuppressLE i 1
 } -result {1 0 0 1 1 0}
 
-test dfa-1.2 {find even number of ones/zeros: print the machine} -constraints PRINT -body {
-    M compile {
-        {<s1> 0 s2}
-        { s1  1 s1}
-        { s2  0 s1}
-        { s2  1 s2}
+test dfa-1.2 {find even number of ones/zeros: print the machine} -body {
+    ::automata::FSM create M {
+        tuples {*}{ 
+            {s1 0 s2}
+            {s1 1 s1}
+            {s2 0 s1}
+            {s2 1 s2}
+        }
+        start s1
+        final s1
     }
     M print
 } -cleanup {
@@ -101,14 +105,11 @@ State symbols     Q = {s1, s2}
 Start symbols     S = {s1}
 Final symbols     F = {s1}
 Transitions
-q0    inp   q1    out
-s1    0     s2    
-s1    1     s1    
-s2    0     s1    
-s2    1     s2    
-Instantaneous description
-remaining input        input: A*
-current state          state: Q
+s1 × 0 → s2
+s1 × 1 → s1
+s2 × 0 → s1
+s2 × 1 → s2
+Instantaneous description: input, state
 }
 
 test nfa-1.0 {} -body {

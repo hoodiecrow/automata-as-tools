@@ -30,7 +30,7 @@ proc ::oo::objdefine::code body {
 }
 
 oo::class create ::automata::Machine {
-    mixin ::automata::FrameHandler ::automata::ValuesHandler
+    mixin ::automata::FrameHandler ::automata::ValuesHandler ::automata::PrintHelper
     variable values frame
     constructor args {
         lassign {} frame
@@ -72,6 +72,10 @@ oo::class create ::automata::Machine {
         set f [my MakeFrame $data [my GetValues start]]
         dict values [my Execute $f]
     }
+
+    method dump args {
+        list [matrix serialize] [array get values] $frame
+    }
 }
 
 oo::class create ::automata::CM {
@@ -82,6 +86,19 @@ oo::class create ::automata::CM {
             start 0
             print 0 1
         }
+    }
+    method print {} {
+        set str {}
+        set col 0
+        lappend %% %
+        lappend maplist %T [my MakeTable {%-6s%-6s%-6s%s %s}]
+        lappend maplist %D [join [my GetFrame] ", "]
+        append str [string map $maplist [join {
+            Code
+            %T
+            {Instantaneous description: %D}
+        } \n]]
+        puts $str
     }
     method Execute f {
         dict with f {
@@ -115,6 +132,19 @@ oo::class create ::automata::KTR {
             frame width height xpos ypos bag facing returns beepers walls flag ipointer
             start 0
         }
+    }
+    method print {} {
+        set str {}
+        set col 0
+        lappend %% %
+        lappend maplist %T [string map {ε -} [my MakeTable {%-12s%-6s%-6s%s %s}]]
+        lappend maplist %D [join [my GetFrame] ", "]
+        append str [string map $maplist [join {
+            Code
+            %T
+            {Instantaneous description: %D}
+        } \n]]
+        puts $str
     }
     method TestClear {dir width height xpos ypos facing walls} {
         switch $dir {
@@ -161,17 +191,17 @@ oo::class create ::automata::KTR {
                 switch $op {
                     HALT { break }
                     TEST {
-                        switch -glob $a {
-                            *_is_clear {
+                        switch $a {
+                            front - left - right {
                                 set _flag [my TestClear [string index $a 0] $width $height $xpos $ypos $facing $walls]
                             }
-                            next_to* {
+                            next {
                                 set _flag [expr {[list $xpos $ypos] in [lmap {x y} $beepers {list $x $y}]}]
                             }
-                            facing_* {
-                                set _flag [expr {$facing eq [string index $a 7]}]
+                            facing {
+                                set _flag [expr {$facing eq [string index $b 0]}]
                             }
-                            any_* { set _flag [expr {$bag > 0}] }
+                            any { set _flag [expr {$bag > 0}] }
                             default {
                                 return -code error [format {unknown test "%s"} $a]
                             }
@@ -226,6 +256,19 @@ oo::class create ::automata::PTM {
             print 0 1
         }
     }
+    method print {} {
+        set str {}
+        set col 0
+        lappend %% %
+        lappend maplist %T [string map {ε -} [my MakeTable {%-12s%-6s%-6s%s %s}]]
+        lappend maplist %D [join [my GetFrame] ", "]
+        append str [string map $maplist [join {
+            Code
+            %T
+            {Instantaneous description: %D}
+        } \n]]
+        puts $str
+    }
     method Execute f {
         dict with f {
             while {$ipointer < [matrix rows]} {
@@ -264,6 +307,19 @@ oo::class create ::automata::SM {
             frame stack ipointer
             start 0
         }
+    }
+    method print {} {
+        set str {}
+        set col 0
+        lappend %% %
+        lappend maplist %T [string map {ε -} [my MakeTable {%-6s%-6s%-6s%s %s}]]
+        lappend maplist %D [join [my GetFrame] ", "]
+        append str [string map $maplist [join {
+            Code
+            %T
+            {Instantaneous description: %D}
+        } \n]]
+        puts $str
     }
     method Execute f {
         dict with f {

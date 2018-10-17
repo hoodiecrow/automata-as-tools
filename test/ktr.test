@@ -18,13 +18,13 @@ if no {
 test ktr-1.0 {} -body {
     ::automata::KTR create M {
         code {
-            a:          TEST:next_to_a_beeper
+            a:          TEST:next-to-a-beeper
                         JNZ:end,0
-                        TEST:right_is_clear
+                        TEST:right-is-clear
                         JZ:b,0
                         CALL:turnright
                         J:c
-            b:          TEST:front_is_clear
+            b:          TEST:front-is-clear
                         JNZ:c,0
                         TURN
                         J:b
@@ -40,16 +40,16 @@ test ktr-1.0 {} -body {
     log::lvSuppressLE i 1
 } -result {{3 3} {3 2 0 s} {} {3 2} {2 1 2 2} 0 12}
 
-test ktr-1.1 {print 1.0} -constraints PRINT -body {
+test ktr-1.1 {print 1.0} -body {
     ::automata::KTR create M {
         code {
-            a:          TEST:next_to_a_beeper
+            a:          TEST:next-to-a-beeper
                         JNZ:end,0
-                        TEST:right_is_clear
+                        TEST:right-is-clear
                         JZ:b,0
                         CALL:turnright
                         J:c
-            b:          TEST:front_is_clear
+            b:          TEST:front-is-clear
                         JNZ:c,0
                         TURN
                         J:b
@@ -63,58 +63,25 @@ test ktr-1.1 {print 1.0} -constraints PRINT -body {
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -output {Flag symbols      A = {0, 1}
-Addresses         Q = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17}
-Start address     S = 0
-Final address     F = 17
-Transitions
-q0    inp   q1    out
-0     0     1     0 N {T 3}
-0     1     1     0 N {T 3}
-1     0     2     0 N {JC 0 0}
-1     1     12    0 N {JC 0 0}
-2     0     3     0 N {T 2}
-2     1     3     0 N {T 2}
-3     0     6     0 N {JC 0 0}
-3     1     4     0 N {JC 0 0}
-4     0     13    0 N G
-4     1     13    0 N G
-5     0     10    0 N N
-5     1     10    0 N N
-6     0     7     0 N {T 0}
-6     1     7     0 N {T 0}
-7     0     8     0 N {JC 0 0}
-7     1     10    0 N {JC 0 0}
-8     0     9     0 N TURN
-8     1     9     0 N TURN
-9     0     6     0 N N
-9     1     6     0 N N
-10    0     11    0 N MOVE
-10    1     11    0 N MOVE
-11    0     0     0 N N
-11    1     0     0 N N
-12    0     17    0 N H
-12    1     17    0 N H
-13    0     14    0 N TURN
-13    1     14    0 N TURN
-14    0     15    0 N TURN
-14    1     15    0 N TURN
-15    0     16    0 N TURN
-15    1     16    0 N TURN
-16    0     17    0 N R
-16    1     17    0 N R
-Instantaneous description
-world width            width: V
-world height           height: V
-robot x                xpos: V
-robot y                ypos: V
-#robot's beepers       bag: V
-robot facing           facing: B
-return stack           returns: Q*
-beeper coords          beepers: V*
-wall coords            walls: V*
-test flag              flag: A
-instruction pointer    ipointer: Q
+} -output {Code
+a           TEST  next  to a
+            JNZ   end   0 
+            TEST  right is clear
+            JZ    b     0 
+            CALL  turnright 
+            J     c      
+b           TEST  front is clear
+            JNZ   c     0 
+            TURN         
+            J     b      
+c           MOVE         
+            J     a      
+end         HALT         
+turnright   TURN         
+            TURN         
+            TURN         
+            RET          
+Instantaneous description: width, height, xpos, ypos, bag, facing, returns, beepers, walls, flag, ipointer
 }
 
 if {[package vcompare [package present automata::machine] 0.4] > 0} { 

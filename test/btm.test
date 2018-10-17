@@ -34,7 +34,7 @@ test btm-1.0 {3 state, 2 symbol busy beaver} -setup {} -body {
     log::lvSuppressLE i 1
 } -result {{{1 1 1 1 1 1 0} 1 H}}
 
-test btm-1.1 {3 state, 2 symbol busy beaver print} -constraints PRINT -body {
+test btm-1.1 {3 state, 2 symbol busy beaver print} -body {
     ::automata::BTM create M {
         tuples {*}{
             {A 0/P;R B}
@@ -52,24 +52,24 @@ test btm-1.1 {3 state, 2 symbol busy beaver print} -constraints PRINT -body {
     M destroy
     log::lvSuppressLE i 1
 } -output {Tape symbols      A = {0, 1}
-Print symbols     B = {E, P, N}
-Move symbols      C = {L, R, N}
 State symbols     Q = {A, B, C, H}
 Start symbol      S = A
 Final symbols     F = {H}
-Head position     I = {0}
 Transitions
-q0    inp   q1    out
-A     0     B     P R
-A     1     C     P L
-B     0     A     P L
-B     1     B     P R
-C     0     B     P L
-C     1     H     P R
-Instantaneous description
-tape contents          tape: A*
-current index          head: I
-current state          state: Q
+A × 0 → B
+A × 1 → C
+B × 0 → A
+B × 1 → B
+C × 0 → B
+C × 1 → H
+Tape actions
+A × 0 → P R
+A × 1 → P L
+B × 0 → P L
+B × 1 → P R
+C × 0 → P L
+C × 1 → P R
+Instantaneous description: tape, head, state
 }
 
 test btm-1.3 {4 state, 2 symbol busy beaver} -setup {} -body {

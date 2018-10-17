@@ -46,6 +46,9 @@ oo::class create ::automata::FrameHandler {
         }
         return $res
     }
+    method GetFrame {} {
+        return $frame
+    }
 }
 
 oo::class create ::automata::ValuesHandler {
@@ -64,3 +67,27 @@ oo::class create ::automata::ValuesHandler {
     }
 }
 
+oo::class create ::automata::PrintHelper {
+    method MakeMaplist args {
+        lappend maplist %% %
+        foreach arg $args {
+            set val [lsort -unique [concat {*}[lmap name $arg {
+                my GetValues $name
+            }]]]
+            set val [lmap sym $val {
+                if {$sym eq "_"} {
+                    continue
+                } else {
+                    set sym
+                }
+            }]
+            lappend maplist %[lindex $arg 0] [join $val ", "]
+        }
+        return $maplist
+    }
+    method MakeTable fmt {
+        string map {_ ε} [join [lmap row [matrix get rect 0 0 end end] {
+            format $fmt {*}$row
+        }] \n]
+    }
+}

@@ -45,6 +45,7 @@ proc ::oo::objdefine::frame args {
 }
 
 oo::class create ::automata::Automaton {
+    mixin ::automata::PrintHelper ::automata::FrameHandler
     variable labels values frame
     constructor args {
         lassign {} labels frame
@@ -75,6 +76,9 @@ oo::class create ::automata::Automaton {
             my SetValues $v
         }
     }
+    method GetLabels {} {
+        return $labels
+    }
     method SetValues {name {value {}}} {
         set values($name) $value
     }
@@ -85,19 +89,15 @@ oo::class create ::automata::Automaton {
             print { set name B }
             stack { set name Z }
         }
+        if {$values($name) eq {}} {
+            if {$name in $labels} {
+                set values($name) [matrix get column [lsearch $labels $name]]
+            } else {
+                return -code error [format {no such value: %s} $name]
+            }
+        }
         return $values($name)
     }
-
-    method SetFrame frm {
-        set frame $frm
-    }
-    method MakeFrame args {
-        foreach key $frame val $args {
-            dict set res $key $val
-        }
-        return $res
-    }
-
     method RecognizeA f {
         set fs [list]
         dict with f {
@@ -285,6 +285,22 @@ oo::class create ::automata::FSM {
             frame input state
         }
     }
+    method print {} {
+        set str {}
+        set maplist [my MakeMaplist A {Q T} S F]
+        lappend maplist %T [my MakeTable {%1$s × %2$s → %3$s}]
+        lappend maplist %D [join [my GetFrame] ", "]
+        append str [string map $maplist [join {
+            {Input symbols     A = {%A}}
+            {State symbols     Q = {%Q}}
+            {Start symbols     S = {%S}}
+            {Final symbols     F = {%F}}
+            Transitions
+            %T
+            {Instantaneous description: %D}
+        } \n]]
+        puts $str
+    }
     method accept args {
         # Are we in a final state when all input symbols are consumed?
         lassign $args a
@@ -313,6 +329,27 @@ oo::class create ::automata::FST {
             table Q A B T
             frame input state output
         }
+    }
+    method print {} {
+        set str {}
+        set col 0
+        set maplist [my MakeMaplist A B {Q T} S F]
+        lappend maplist %T [my MakeTable {%1$s × %2$s → %4$s}]
+        lappend maplist %O [my MakeTable {%1$s × %2$s → %3$s}]
+        lappend maplist %D [join [my GetFrame] ", "]
+        append str [string map $maplist [join {
+            {Input symbols     A = {%A}}
+            {Output symbols    B = {%B}}
+            {State symbols     Q = {%Q}}
+            {Start symbols     S = {%S}}
+            {Final symbols     F = {%F}}
+            Transitions
+            %T
+            Output
+            %O
+            {Instantaneous description: %D}
+        } \n]]
+        puts $str
     }
     method recognize args {
         # Are we in a final state when all symbols in input and output are consumed?
@@ -403,6 +440,27 @@ oo::class create ::automata::PDA {
             frame input state stack
         }
     }
+    method print {} {
+        set str {}
+        set maplist [my MakeMaplist A B {Q T} Z S F]
+        lappend maplist %T [my MakeTable {%1$s × %2$s × %3$s → %5$s}]
+        lappend maplist %O [my MakeTable {%1$s × %2$s × %3$s → %4$s}]
+        lappend maplist %D [join [my GetFrame] ", "]
+        append str [string map $maplist [join {
+            {Input symbols     A = {%A}}
+            {Output symbols    B = {%B}}
+            {State symbols     Q = {%Q}}
+            {Initial stack     Z = %Z}
+            {Start symbol      S = %S}
+            {Final symbols     F = {%F}}
+            Transitions
+            %T
+            Output
+            %O
+            {Instantaneous description: %D}
+        } \n]]
+        puts $str
+    }
     method accept args {
         # Are we in a final state when all input symbols are consumed and the stack has only one item?
         lassign $args a
@@ -438,6 +496,25 @@ oo::class create ::automata::BTM {
             frame tape head state
             print 0 1
         }
+    }
+    method print {} {
+        set str {}
+        set maplist [my MakeMaplist {A B} {Q T} P M S F]
+        lappend maplist %T [my MakeTable {%1$s × %2$s → %5$s}]
+        lappend maplist %O [my MakeTable {%1$s × %2$s → %3$s %4$s}]
+        lappend maplist %D [join [my GetFrame] ", "]
+        append str [string map $maplist [join {
+            {Tape symbols      A = {%A}}
+            {State symbols     Q = {%Q}}
+            {Start symbol      S = %S}
+            {Final symbols     F = {%F}}
+            Transitions
+            %T
+            Tape\ actions
+            %O
+            {Instantaneous description: %D}
+        } \n]]
+        puts $str
     }
     method run tape {
         #: Run this tape from start index, return tape, current index, and ending state.
