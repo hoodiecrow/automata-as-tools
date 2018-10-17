@@ -31,7 +31,7 @@ proc ::oo::objdefine::code body {
 
 oo::class create ::automata::Machine {
     mixin ::automata::FrameHandler ::automata::ValuesHandler ::automata::PrintHelper
-    variable values frame
+    variable values frame ops
     constructor args {
         lassign {} frame
         array set values {}
@@ -39,6 +39,23 @@ oo::class create ::automata::Machine {
         matrix add columns 5
         foreach script $args {
             oo::objdefine [self] $script
+        }
+        namespace path {::tcl::mathop}
+    }
+    method GetOps {} {
+        lindex {
+            ADD  { my Set $a $c [+ [my Get $b] [my Get $c]] }
+            CLR  { my Set $a 0 }
+            CPY  { my Set $a [my Get $b] }
+            DEC  { my Set $a [expr {[my Get $a] - 1}] }
+            HALT { break }
+            INC  { my Set $a [expr {[my Get $a] + 1}] }
+            J    { set jump $addr }
+            JE   { if {[my CMPE $b $c]} {set jump $addr} }
+            JZ   { if {[my CMPZ $b]} {set jump $addr} }
+            MUL  { my Set $a $c [* [my Get $b] [my Get $c]] }
+            NOP  {}
+            PUSH { my Set $val }
         }
     }
     method AddToken token {
@@ -100,25 +117,40 @@ oo::class create ::automata::CM {
         } \n]]
         puts $str
     }
+    method Set args {
+        upvar 1 registers data
+        if {[llength $args] eq 1} {
+            lset data 0 [lindex $args 0]
+        } elseif {[llength $args] eq 2} {
+            lset data {*}$args
+        } else {
+            lassign $args a b v
+            set data $a $v
+        }
+    }
+    method Get idx {
+        upvar 1 registers data
+        lindex $data $idx
+    }
+    method CMPZ args {
+        lassign $args - b
+        uplevel 1 [list expr {[my Get $b] eq [my Get 0]}]
+    }
+    method CMPE args {
+        lassign $args - b c
+        uplevel 1 [list expr {[my Get $b] eq [my Get $c]}]
+    }
     method Execute f {
         dict with f {
             while {$ipointer < [matrix rows]} {
                 lassign [matrix get row $ipointer] - op a b c
+                set addr $a
+                set val $a
+                log::log d "instr = $op $a $b $c"
                 set jump {}
-                switch $op {
-                    INC { lset registers $a [expr {[lindex $registers $a] + 1}] }
-                    DEC { lset registers $a [expr {[lindex $registers $a] - 1}] }
-                    CLR { lset registers $a 0 }
-                    CPY { lset registers $a [lindex $registers $b] }
-                    JZ  { if {[lindex $registers $b] eq [lindex $registers 0]} {set jump $a} }
-                    JE  { if {[lindex $registers $b] eq [lindex $registers $c]} {set jump $a} }
-                    J   { set jump $a }
-                    NOP {}
-                    default {
-                        error \$op=$op 
-                    }
-                }
+                switch $op {*}[my GetOps] default {error \$op=$op}
                 set ipointer [my NextInstruction $ipointer $jump]
+                log::log d \$registers=$registers,\ \$ipointer=$ipointer 
             }
         }
         return $f
@@ -321,26 +353,42 @@ oo::class create ::automata::SM {
         } \n]]
         puts $str
     }
+    method Set args {
+        upvar 1 stack data
+        if {[llength $args] eq 1} {
+            set data [linsert $data 0 [lindex $args 0]]
+        } elseif {[llength $args] eq 2} {
+            lset data {*}$args
+        } else {
+            set data [lreplace $data {*}$args]
+        }
+    }
+    method Get idx {
+        upvar 1 stack data
+        lindex $data $idx
+    }
+    method CMPZ args {
+        lassign $args a b
+        uplevel 1 [list expr {[my Get $a] eq 0}]
+    }
+    method CMPE args {
+        lassign $args a b c
+        uplevel 1 [list expr {[my Get $b] eq [my Get $c]}]
+    }
     method Execute f {
         dict with f {
             while {$ipointer < [matrix rows]} {
                 lassign [matrix get row $ipointer] - op a b c
+                log::log d "instr = $op $a $b $c"
+                set addr $a
+                set val $a
+                set a 0
+                set b 0
+                set c 1
                 set jump {}
-                set flag [lindex $stack 0]
-                switch $op {
-                    HALT  { break }
-                    PUSH  { set stack [linsert $stack 0 $a] }
-                    ADD   { set stack [lreplace $stack 0 1 [::tcl::mathop::+ {*}[lrange $stack 0 1]]] }
-                    MUL   { set stack [lreplace $stack 0 1 [::tcl::mathop::* {*}[lrange $stack 0 1]]] }
-                    DEC   { lset stack 0 [expr {[lindex $stack 0] - 1}] }
-                    JZ    { if {$flag eq 0} {set jump $a} }
-                    J     { set jump $a }
-                    NOP   {}
-                    default {
-                        error \$op=$op 
-                    }
-                }
+                switch $op {*}[my GetOps] default {error \$op=$op}
                 set ipointer [my NextInstruction $ipointer $jump]
+                log::log d \$stack=$stack,\ \$ipointer=$ipointer 
             }
         }
         return $f
