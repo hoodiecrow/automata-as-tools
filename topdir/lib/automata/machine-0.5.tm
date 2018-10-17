@@ -40,7 +40,6 @@ oo::class create ::automata::Machine {
         foreach script $args {
             oo::objdefine [self] $script
         }
-        log::log d [matrix serialize]
     }
     method AddToken token {
         if {[string match *: $token]} {
@@ -49,7 +48,6 @@ oo::class create ::automata::Machine {
             matrix add row [list {} PUSH $token]
         } else {
             set tuple [regexp -all -inline {(?:[-+]\d+|\w+)} $token]
-            log::log d \$tuple=$tuple 
             if {[matrix get cell 1 end] eq {}} {
                 set label [matrix get cell 0 end]
                 matrix set row end [linsert $tuple 0 $label]
@@ -59,7 +57,6 @@ oo::class create ::automata::Machine {
         }
     }
     method NextInstruction {ipointer jump} {
-        log::log d [info level 0] 
         if {$jump eq {}} {
             incr ipointer
         } elseif {[regexp {[-+]\d+} $jump]} {
@@ -71,7 +68,6 @@ oo::class create ::automata::Machine {
         }
     }
     method run data {
-        log::log d [info level 0] 
         set data [list {*}$data]
         set f [my MakeFrame $data [my GetValues start]]
         dict values [my Execute $f]
@@ -88,14 +84,10 @@ oo::class create ::automata::CM {
         }
     }
     method Execute f {
-        log::log d [info level 0] 
         dict with f {
             while {$ipointer < [matrix rows]} {
-                log::log d \$registers=$registers,\ \$ipointer=$ipointer 
                 lassign [matrix get row $ipointer] - op a b c
-                log::log d [matrix get row $ipointer]
                 set jump {}
-                log::log d \$op=$op 
                 switch $op {
                     INC { lset registers $a [expr {[lindex $registers $a] + 1}] }
                     DEC { lset registers $a [expr {[lindex $registers $a] - 1}] }
@@ -110,7 +102,6 @@ oo::class create ::automata::CM {
                     }
                 }
                 set ipointer [my NextInstruction $ipointer $jump]
-                log::log d \$ipointer=$ipointer 
             }
         }
         return $f
@@ -140,7 +131,6 @@ oo::class create ::automata::KTR {
         return $flag
     }
     method Turn {facing {turn left}} {
-        log::log d [info level 0] 
         switch $turn {
             left  { dict get {e n n w w s s e} $facing }
             front { set facing }
@@ -148,7 +138,6 @@ oo::class create ::automata::KTR {
         }
     }
     method Move {xpos ypos facing} {
-        log::log d [info level 0] 
         switch $facing {
             e { incr xpos }
             n { incr ypos }
@@ -164,14 +153,11 @@ oo::class create ::automata::KTR {
         expr {[list $xpos $ypos] in [lmap {x y} $walls {list $x $y}]}
     }
     method Execute f {
-        log::log d [info level 0] 
         dict with f {
             while {$ipointer < [matrix rows]} {
                 lassign [matrix get row $ipointer] - op a b c
-                log::log d [matrix get row $ipointer]
                 set jump {}
                 set _flag 0
-                log::log d \$op=$op 
                 switch $op {
                     HALT { break }
                     TEST {
@@ -213,13 +199,11 @@ oo::class create ::automata::KTR {
                 }
                 set ipointer [my NextInstruction $ipointer $jump]
                 set flag $_flag
-                log::log d "::> $xpos $ypos $facing ($flag) $ipointer"
             }
         }
         return $f
     }
     method run {world robot beepers walls} {
-        log::log d [info level 0] 
         lappend f {*}$world
         lappend f {*}$robot
         lappend f [list]
@@ -243,11 +227,9 @@ oo::class create ::automata::PTM {
         }
     }
     method Execute f {
-        log::log d [info level 0] 
         dict with f {
             while {$ipointer < [matrix rows]} {
                 lassign [matrix get row $ipointer] - op a b c
-                log::log d [matrix get row $ipointer]
                 set jump {}
                 set flag [lindex $tape $head]
                 switch $op {
@@ -256,10 +238,8 @@ oo::class create ::automata::PTM {
                     ERASE { set tape [my Print $tape $head E] }
                     HEAD  { lassign [my Roll $tape $head [string map {R L L R} $a]] tape head }
                     JZ  - J0 {
-                        log::log d \$flag=$flag 
                         if {$flag eq 0} {set jump $a} }
                     JNZ - J1 {
-                        log::log d \$flag=$flag 
                         if {$flag ne 0} {set jump $a} }
                     J     { set jump $a }
                     NOP   {}
@@ -268,13 +248,11 @@ oo::class create ::automata::PTM {
                     }
                 }
                 set ipointer [my NextInstruction $ipointer $jump]
-                log::log d \$tape=$tape,\ \$head=$head,\ \$ipointer=$ipointer
             }
         }
         return $f
     }
     method run tape {
-        log::log d [info level 0] 
         dict values [my Execute [my MakeFrame $tape 0 [my GetValues start]]]
     }
 }
@@ -288,16 +266,14 @@ oo::class create ::automata::SM {
         }
     }
     method Execute f {
-        log::log d [info level 0] 
         dict with f {
             while {$ipointer < [matrix rows]} {
                 lassign [matrix get row $ipointer] - op a b c
-                log::log d [matrix get row $ipointer]
                 set jump {}
                 set flag [lindex $stack 0]
                 switch $op {
                     HALT  { break }
-                    PUSH  { set stack [linsert $stack $a] }
+                    PUSH  { set stack [linsert $stack 0 $a] }
                     ADD   { set stack [lreplace $stack 0 1 [::tcl::mathop::+ {*}[lrange $stack 0 1]]] }
                     MUL   { set stack [lreplace $stack 0 1 [::tcl::mathop::* {*}[lrange $stack 0 1]]] }
                     DEC   { lset stack 0 [expr {[lindex $stack 0] - 1}] }
@@ -314,7 +290,6 @@ oo::class create ::automata::SM {
         return $f
     }
     method run stack {
-        log::log d [info level 0] 
         dict values [my Execute [my MakeFrame $stack [my GetValues start]]]
     }
 }

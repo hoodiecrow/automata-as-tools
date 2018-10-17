@@ -7,6 +7,14 @@ namespace import ::tcltest::*
 
 package require automata::machine
 
+if no {
+    set mc SM
+    set m [subst {::automata::$mc create M}]
+    {*}$m
+    M doc [file join ~ code automata-as-tools.wiki class.$mc.md]
+    M destroy
+}
+
 test sm-1.0 {Calculate 4 x (2 + 3)} -body {
     ::automata::SM create M {
         code {
@@ -19,22 +27,11 @@ test sm-1.0 {Calculate 4 x (2 + 3)} -body {
     log::lvSuppressLE i 1
 } -result {20 5}
 
-if {[package vcompare [package present automata::machine] 0.4] > 0} { 
-    cleanupTests ; return 
-} 
- 
-
-set mc SM
-set m [subst {::automata::$mc create M}]
-{*}$m
-M doc [file join ~ code automata-as-tools.wiki class.$mc.md]
-M destroy
-
-test sm-1.1 {print 1.0} -setup {
-    ::automata::SM create M
-} -body {
-    M compile {
-        2 3 ADD 4 MUL
+test sm-1.1 {print 1.0} -constraints PRINT -body {
+    ::automata::SM create M {
+        code {
+            2 3 ADD 4 MUL
+        }
     }
     M print
 } -cleanup {
@@ -61,15 +58,15 @@ stack contents         stack: V*
 instruction pointer    ipointer: Q
 }
 
-test sm-2.0 {Implement a CLR operation} -setup {
-    ::automata::SM create M
-} -body {
-    M compile {
-            3
-    a:      JZ:end,0
-            DEC
-            J:a
-    end:    NOP
+test sm-2.0 {Implement a CLR operation} -body {
+    ::automata::SM create M {
+        code {
+                    3
+            a:      JZ:end,0
+                    DEC
+                    J:a
+            end:    NOP
+        }
     }
     M run {}
 } -cleanup {
@@ -77,15 +74,15 @@ test sm-2.0 {Implement a CLR operation} -setup {
     log::lvSuppressLE i 1
 } -result {0 5}
 
-test sm-2.1 {Print 2.0} -setup {
-    ::automata::SM create M
-} -body {
-    M compile {
-            3
-    a:      JZ:end,0
-            DEC
-            J:a
-    end:    NOP
+test sm-2.1 {Print 2.0} -constraints PRINT -body {
+    ::automata::SM create M {
+        code {
+                    3
+            a:      JZ:end,0
+                    DEC
+                    J:a
+            end:    NOP
+        }
     }
     M print
 } -cleanup {
@@ -111,5 +108,10 @@ Instantaneous description
 stack contents         stack: V*
 instruction pointer    ipointer: Q
 }
+
+if {[package vcompare [package present automata::machine] 0.4] > 0} { 
+    cleanupTests ; return 
+} 
+ 
 
 cleanupTests ; return ; # ---------------------------------

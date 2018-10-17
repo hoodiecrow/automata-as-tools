@@ -62,10 +62,8 @@ oo::class create ::automata::Automaton {
         }
     }
     method AddRow tuple {
-        log::log d [info level 0] 
         set tuple [regexp -all -inline {\w+} $tuple]
         set n [expr {[llength $tuple] - [matrix columns]}]
-        log::log d \$n=$n 
         if {$n > 0} {
             matrix add columns $n
         }
@@ -116,7 +114,6 @@ oo::class create ::automata::Automaton {
         return $fs
     }
     method RecognizeAB f {
-        log::log d [info level 0] 
         set fs [list]
         dict with f {
             set itail [lassign $input itop]
@@ -141,7 +138,6 @@ oo::class create ::automata::Automaton {
         return $fs
     }
     method TranslateAB f {
-        log::log d [info level 0] 
         set fs [list]
         dict with f {
             set itail [lassign $input itop]
@@ -165,7 +161,6 @@ oo::class create ::automata::Automaton {
         return $fs
     }
     method TranslateBA f {
-        log::log d [info level 0] 
         set fs [list]
         dict with f {
             set otail [lassign $output otop]
@@ -208,7 +203,6 @@ oo::class create ::automata::Automaton {
                 }
             }
         }
-        log::log d \$fs=$fs 
         return $fs
     }
     method RecognizeStack f {
@@ -242,7 +236,6 @@ oo::class create ::automata::Automaton {
         return $fs
     }
     method RecognizeTape f {
-        log::log d [info level 0] 
         set fs [list]
         dict with f {
             if {$state in [my GetValues final]} {
@@ -262,7 +255,6 @@ oo::class create ::automata::Automaton {
     }
 
     method Search {f fn {steps {}}} {
-        log::log d [info level 0] 
         if {$steps ne {}} {
             if {$steps <= 0} {
                 return [list $f]
@@ -294,7 +286,6 @@ oo::class create ::automata::FSM {
         }
     }
     method accept args {
-        log::log d [info level 0] 
         # Are we in a final state when all input symbols are consumed?
         lassign $args a
         set input [list {*}$a]
@@ -324,7 +315,6 @@ oo::class create ::automata::FST {
         }
     }
     method recognize args {
-        log::log d [info level 0] 
         # Are we in a final state when all symbols in input and output are consumed?
         lassign $args a b
         set input [list {*}$a]
@@ -354,7 +344,6 @@ oo::class create ::automata::FST {
         set results [concat {*}[lmap f $fs {
             my Search $f TranslateAB
         }]]
-        log::log d \$results=$results 
         lmap result $results {
             dict with result {
                 if {[llength $input] == 0 && $state in [my GetValues final]} {
@@ -415,7 +404,6 @@ oo::class create ::automata::PDA {
         }
     }
     method accept args {
-        log::log d [info level 0] 
         # Are we in a final state when all input symbols are consumed and the stack has only one item?
         lassign $args a
         set input [list {*}$a]
@@ -452,7 +440,6 @@ oo::class create ::automata::BTM {
         }
     }
     method run tape {
-        log::log d [info level 0] 
         #: Run this tape from start index, return tape, current index, and ending state.
         set tape [list {*}$tape]
         set fs [lmap state [my GetValues start] {
