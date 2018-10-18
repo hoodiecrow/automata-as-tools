@@ -35,8 +35,9 @@ oo::class create ::automata::Machine {
     constructor args {
         lassign {} frame
         array set values {}
-        ::struct::matrix matrix
-        matrix add columns 5
+        set matrix [::struct::matrix]
+        oo::objdefine [self] forward matrix $matrix
+        my matrix add columns 5
         foreach script $args {
             oo::objdefine [self] $script
         }
@@ -60,16 +61,16 @@ oo::class create ::automata::Machine {
     }
     method AddToken token {
         if {[string match *: $token]} {
-            matrix add row [string trimright $token :]
+            my matrix add row [string trimright $token :]
         } elseif {[string is entier -strict $token]} {
-            matrix add row [list {} PUSH $token]
+            my matrix add row [list {} PUSH $token]
         } else {
             set tuple [regexp -all -inline {(?:[-+]\d+|\w+)} $token]
-            if {[matrix get cell 1 end] eq {}} {
-                set label [matrix get cell 0 end]
-                matrix set row end [linsert $tuple 0 $label]
+            if {[my matrix get cell 1 end] eq {}} {
+                set label [my matrix get cell 0 end]
+                my matrix set row end [linsert $tuple 0 $label]
             } else {
-                matrix add row [linsert $tuple 0 {}]
+                my matrix add row [linsert $tuple 0 {}]
             }
         }
     }
@@ -79,7 +80,7 @@ oo::class create ::automata::Machine {
         } elseif {[regexp {[-+]\d+} $jump]} {
             expr $ipointer $jump
         } elseif {![string is integer -strict $jump]} {
-            lindex [matrix search column 0 $jump] 0 1
+            lindex [my matrix search column 0 $jump] 0 1
         } else {
             set jump
         }
@@ -91,7 +92,7 @@ oo::class create ::automata::Machine {
     }
 
     method dump args {
-        list [matrix serialize] [array get values] $frame
+        list [my matrix serialize] [array get values] $frame
     }
 }
 
@@ -142,8 +143,8 @@ oo::class create ::automata::CM {
     }
     method Execute f {
         dict with f {
-            while {$ipointer < [matrix rows]} {
-                lassign [matrix get row $ipointer] - op a b c
+            while {$ipointer < [my matrix rows]} {
+                lassign [my matrix get row $ipointer] - op a b c
                 set addr $a
                 set val $a
                 log::log d "instr = $op $a $b $c"
@@ -216,8 +217,8 @@ oo::class create ::automata::KTR {
     }
     method Execute f {
         dict with f {
-            while {$ipointer < [matrix rows]} {
-                lassign [matrix get row $ipointer] - op a b c
+            while {$ipointer < [my matrix rows]} {
+                lassign [my matrix get row $ipointer] - op a b c
                 set jump {}
                 set _flag 0
                 switch $op {
@@ -303,8 +304,8 @@ oo::class create ::automata::PTM {
     }
     method Execute f {
         dict with f {
-            while {$ipointer < [matrix rows]} {
-                lassign [matrix get row $ipointer] - op a b c
+            while {$ipointer < [my matrix rows]} {
+                lassign [my matrix get row $ipointer] - op a b c
                 set jump {}
                 set flag [lindex $tape $head]
                 switch $op {
@@ -377,8 +378,8 @@ oo::class create ::automata::SM {
     }
     method Execute f {
         dict with f {
-            while {$ipointer < [matrix rows]} {
-                lassign [matrix get row $ipointer] - op a b c
+            while {$ipointer < [my matrix rows]} {
+                lassign [my matrix get row $ipointer] - op a b c
                 log::log d "instr = $op $a $b $c"
                 set addr $a
                 set val $a

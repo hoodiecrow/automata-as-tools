@@ -1,0 +1,146 @@
+package require tcltest
+namespace import ::tcltest::*
+
+::tcltest::configure {*}$argv
+
+::tcltest::loadTestedCommands
+
+package require automata::processor
+
+test processor-1.0 {set acc and check <=>} -body {
+    ::automata::Processor create P
+    set res [P extract <=>]
+    P acc: 99
+    lappend res [P extract <=> acc]
+} -cleanup {
+    P destroy
+    log::lvSuppressLE i 1
+} -result {<=> 0 {acc 99 <=> 1}}
+
+
+test processor-1.1 {set acc and check <=>} -body {
+    ::automata::Processor create P
+    set res [P extract <=>]
+    P acc: 0
+    lappend res [P extract <=> acc]
+} -cleanup {
+    P destroy
+    log::lvSuppressLE i 1
+} -result {<=> 0 {acc 0 <=> 0}}
+
+
+test processor-2.0 {CALL and RET} -body {
+    ::automata::Processor create P
+    P ipointer: 10
+    P CALL 99
+    P step
+    P CALL 77
+    P step
+    P CALL 55
+    P step
+    set res [P extract returns jmp ipointer]
+} -cleanup {
+    P destroy
+    log::lvSuppressLE i 1
+} -result {jmp 55 returns {77 99 10} ipointer 55}
+
+
+test processor-2.1 {CALL and RET} -body {
+    ::automata::Processor create P
+    P ipointer: 10
+    P CALL 99
+    P step
+    P CALL 77
+    P step
+    P CALL 55
+    P step
+    P RET
+    P step
+    P RET
+    P step
+    set res [P extract returns jmp ipointer]
+} -cleanup {
+    P destroy
+    log::lvSuppressLE i 1
+} -result {jmp 99 returns 10 ipointer 99}
+
+
+test processor-3.0 {CLR} -body {
+    ::automata::Processor create P
+    P merge model CM registers {0 0 3 0 0}
+    P CLR 2
+    set res [P extract registers]
+    P merge model PTM tape {0 0 3 0 0} head 2
+    P CLR
+    lappend res {*}[P extract tape]
+    P merge model SM stack {3 0 0}
+    P CLR
+    lappend res {*}[P extract stack]
+} -cleanup {
+    P destroy
+    log::lvSuppressLE i 1
+} -result {registers {0 0 0 0 0} tape {0 0 0 0 0} stack {0 0 0}}
+
+
+test processor-3.1 {ADD} -body {
+    ::automata::Processor create P
+    P merge model CM acc 0 registers {0 0 3 2 0}
+    P ADD 1 2 3
+    set res [P extract registers]
+    P merge model SM acc 0 stack {3 2 0}
+    P ADD
+    lappend res {*}[P extract stack]
+} -cleanup {
+    P destroy
+    log::lvSuppressLE i 1
+} -result {registers {0 5 3 2 0} stack {5 0}}
+
+
+test processor-3.2 {SUB} -body {
+    ::automata::Processor create P
+    P merge model CM acc 0 registers {0 0 3 2 0}
+    P SUB 1 2 3
+    set res [P extract registers]
+    P merge model SM acc 0 stack {3 2 0}
+    P SUB
+    lappend res {*}[P extract stack]
+} -cleanup {
+    P destroy
+    log::lvSuppressLE i 1
+} -result {registers {0 1 3 2 0} stack {1 0}}
+
+
+test processor-3.3 {PUSH} -body {
+    ::automata::Processor create P
+    P merge model SM acc 0 stack {0}
+    P PUSH 3
+    P acc: 5
+    P PUSH
+    set res [P extract stack]
+} -cleanup {
+    P destroy
+    log::lvSuppressLE i 1
+} -result {stack {5 3 0}}
+
+
+test processor-3.4 {INC} -body {
+    ::automata::Processor create P
+    P merge model CM acc 0 registers {0 0 3}
+    P INC 2
+    set res [P extract registers]
+    P merge model SM acc 0 stack {0}
+    P PUSH 3
+    P INC
+    lappend res {*}[P extract stack]
+} -cleanup {
+    P destroy
+    log::lvSuppressLE i 1
+} -result {registers {0 0 4} stack {4 0}}
+
+
+if {[package vcompare [package present automata::processor] 0.4] > 0} { 
+    cleanupTests ; return 
+} 
+ 
+
+cleanupTests ; return ; # ---------------------------------

@@ -1,22 +1,4 @@
 
-CLR
-HALT
-TEST
-PRINT/ERASE/TURN/MOVE/TAKE/DROP/ROLL output/control actions (OUT:x / OUT:x,0 = print x, OUT:x,1 = ROLL x, ...)
-DUP
-EQ/EQL (see CMP)
-
-CPY
-PUSH/POP
-ADD/SUB/MUL/DIV/MOD
-INC/DEC
-CMP
-AND/OR/XOR/NOT      bw? log?
-JMP
-JE/JNE/JZ/JNZ
-CALL/RET
-NOP
-
 https://software.intel.com/en-us/articles/introduction-to-x64-assembly
 
 Symbol	Bit	Name	Set if...

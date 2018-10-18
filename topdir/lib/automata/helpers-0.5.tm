@@ -86,7 +86,7 @@ oo::class create ::automata::PrintHelper {
         return $maplist
     }
     method MakeTable fmt {
-        string map {_ ε} [join [lmap row [matrix get rect 0 0 end end] {
+        string map {_ ε} [join [lmap row [my matrix get rect 0 0 end end] {
             format $fmt {*}$row
         }] \n]
     }

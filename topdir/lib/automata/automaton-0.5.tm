@@ -50,25 +50,26 @@ oo::class create ::automata::Automaton {
     constructor args {
         lassign {} labels frame
         array set values {}
-        ::struct::matrix matrix
+        set matrix [::struct::matrix]
+        oo::objdefine [self] forward matrix $matrix
         foreach script $args {
             oo::objdefine [self] $script
         }
     }
     method SelectQ {varName state body} {
         upvar 1 $varName var
-        for {set row 0} {$row < [matrix rows]} {incr row} {
-            set var [matrix get row $row]
+        for {set row 0} {$row < [my matrix rows]} {incr row} {
+            set var [my matrix get row $row]
             if {[lindex $var 0] eq $state} {uplevel 1 $body}
         }
     }
     method AddRow tuple {
         set tuple [regexp -all -inline {\w+} $tuple]
-        set n [expr {[llength $tuple] - [matrix columns]}]
+        set n [expr {[llength $tuple] - [my matrix columns]}]
         if {$n > 0} {
-            matrix add columns $n
+            my matrix add columns $n
         }
-        matrix add row $tuple
+        my matrix add row $tuple
     }
     method SetLabels _ {
         set labels $_
@@ -91,7 +92,7 @@ oo::class create ::automata::Automaton {
         }
         if {$values($name) eq {}} {
             if {$name in $labels} {
-                set values($name) [matrix get column [lsearch $labels $name]]
+                set values($name) [my matrix get column [lsearch $labels $name]]
             } else {
                 return -code error [format {no such value: %s} $name]
             }
@@ -273,7 +274,7 @@ oo::class create ::automata::Automaton {
     }
 
     method dump args {
-        list $labels [matrix serialize] [array get values] $frame
+        list $labels [my matrix serialize] [array get values] $frame
     }
 }
 
