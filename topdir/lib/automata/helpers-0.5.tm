@@ -65,7 +65,7 @@ oo::class create ::automata::ValuesHandler {
             print { set name B }
             stack { set name Z }
         }
-        return $values($name)
+        return [lindex [array get values $name] 1]
     }
 }
 

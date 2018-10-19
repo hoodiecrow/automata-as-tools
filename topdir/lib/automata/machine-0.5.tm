@@ -32,17 +32,16 @@ proc ::oo::objdefine::code body {
 
 oo::class create ::automata::Machine {
     mixin ::automata::FrameHandler ::automata::ValuesHandler ::automata::PrintHelper
-    variable values frame ops
     constructor args {
-        lassign {} frame
-        array set values {}
         set matrix [::struct::matrix]
         oo::objdefine [self] forward matrix $matrix
         my matrix add columns 5
         foreach script $args {
             oo::objdefine [self] $script
         }
-        namespace path {::tcl::mathop}
+        if no {
+            namespace path {::tcl::mathop}
+        }
     }
     method AddToken token {
         log::log d [info level 0] 
@@ -81,7 +80,7 @@ oo::class create ::automata::Machine {
     }
 
     method dump args {
-        list [my matrix serialize] [array get values] $frame
+        list [my matrix serialize] [my GetValues *] [my GetFrame]
     }
 }
 
@@ -97,7 +96,7 @@ oo::class create ::automata::CM {
     method print {} {
         set str {}
         set col 0
-        lappend %% %
+        lappend maplist %% %
         lappend maplist %T [my MakeTable {%-6s%-6s%-6s%s %s}]
         lappend maplist %D [join [my GetFrame] ", "]
         append str [string map $maplist [join {
@@ -127,7 +126,7 @@ oo::class create ::automata::KTR {
     method print {} {
         set str {}
         set col 0
-        lappend %% %
+        lappend maplist %% %
         lappend maplist %T [string map {ε -} [my MakeTable {%-12s%-6s%-6s%s %s}]]
         lappend maplist %D [join [my GetFrame] ", "]
         append str [string map $maplist [join {
@@ -250,7 +249,7 @@ oo::class create ::automata::PTM {
     method print {} {
         set str {}
         set col 0
-        lappend %% %
+        lappend maplist %% %
         lappend maplist %T [string map {ε -} [my MakeTable {%-12s%-6s%-6s%s %s}]]
         lappend maplist %D [join [my GetFrame] ", "]
         append str [string map $maplist [join {
@@ -283,7 +282,7 @@ oo::class create ::automata::SM {
     method print {} {
         set str {}
         set col 0
-        lappend %% %
+        lappend maplist %% %
         lappend maplist %T [string map {ε -} [my MakeTable {%-6s%-6s%-6s%s %s}]]
         lappend maplist %D [join [my GetFrame] ", "]
         append str [string map $maplist [join {
