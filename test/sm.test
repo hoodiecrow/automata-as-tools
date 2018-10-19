@@ -18,7 +18,7 @@ if no {
 test sm-1.0 {Calculate 4 x (2 + 3)} -body {
     ::automata::SM create M {
         code {
-            2 3 ADD 4 MUL
+            PUSH:2 PUSH:3 ADD PUSH:4 MUL
         }
     }
     M run {}
@@ -30,7 +30,7 @@ test sm-1.0 {Calculate 4 x (2 + 3)} -body {
 test sm-1.1 {print 1.0} -body {
     ::automata::SM create M {
         code {
-            2 3 ADD 4 MUL
+            PUSH:2 PUSH:3 ADD PUSH:4 MUL
         }
     }
     M print
@@ -46,13 +46,13 @@ test sm-1.1 {print 1.0} -body {
 Instantaneous description: stack, ipointer
 }
 
-test sm-2.0 {Implement a CLR operation} -body {
+test sm-2.0 {Implement a CLR operation, yes, could be DEC;JNZ:-1} -body {
     ::automata::SM create M {
         code {
-                    3
+                    PUSH:3
             a:      JZ:end
                     DEC
-                    J:a
+                    JMP:a
             end:    NOP
         }
     }
@@ -65,10 +65,10 @@ test sm-2.0 {Implement a CLR operation} -body {
 test sm-2.1 {Print 2.0} -body {
     ::automata::SM create M {
         code {
-                    3
+                    PUSH:3
             a:      JZ:end
                     DEC
-                    J:a
+                    JMP:a
             end:    NOP
         }
     }
@@ -80,7 +80,7 @@ test sm-2.1 {Print 2.0} -body {
       PUSH  3      
 a     JZ    end    
       DEC          
-      J     a      
+      JMP   a      
 end   NOP          
 Instantaneous description: stack, ipointer
 }

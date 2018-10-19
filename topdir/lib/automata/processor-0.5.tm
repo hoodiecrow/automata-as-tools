@@ -14,8 +14,6 @@ oo::class create ::automata::Processor {
             acc 0
             aux 0
             jmp {}
-            cflag 0
-            zflag 1
             <=> 0
             returns {}
             registers {}
@@ -30,10 +28,13 @@ oo::class create ::automata::Processor {
     }
     method acc: val {
         log::log d [info level 0] 
-        dict set data acc $val
-        dict set data zflag [expr {$val eq 0}]
-        dict set data <=> [expr {cmp($val, 0)}]
+        dict with data {
+            set acc $val
+            set <=> [expr {cmp($val, 0)}]
+        }
     }
+    method :cflag {} { dict with data { expr {${<=>} > 0} }}
+    method :zflag {} { dict with data { expr {${<=>} eq 0} }}
     method <=>: val {}
     export <=>:
     method returns: addr {
@@ -58,16 +59,20 @@ oo::class create ::automata::Processor {
     method :tape {} { dict with data { lindex $tape $head } }
     export :tape
     method load args {
-        switch [my :model] {
-            CM {
-                lassign $args - b
-                my acc: [my :registers $b]
-            }
-            PTM {
-                my acc: [my :tape]
-            }
-            SM {
-                my top
+        if {[lindex $args 1] eq "tape"} {
+            my acc: [my :tape]
+        } else {
+            switch [my :model] {
+                CM {
+                    lassign $args - b
+                    my acc: [my :registers $b]
+                }
+                PTM {
+                    my acc: [my :tape]
+                }
+                SM {
+                    my top
+                }
             }
         }
     }
@@ -101,7 +106,6 @@ oo::class create ::automata::Processor {
                 EQ NE EQL NEQ GT GE LT LE
         }} {
             my OP $key {*}$args
-            my cflag: [my :acc]
         } elseif {$key in {
                 ADD SUB MUL DIV MOD
                 AND OR XOR NOT NEG CMP
@@ -353,8 +357,7 @@ oo::class create ::automata::Processor {
         log::log d [info level 0] 
         my merge $f
         while {[my :ipointer] < [$machine matrix rows]} {
-            my acc: [my :tape]
-            log::log d [$machine matrix get row [my :ipointer]]\ /\ [my extract cflag zflag <=> ipointer] 
+            log::log d [$machine matrix get row [my :ipointer]]\ /\ [my extract <=> ipointer] 
             my {*}[lassign [$machine matrix get row [my :ipointer]] -]
             my step
         }
