@@ -3,6 +3,7 @@ package require struct::matrix
 ::tcl::tm::path add [file dirname [file dirname [file normalize [info script]]]]
 
 package require automata::helpers
+package require automata::processor
 
 namespace eval automata {}
 
@@ -60,12 +61,16 @@ oo::class create ::automata::Machine {
         }
     }
     method AddToken token {
+        log::log d [info level 0] 
         if {[string match *: $token]} {
             my matrix add row [string trimright $token :]
-        } elseif {[string is entier -strict $token]} {
+        } elseif {  no  &&  [string is entier -strict $token]} {
             my matrix add row [list {} PUSH $token]
         } else {
             set tuple [regexp -all -inline {(?:[-+]\d+|\w+)} $token]
+            if {[my matrix rows] eq 0} {
+                my matrix add row {}
+            }
             if {[my matrix get cell 1 end] eq {}} {
                 set label [my matrix get cell 0 end]
                 my matrix set row end [linsert $tuple 0 $label]
@@ -141,7 +146,7 @@ oo::class create ::automata::CM {
         lassign $args - b c
         uplevel 1 [list expr {[my Get $b] eq [my Get $c]}]
     }
-    method Execute f {
+    method __Execute f {
         dict with f {
             while {$ipointer < [my matrix rows]} {
                 lassign [my matrix get row $ipointer] - op a b c
@@ -155,6 +160,11 @@ oo::class create ::automata::CM {
             }
         }
         return $f
+    }
+    method Execute f {
+        ::automata::Processor create P CM [namespace which my]
+        P cycle $f
+        P extract {*}[my GetFrame]
     }
 }
 
@@ -302,7 +312,7 @@ oo::class create ::automata::PTM {
         } \n]]
         puts $str
     }
-    method Execute f {
+    method __Execute f {
         dict with f {
             while {$ipointer < [my matrix rows]} {
                 lassign [my matrix get row $ipointer] - op a b c
@@ -327,6 +337,11 @@ oo::class create ::automata::PTM {
             }
         }
         return $f
+    }
+    method Execute f {
+        ::automata::Processor create P PTM [namespace which my]
+        P cycle $f
+        P extract {*}[my GetFrame]
     }
     method run tape {
         dict values [my Execute [my MakeFrame $tape 0 [my GetValues start]]]
@@ -376,7 +391,7 @@ oo::class create ::automata::SM {
         lassign $args a b c
         uplevel 1 [list expr {[my Get $b] eq [my Get $c]}]
     }
-    method Execute f {
+    method __Execute f {
         dict with f {
             while {$ipointer < [my matrix rows]} {
                 lassign [my matrix get row $ipointer] - op a b c
@@ -393,6 +408,11 @@ oo::class create ::automata::SM {
             }
         }
         return $f
+    }
+    method Execute f {
+        ::automata::Processor create P SM [namespace which my]
+        P cycle $f
+        P extract {*}[my GetFrame]
     }
     method run stack {
         dict values [my Execute [my MakeFrame $stack [my GetValues start]]]

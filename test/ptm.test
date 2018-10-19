@@ -20,20 +20,17 @@ if no {
 test ptm-1.0 {2 state, 2 symbol busy beaver} -body {
     ::automata::PTM create M {
         code {
-            A:	JNZ:+4,0
-                PRINT
-                HEAD:R
-                J:B
-                PRINT
-                HEAD:L
-                J:B
-            B:	JNZ:+4,0
-                PRINT
-                HEAD:L
-                J:A
-                PRINT
+            A:	J1:+3,0
+                OUT:head,P,R
+                JMP:B
+                OUT:head,P,L
+                JMP:B
+            B:	J1:+3,0
+                OUT:head,P,L
+                JMP:A
+                OUT:head,P
                 NOP
-                J:H
+                JMP:H
             H:	HALT
         }
     }
@@ -41,25 +38,22 @@ test ptm-1.0 {2 state, 2 symbol busy beaver} -body {
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {{1 1 1 1} 1 14}
+} -result {{1 1 1 1} 1 11}
 
 test ptm-1.1 {2 state, 2 symbol busy beaver, print} -body {
     ::automata::PTM create M {
         code {
-            A:	JNZ:+4,0
-                PRINT
-                HEAD:R
-                J:B
-                PRINT
-                HEAD:L
-                J:B
-            B:	JNZ:+4,0
-                PRINT
-                HEAD:L
-                J:A
-                PRINT
+            A:	J1:+3,0
+                OUT:head,P,R
+                JMP:B
+                OUT:head,P,L
+                JMP:B
+            B:	J1:+3,0
+                OUT:head,P,L
+                JMP:A
+                OUT:head,P
                 NOP
-                J:H
+                JMP:H
             H:	HALT
         }
     }
@@ -68,20 +62,17 @@ test ptm-1.1 {2 state, 2 symbol busy beaver, print} -body {
     M destroy
     log::lvSuppressLE i 1
 } -output {Code
-A           JNZ   +4    0 
-            PRINT        
-            HEAD  R      
-            J     B      
-            PRINT        
-            HEAD  L      
-            J     B      
-B           JNZ   +4    0 
-            PRINT        
-            HEAD  L      
-            J     A      
-            PRINT        
+A           J1    +3    0 
+            OUT   head  P R
+            JMP   B      
+            OUT   head  P L
+            JMP   B      
+B           J1    +3    0 
+            OUT   head  P L
+            JMP   A      
+            OUT   head  P 
             NOP          
-            J     H      
+            JMP   H      
 H           HALT         
 Instantaneous description: tape, head, ipointer
 }
@@ -89,22 +80,20 @@ Instantaneous description: tape, head, ipointer
 test ptm-1.2 {multiply two numbers in unary} -body {
     ::automata::PTM create M {
         code {
-            begin:      HEAD:R J1:-1,0 HEAD:R J1:-1,0 HEAD:R PRINT
-                        HEAD:L
-            a_loop:     HEAD:L J1:-1,0 HEAD:L J1:-1,0 HEAD:R
-                        ERASE
-                        HEAD:R J0:done,0
-                        HEAD:R J1:-1,0 HEAD:R
-            b_loop:     HEAD:R
+            begin:      OUT:head,0,R J1:-1,0 OUT:head,0,R J1:-1,0 OUT:head,0,R OUT:head,P,L
+            a_loop:     OUT:head,0,L J1:-1,0 OUT:head,0,L J1:-1,0 OUT:head,0,R OUT:head,E,R
+                        J0:done,0
+                        OUT:head,0,R J1:-1,0 OUT:head,0,R
+            b_loop:     OUT:head,0,R
                         J0:a_loop,0
-                        ERASE
-                        HEAD:R J1:-1,0 HEAD:R J1:-1,0
-                        PRINT
-                        HEAD:L J1:-1,0 HEAD:L J1:-1,0 PRINT
+                        OUT:head,E
+                        OUT:head,0,R J1:-1,0 OUT:head,0,R J1:-1,0
+                        OUT:head,P
+                        OUT:head,0,L J1:-1,0 OUT:head,0,L J1:-1,0 OUT:head,P
                         J1:b_loop,0
-                        HEAD:R
+                        OUT:head,0,R
                         J0:a_loop,0
-                        ERASE
+                        OUT:head,E
             done:       HALT
         }
     }
@@ -112,7 +101,7 @@ test ptm-1.2 {multiply two numbers in unary} -body {
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {{0 0 0 0 0 0 1 1 1 1 1 0 1 1 1 1 1 1 1 1 1 1 1 1 1 0} 5 35}
+} -result {{0 0 0 0 0 0 1 1 1 1 1 0 1 1 1 1 1 1 1 1 1 1 1 1 1 0} 5 33}
 
 if {[package vcompare [package present automata::machine] 0.4] > 0} { 
     cleanupTests ; return 

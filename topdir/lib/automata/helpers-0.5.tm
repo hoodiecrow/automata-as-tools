@@ -29,7 +29,7 @@ oo::class create ::automata::TapeHandler {
                     incr head -1
                 }
             }
-            N {}
+            N - {} {}
         }
         return [list $tape $head]
     }
@@ -37,6 +37,7 @@ oo::class create ::automata::TapeHandler {
 
 oo::class create ::automata::FrameHandler {
     variable frame
+    constructor args {next {*}$args}
     method SetFrame frm {
         set frame $frm
     }
@@ -53,6 +54,7 @@ oo::class create ::automata::FrameHandler {
 
 oo::class create ::automata::ValuesHandler {
     variable values
+    constructor args {next {*}$args}
     method SetValues {name {value {}}} {
         set values($name) $value
     }
@@ -68,6 +70,7 @@ oo::class create ::automata::ValuesHandler {
 }
 
 oo::class create ::automata::PrintHelper {
+    constructor args {next {*}$args}
     method MakeMaplist args {
         lappend maplist %% %
         foreach arg $args {

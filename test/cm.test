@@ -22,11 +22,11 @@ test cm-1.0 {Implement a CPY operation} -body {
                 DEC:2
                 INC:3
                 INC:1
-                J:a
+                JMP:a
             b:  JZ:z,1
                 DEC:1
                 INC:2
-                J:b
+                JMP:b
             z:  NOP
         }
     }
@@ -43,11 +43,11 @@ test cm-1.1 {print 1.0} -body {
                 DEC:2
                 INC:3
                 INC:1
-                J:a
+                JMP:a
             b:  JZ:z,1
                 DEC:1
                 INC:2
-                J:b
+                JMP:b
             z:  NOP
         }
     }
@@ -60,11 +60,11 @@ a     JZ    b     2
       DEC   2      
       INC   3      
       INC   1      
-      J     a      
+      JMP   a      
 b     JZ    z     1 
       DEC   1      
       INC   2      
-      J     b      
+      JMP   b      
 z     NOP          
 Instantaneous description: registers, ipointer
 }

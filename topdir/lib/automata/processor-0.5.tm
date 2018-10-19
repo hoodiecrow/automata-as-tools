@@ -6,15 +6,16 @@ namespace eval automata {}
 proc ::tcl::mathfunc::cmp {a b} { if {$a == $b} {return 0} elseif {$a < $b} {return -1} else {return 1}}
 
 oo::class create ::automata::Processor {
-    variable data matrix
+    variable data machine
     constructor args {
-        lassign $args matrix
-        oo::objdefine [self] forward matrix $matrix
+        lassign $args _model machine
         set data {
             model {}
             acc 0
             aux 0
             jmp {}
+            cflag 0
+            zflag 1
             <=> 0
             returns {}
             registers {}
@@ -25,25 +26,13 @@ oo::class create ::automata::Processor {
             stack {}
             ipointer 0
         }
+        dict set data model $_model
     }
     method acc: val {
         log::log d [info level 0] 
         dict set data acc $val
+        dict set data zflag [expr {$val eq 0}]
         dict set data <=> [expr {cmp($val, 0)}]
-    }
-    if no {
-        method :jmp {} {
-            dict with data {
-                if {$jmp eq {}} {
-                    set addr $ipointer
-                } else {
-                    set addr $jmp
-                    set jmp {}
-                }
-            }
-            return $addr
-        }
-        export :jmp
     }
     method <=>: val {}
     export <=>:
@@ -63,18 +52,35 @@ oo::class create ::automata::Processor {
     method :registers args { lindex [dict get $data registers] {*}$args }
     export :registers
     method stack: args { dict with data { lset stack {*}$args } }
-    method :stack {} { lindex [dict get $data stack] }
+    method :stack {} { lindex [dict get $data stack] 0 }
     export :stack
     method tape: val { dict with data { lset tape $head $val } }
-    method :tape {} { dict with data { lindex tape $head } }
+    method :tape {} { dict with data { lindex $tape $head } }
     export :tape
-    method pop {} { dict with data { set stack [lassign $stack top] } ; my acc: $top }
+    method load args {
+        switch [my :model] {
+            CM {
+                lassign $args - b
+                my acc: [my :registers $b]
+            }
+            PTM {
+                my acc: [my :tape]
+            }
+            SM {
+                my top
+            }
+        }
+    }
+    method top {} { dict with data { lindex $stack 0 } }
+    method pop {} { dict with data { set stack [lassign $stack acc] } }
+    method popx {} { dict with data { set stack [lassign $stack aux] } }
     method push {} { dict with data { set stack [linsert $stack 0 $acc] } }
-    method xchg {} {
-        dict with data {}
-        set val $acc
-        set acc $aux
-        set aux $val
+    method swap {} {
+        dict with data {
+            set val $acc
+            set acc $aux
+            set aux $val
+        }
     }
                     
     method unknown {name args} {
@@ -92,8 +98,13 @@ oo::class create ::automata::Processor {
         }} {
             my $key {*}$args
         } elseif {$key in {
-                EQ EQL ADD SUB MUL DIV MOD
-                AND OR XOR NOT IDENT CMP
+                EQ NE EQL NEQ GT GE LT LE
+        }} {
+            my OP $key {*}$args
+            my cflag: [my :acc]
+        } elseif {$key in {
+                ADD SUB MUL DIV MOD
+                AND OR XOR NOT NEG CMP
         }} {
             my OP $key {*}$args
         } else {
@@ -117,26 +128,25 @@ oo::class create ::automata::Processor {
     }
     method DUP args {
         switch [my :model] {
-            CM {
-                dict with data {}
-                set val [lindex $stack $a]
-                set stack [linsert $stack 0 $val]
-                dict set data <=> [expr {cmp($val, 0)}]
+            SM {
+                my top
+                my push
             }
         }
     }
     method exec {op args} {
+        log::log d "[info level 0] / [my extract acc stack]"
         switch $op {
-            IDENT { dict set data <=> [expr {cmp([my :acc], [my :acc])}] }
             CMP { dict set data <=> [expr {cmp([my :acc], [my :aux])}] }
             NOT { my acc: [::tcl::mathop::! [my :acc]] }
+            NEG { my acc: [::tcl::mathop::* [my :acc] -1] }
             INC { my acc: [expr {[my :acc] + 1}] }
             DEC { my acc: [expr {[my :acc] - 1}] }
             default {
                 set op [dict get {
-                    EQ eq EQL == GT >
+                    EQ eq NE ne EQL == NEQ -!= GT > GE >= LT < LE <=
                     ADD + SUB - MUL * DIV / MOD %
-                    AND && OR || XOR ^ NOT !
+                    AND && OR || XOR ^
                 } $op]
                 my acc: [::tcl::mathop::$op [my :aux] [my :acc]]
             }
@@ -152,8 +162,7 @@ oo::class create ::automata::Processor {
                 my registers: $a [my :acc]
             }
             SM {
-                my pop
-                my xchg
+                my popx
                 my pop
                 my exec $op
                 my push
@@ -218,82 +227,70 @@ oo::class create ::automata::Processor {
         lassign $args a
         my jmp: $a
     }
-    method JE args {
-        switch [my :model] {
-            CM {
-                lassign $args a b c
-                my acc: [my :registers $c]
-                my aux: [my :registers $b]
-                my exec CMP
-                if {![my :<=>]} {my jmp: $a}
-            }
-        }
+    method jmpc {op addr} {
+        if {[my :cflag]} {my jmp: $addr}
+    }
+    method JEQ args {
+        my exec EQ {*}$args
+        my jmpc eq [lindex $args 0]
     }
     method JNE args {
-        switch [my :model] {
-            CM {
-                lassign $args a b c
-                my acc: [my :registers $c]
-                my aux: [my :registers $b]
-                my exec CMP
-                if {[my :<=>]} {my jmp: $a}
-            }
-        }
+        my exec EQ {*}$args
+        my jmpc [lindex $args 0]
+    }
+    method JG args {
+        my exec GT {*}$args
+        my jmpc [lindex $args 0]
+    }
+    method JGE args {
+        my exec GE {*}$args
+        my jmpc [lindex $args 0]
+    }
+    method J0 args {
+        my load {*}$args
+        if {[my :zflag]} {my jmp: [lindex $args 0]}
+    }
+    method J1 args {
+        my load {*}$args
+        if {![my :zflag]} {my jmp: [lindex $args 0]}
     }
     method JZ args {
-        lassign $args a b c
-        switch [my :model] {
-            CM {
-                my acc: [my :registers $c]
-                my aux: 0
-            }
-            SM {
-                my acc: [my :stack 0]
-                my aux: 0
-            }
-            default { return }
-        }
-        my exec CMP
-        if {![my :<=>]} {my jmp: $a}
+        my load {*}$args
+        if {[my :zflag]} {my jmp: [lindex $args 0]}
     }
     method JNZ args {
-        lassign $args a b c
-        switch [my :model] {
-            CM {
-                my acc: [my :registers $c]
-                my aux: 0
-            }
-            SM {
-                my acc: [my :stack 0]
-                my aux: 0
-            }
-            default { return }
-        }
-        my exec CMP
-        if {[my :<=>]} {my jmp: $a}
+        my load {*}$args
+        if {![my :zflag]} {my jmp: [lindex $args 0]}
     }
+
     method CALL args {
         lassign $args a
-        my returns: [my :ipointer]
+        my returns: [expr {[my :ipointer] + 1}]
         my jmp: $a
     }
     method RET {} {
         my jmp: [my :returns]
     }
     method NOP args {}
-    method HALT {} {
-        <somehow halt processor>
+    method HALT args {
+        return -code break
     }
     method OUT args {
         lassign $args what act move
         switch $what {
             tape {
-                my tape-act $act
-                my tape-move $move
+                dict with data {
+                    set tape [$machine Print $tape $head $act]
+                    lassign [$machine Roll $tape $head $move] tape head
+                }
+                my acc: [my :tape]
             }
             head {
-                my head-act $act
-                my head-move $move
+                dict with data {
+                    set tape [$machine Print $tape $head $act]
+                    lassign [$machine Roll $tape $head [string map {R L L R} $move]] tape head
+                }
+                my acc: [my :tape]
             }
             robot {
                 my robot-act $act
@@ -329,27 +326,38 @@ oo::class create ::automata::Processor {
         }
     }
 
-    method merge args {
-        set data [dict merge $data $args]
+    method merge f {
+        set data [dict merge $data $f]
     }
 
     method step {} {
         dict with data {
             if {$jmp ne {}} {
-                set ipointer $jmp
+                set ipointer [
+                    if {[regexp {[-+]\d+} $jmp]} {
+                        expr $ipointer $jmp
+                    } elseif {![string is integer -strict $jmp]} {
+                        lindex [$machine matrix search column 0 $jmp] 0 1
+                    } else {
+                        set jmp
+                    }
+                ]
+                set jmp {}
+            } else {
+                incr ipointer
             }
         }
     }
 
-    method cycle args {
-        my merge $args
-        dict with data {
-            set oper [lassign [my matrix get row $ipointer] -]
-            incr ipointer
-            set jmp {}
+    method cycle f {
+        log::log d [info level 0] 
+        my merge $f
+        while {[my :ipointer] < [$machine matrix rows]} {
+            my acc: [my :tape]
+            log::log d [$machine matrix get row [my :ipointer]]\ /\ [my extract cflag zflag <=> ipointer] 
+            my {*}[lassign [$machine matrix get row [my :ipointer]] -]
+            my step
         }
-        my {*}$oper
-        my step
     }
 
     method extract args {
