@@ -127,9 +127,9 @@ oo::class create ::automata::KTR {
         }]]
     }
     method Turn robot {
-        lassign $robot xpos ypos bag facing
-        set facing [dict get {e n n w w s s e} $facing]
-        list $xpos $ypos $bag $facing
+        lset robot 3 [dict get {
+            e n n w w s s e
+        } [lindex $robot 3]]
     }
     method Move robot {
         lassign $robot xpos ypos bag facing
@@ -143,7 +143,6 @@ oo::class create ::automata::KTR {
     }
     method CheckCollision {world robot} {
         lassign $world width height beepers walls
-        log::log d [info level 0] 
         lassign $robot xpos ypos bag facing
         if {$xpos <= 0 || $ypos <= 0 || $xpos > $width || $ypos > $height} {
             return 1

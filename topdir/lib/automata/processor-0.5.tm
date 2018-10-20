@@ -7,180 +7,96 @@ proc ::tcl::mathfunc::cmp {a b} { if {$a == $b} {return 0} elseif {$a < $b} {ret
 
 oo::class create ::automata::Processor {
     variable data machine
+
+    # TODO eliminate reduntant data items?
     constructor args {
-        lassign $args _model machine
-        set data {
-            model {}
-            acc 0
-            aux 0
-            jmp {}
-            <=> 0
-            returns {}
-            registers {}
-            world {}
-            robot {}
-            tape {}
-            head 0
-            stack {}
-            ipointer 0
-        }
-        dict set data model $_model
+        lassign $args model machine
+        my reset $model
     }
+
+    method reset model {
+        dict set data model     $model ;# model of computation for this machine
+        dict set data acc       0      ;# accumulator
+        dict set data aux       0      ;# auxiliary accumulator for binary operations
+        dict set data jmp       {}     ;# next address if jumping
+        dict set data <=>       0      ;# comparison register (-1, 0, 1)
+        dict set data returns   {}     ;# call stack
+        dict set data registers {}     ;# registers, for the CM
+        dict set data world     {}     ;# world, for the KTR
+        dict set data robot     {}     ;# robot, for the KTR
+        dict set data tape      {}     ;# tape, for the PTM
+        dict set data head      0      ;# tape head, for the PTM
+        dict set data stack     {}     ;# stack, for the SM
+        dict set data ipointer  0      ;# instruction pointer
+    }
+
+    # specialized getter (:foo) and setter (foo:) methods
+
     method acc: val {
-        log::log d [info level 0] 
+        # Setting acc updates <=> register.
         dict with data {
             set acc $val
             set <=> [expr {cmp($val, 0)}]
         }
     }
+
+    # the flag pseudo-registers depend on <=>
     method :cflag {} { dict with data { expr {${<=>} > 0} }}
     method :zflag {} { dict with data { expr {${<=>} eq 0} }}
+
+    # make the setter for <=> a no-op
     method <=>: val {}
-    export <=>:
+
+    # the setter and getter for returns pushes/pops
     method returns: addr {
-        dict with data {
-            set returns [linsert $returns 0 $addr]
-        }
+        dict with data { set returns [linsert $returns 0 $addr] }
     }
     method :returns {} {
-        dict with data {
-            set returns [lassign $returns addr]
-        }
+        dict with data { set returns [lassign $returns addr] }
         return $addr
     }
-    export :returns
-    method registers: args { dict with data { lset registers {*}$args } }
-    method :registers args { lindex [dict get $data registers] {*}$args }
-    export :registers
-    method stack: args { dict with data { lset stack {*}$args } }
-    method :stack {} { lindex [dict get $data stack] 0 }
-    export :stack
+
+    # the setter/getter for registers, used by the CM
+    method registers: {idx val} { dict with data { lset registers $idx $val } }
+    method :registers {{idx 0}} { dict with data { lindex $registers $idx } }
+
+    # the (indexed) setter/getter for stack, used by the SM
+    method stack: {idx val} { dict with data { lset stack $idx $val } }
+    method :stack {{idx 0}} { dict with data { lindex $stack $idx } }
+
+    # the setter/getter for tape, used by the PTM
     method tape: val { dict with data { lset tape $head $val } }
     method :tape {} { dict with data { lindex $tape $head } }
-    export :tape
-    method load args {
-        if {[lindex $args 1] eq "tape"} {
-            my acc: [my :tape]
-        } else {
-            switch [my :model] {
-                CM {
-                    lassign $args - b
-                    my acc: [my :registers $b]
-                }
-                PTM {
-                    my acc: [my :tape]
-                }
-                SM {
-                    my top
-                }
-            }
+
+    method load {{- {}} {b 0} args} {
+        log::log d [info level 0] 
+        # load accumulator with a value from the default location
+        switch [my :model] {
+            CM  { my acc: [my :registers $b] }
+            PTM { my acc: [my :tape] }
+            SM  { my top }
         }
     }
-    method top {} { dict with data { lindex $stack 0 } }
-    method pop {} { dict with data { set stack [lassign $stack acc] } }
-    method popx {} { dict with data { set stack [lassign $stack aux] } }
+
+    method store {{- {}} {b 0} args} {
+        log::log d [info level 0] 
+        # store accumulator value into the default location
+        switch [my :model] {
+            CM  { my registers: $b [my :acc] }
+            PTM { my tape: [my :acc] }
+            SM  { my drop ; my push }
+        }
+    }
+
+    # stack access (SM only):
+    # acc ← stack[0] / acc ← stack[0], drop / aux ← stack[0], drop / push acc / drop 
+    method top  {} { dict with data { set top [lindex $stack 0]      } ; my acc: $top }
+    method pop  {} { dict with data { set stack [lassign $stack top] } ; my acc: $top }
+    method popx {} { dict with data { set stack [lassign $stack top] } ; my aux: $top }
     method push {} { dict with data { set stack [linsert $stack 0 $acc] } }
-    method swap {} {
-        dict with data {
-            set val $acc
-            set acc $aux
-            set aux $val
-        }
-    }
-                    
-    method unknown {name args} {
-        set key [string trim $name :]
-        if {$key in [dict keys $data]} {
-            switch $name $key: {
-                dict set data $key {*}$args
-            } :$key {
-                dict get $data $key
-            }
-        } elseif {$key in {
-                CLR DUP CPY PUSH POP INC DEC
-                JMP JE JNE JZ JNZ CALL RET
-                NOP HALT OUT TEST
-        }} {
-            my $key {*}$args
-        } elseif {$key in {
-                EQ NE EQL NEQ GT GE LT LE
-        }} {
-            my OP $key {*}$args
-        } elseif {$key in {
-                ADD SUB MUL DIV MOD
-                AND OR XOR NOT NEG CMP
-        }} {
-            my OP $key {*}$args
-        } else {
-            return -code error [format {unknown method "%s"} $name]
-        }
-    }
-    method CLR args {
-        switch [my :model] {
-            CM {
-                lassign $args a
-                my registers: $a 0
-            }
-            PTM {
-                my tape: 0
-            }
-            SM {
-                my stack: 0 0
-            }
-        }
-        dict set data <=> 0
-    }
-    method DUP args {
-        switch [my :model] {
-            SM {
-                my top
-                my push
-            }
-        }
-    }
-    method exec {op args} {
-        log::log d "[info level 0] / [my extract acc stack]"
-        switch $op {
-            CMP { dict set data <=> [expr {cmp([my :acc], [my :aux])}] }
-            NOT { my acc: [::tcl::mathop::! [my :acc]] }
-            NEG { my acc: [::tcl::mathop::* [my :acc] -1] }
-            INC { my acc: [expr {[my :acc] + 1}] }
-            DEC { my acc: [expr {[my :acc] - 1}] }
-            default {
-                set op [dict get {
-                    EQ eq NE ne EQL == NEQ -!= GT > GE >= LT < LE <=
-                    ADD + SUB - MUL * DIV / MOD %
-                    AND && OR || XOR ^
-                } $op]
-                my acc: [::tcl::mathop::$op [my :aux] [my :acc]]
-            }
-        }
-    }
-    method OP {op args} {
-        switch [my :model] {
-            CM {
-                lassign $args a b c
-                my acc: [my :registers $c]
-                my aux: [my :registers $b]
-                my exec $op
-                my registers: $a [my :acc]
-            }
-            SM {
-                my popx
-                my pop
-                my exec $op
-                my push
-            }
-        }
-    }
-    method CPY args {
-        switch [my :model] {
-            CM {
-                lassign $args a b
-                my registers: $a [my :registers $b]
-            }
-        }
-    }
+    method drop {} { dict with data { set stack [lassign $stack top] } }
+
+    # PUSH val: push val onto stack / PUSH: push acc onto stack
     method PUSH args {
         switch [my :model] {
             SM {
@@ -195,60 +111,118 @@ oo::class create ::automata::Processor {
     method POP {} {
         switch [my :model] { SM { my pop } }
     }
-    method INC args {
-        set op INC
+    export PUSH POP
+
+    # swap values between acc and aux
+    method swap {} {
+        dict with data {
+            set val $aux
+            set aux $acc
+        }
+        my acc: $val
+    }
+                    
+    # clear acc and store in default location
+    method CLR args {
+        my acc: 0
+        my store {} {*}$args
+    }
+
+    # copy register a ← b (CM only)
+    method CPY args {
         switch [my :model] {
             CM {
-                lassign $args a
-                my acc: [my :registers $a]
-                my exec $op
-                my registers: $a [my :acc]
+                lassign $args a b
+                my registers: $a [my :registers $b]
             }
+        }
+    }
+
+    # duplicate top item (SM only)
+    method DUP args {
+        switch [my :model] {
             SM {
-                my pop
-                my exec $op
+                my top
                 my push
             }
         }
     }
-    method DEC args {
-        set op DEC
+
+    export CLR CPY DUP
+
+    # arithmetic / logic operations (CM and SM only)
+    forward NOT my UNOP !
+    forward NEG my UNOP NEG
+    forward INC my UNOP INC
+    forward DEC my UNOP DEC
+    export NOT NEG INC DEC
+    method UNOP {op args} {
+        my load {} {*}$args
+        switch $op {
+            NEG { my acc: [::tcl::mathop::* [my :acc] -1] }
+            INC { my acc: [expr {[my :acc] + 1}] }
+            DEC { my acc: [expr {[my :acc] - 1}] }
+            default {
+                my acc: [::tcl::mathop::$op [my :acc]]
+            }
+        }
+        my store {} {*}$args
+    }
+    forward EQ  my BINOP eq
+    forward NE  my BINOP ne
+    forward EQL my BINOP ==
+    forward NEQ my BINOP !=
+    forward GT  my BINOP >
+    forward GE  my BINOP >=
+    forward LT  my BINOP <
+    forward LE  my BINOP <=
+    forward ADD my BINOP +
+    forward SUB my BINOP -
+    forward MUL my BINOP *
+    forward DIV my BINOP /
+    forward MOD my BINOP %
+    forward AND my BINOP &&
+    forward OR  my BINOP ||
+    forward XOR my BINOP ^
+    export EQ NE EQL NEQ GT GE LT LE ADD SUB MUL DIV MOD AND OR XOR 
+    method BINOP {op args} {
         switch [my :model] {
             CM {
-                lassign $args a
-                my acc: [my :registers $a]
-                my exec $op
+                lassign $args a b c
+                my acc: [my :registers $c]
+                my aux: [my :registers $b]
+                my acc: [::tcl::mathop::$op [my :aux] [my :acc]]
                 my registers: $a [my :acc]
             }
             SM {
+                my popx
                 my pop
-                my exec $op
+                my acc: [::tcl::mathop::$op [my :aux] [my :acc]]
                 my push
             }
         }
     }
+
+    # jumps
     method JMP args {
         lassign $args a
         my jmp: $a
     }
     method jmpc {op addr} {
+        my BINOP $op {*}$args
         if {[my :cflag]} {my jmp: $addr}
     }
     method JEQ args {
-        my exec EQ {*}$args
-        my jmpc eq [lindex $args 0]
+        my jmpc eq {*}$args
     }
     method JNE args {
-        my exec EQ {*}$args
-        my jmpc [lindex $args 0]
+        my jmpc ne {*}$args
     }
     method JG args {
-        my exec GT {*}$args
-        my jmpc [lindex $args 0]
+        my jmpc > {*}$args
     }
     method JGE args {
-        my exec GE {*}$args
-        my jmpc [lindex $args 0]
+        my jmpc >= {*}$args
     }
     method J0 args {
         my load {*}$args
@@ -266,7 +240,9 @@ oo::class create ::automata::Processor {
         my load {*}$args
         if {![my :zflag]} {my jmp: [lindex $args 0]}
     }
+    export JMP JEQ JNE JG JGE J0 J1 JZ JNZ
 
+    # subroutine call/return
     method CALL args {
         lassign $args a
         my returns: [expr {[my :ipointer] + 1}]
@@ -275,10 +251,17 @@ oo::class create ::automata::Processor {
     method RET args {
         my jmp: [my :returns]
     }
+    export CALL RET
+
     method NOP args {}
+    export NOP
+
     method HALT args {
         return -code break
     }
+    export HALT
+
+    # manipulate the machine's environment somehow
     method OUT args {
         lassign $args what act move
         switch $what {
@@ -310,6 +293,9 @@ oo::class create ::automata::Processor {
             default { return }
         }
     }
+    export OUT
+
+    # inspect the machine's environment
     method TEST args {
         lassign $args a b c
         switch $a {
@@ -331,6 +317,7 @@ oo::class create ::automata::Processor {
             }
         }
     }
+    export TEST
 
     method merge f {
         set data [dict merge $data $f]
@@ -356,7 +343,6 @@ oo::class create ::automata::Processor {
     }
 
     method cycle f {
-        log::log d [info level 0] 
         my merge $f
         set ip [my :ipointer]
         while {0 <= $ip && $ip < [$machine matrix rows]} {
@@ -372,5 +358,18 @@ oo::class create ::automata::Processor {
         }
         return $res
     }
-}
 
+    # resolve unknown methods
+    method unknown {name args} {
+        set key [string trim $name :]
+        if {$key in [dict keys $data]} {
+            switch $name $key: {
+                dict set data $key {*}$args
+            } :$key {
+                dict get $data $key
+            }
+        } else {
+            return -code error [format {unknown method "%s"} $name]
+        }
+    }
+}
