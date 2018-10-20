@@ -62,18 +62,18 @@ test ptm-1.1 {2 state, 2 symbol busy beaver, print} -body {
     M destroy
     log::lvSuppressLE i 1
 } -output {Code
-A           J1    +3    0 
-            OUT   head  P R
-            JMP   B      
-            OUT   head  P L
-            JMP   B      
-B           J1    +3    0 
-            OUT   head  P L
-            JMP   A      
-            OUT   head  P 
-            NOP          
-            JMP   H      
-H           HALT         
+A     J1    +3    0 
+      OUT   head  P R
+      JMP   B      
+      OUT   head  P L
+      JMP   B      
+B     J1    +3    0 
+      OUT   head  P L
+      JMP   A      
+      OUT   head  P 
+      NOP          
+      JMP   H      
+H     HALT         
 Instantaneous description: tape, head, ipointer
 }
 

@@ -81,6 +81,18 @@ oo::class create ::automata::Machine {
         P destroy
         dict values $result
     }
+    method print {} {
+        set str {}
+        lappend maplist %% %
+        lappend maplist %T [my MakeTable {%-6s%-6s%-6s%s %s}]
+        lappend maplist %D [join [my GetFrame] ", "]
+        append str [string map $maplist [join {
+            Code
+            %T
+            {Instantaneous description: %D}
+        } \n]]
+        puts $str
+    }
 
     method dump args {
         list [my matrix serialize] [my GetValues *] [my GetFrame]
@@ -95,19 +107,6 @@ oo::class create ::automata::CM {
             start 0
             print 0 1
         }
-    }
-    method print {} {
-        set str {}
-        set col 0
-        lappend maplist %% %
-        lappend maplist %T [my MakeTable {%-6s%-6s%-6s%s %s}]
-        lappend maplist %D [join [my GetFrame] ", "]
-        append str [string map $maplist [join {
-            Code
-            %T
-            {Instantaneous description: %D}
-        } \n]]
-        puts $str
     }
     method run registers {
         my Execute CM [list {*}$registers]
@@ -124,7 +123,6 @@ oo::class create ::automata::KTR {
     }
     method print {} {
         set str {}
-        set col 0
         lappend maplist %% %
         lappend maplist %T [string map {ε -} [my MakeTable {%-12s%-6s%-6s%s %s}]]
         lappend maplist %D [join [my GetFrame] ", "]
@@ -245,19 +243,6 @@ oo::class create ::automata::PTM {
             print 0 1
         }
     }
-    method print {} {
-        set str {}
-        set col 0
-        lappend maplist %% %
-        lappend maplist %T [string map {ε -} [my MakeTable {%-12s%-6s%-6s%s %s}]]
-        lappend maplist %D [join [my GetFrame] ", "]
-        append str [string map $maplist [join {
-            Code
-            %T
-            {Instantaneous description: %D}
-        } \n]]
-        puts $str
-    }
     method run tape {
         my Execute PTM [list {*}$tape] 0
     }
@@ -270,19 +255,6 @@ oo::class create ::automata::SM {
             frame stack ipointer
             start 0
         }
-    }
-    method print {} {
-        set str {}
-        set col 0
-        lappend maplist %% %
-        lappend maplist %T [string map {ε -} [my MakeTable {%-6s%-6s%-6s%s %s}]]
-        lappend maplist %D [join [my GetFrame] ", "]
-        append str [string map $maplist [join {
-            Code
-            %T
-            {Instantaneous description: %D}
-        } \n]]
-        puts $str
     }
     method run stack {
         my Execute SM [list {*}$stack]

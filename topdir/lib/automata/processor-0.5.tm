@@ -356,10 +356,11 @@ oo::class create ::automata::Processor {
     method cycle f {
         log::log d [info level 0] 
         my merge $f
-        while {[my :ipointer] < [$machine matrix rows]} {
-            log::log d [$machine matrix get row [my :ipointer]]\ /\ [my extract <=> ipointer] 
-            my {*}[lassign [$machine matrix get row [my :ipointer]] -]
+        set ip [my :ipointer]
+        while {0 <= $ip && $ip < [$machine matrix rows]} {
+            my {*}[lrange [$machine matrix get row $ip] 1 end]
             my step
+            set ip [my :ipointer]
         }
     }
 
