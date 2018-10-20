@@ -11,7 +11,7 @@ test processor-1.0 {set acc and check <=>} -body {
     ::automata::Processor create P
     set res [P extract <=>]
     P acc: 99
-    lappend res [P extract <=> acc]
+    lappend res [P extract acc <=>]
 } -cleanup {
     P destroy
     log::lvSuppressLE i 1
@@ -22,7 +22,7 @@ test processor-1.1 {set acc and check <=>} -body {
     ::automata::Processor create P
     set res [P extract <=>]
     P acc: 0
-    lappend res [P extract <=> acc]
+    lappend res [P extract acc <=>]
 } -cleanup {
     P destroy
     log::lvSuppressLE i 1
@@ -38,7 +38,7 @@ test processor-2.0 {CALL and RET} -body {
     P step
     P CALL 55
     P step
-    set res [P extract returns jmp ipointer]
+    set res [P extract jmp returns ipointer]
 } -cleanup {
     P destroy
     log::lvSuppressLE i 1
@@ -58,7 +58,7 @@ test processor-2.1 {CALL and RET} -body {
     P step
     P RET
     P step
-    set res [P extract returns jmp ipointer]
+    set res [P extract jmp returns ipointer]
 } -cleanup {
     P destroy
     log::lvSuppressLE i 1

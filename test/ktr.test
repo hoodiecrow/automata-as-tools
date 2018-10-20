@@ -19,26 +19,26 @@ test ktr-1.0 {} -body {
     ::automata::KTR create M {
         code {
             a:          TEST:next-to-a-beeper
-                        JNZ:end,0
+                        J1:end
                         TEST:right-is-clear
-                        JZ:b,0
+                        J0:b
                         CALL:turnright
-                        J:c
+                        JMP:c
             b:          TEST:front-is-clear
-                        JNZ:c,0
-                        TURN
-                        J:b
-            c:          MOVE
-                        J:a
+                        J1:c
+                        OUT:robot,TURN
+                        JMP:b
+            c:          OUT:robot,MOVE
+                        JMP:a
             end:        HALT
-            turnright:  TURN TURN TURN RET
+            turnright:  OUT:robot,TURN OUT:robot,TURN OUT:robot,TURN RET
         }
     }
-    M run {3 3} {1 1 0 e} {3 2} {2 1 2 2}
+    M run {3 3 {3 2} {2 1 2 2}} {1 1 0 e}
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {{3 3} {3 2 0 s} {} {3 2} {2 1 2 2} 0 12}
+} -result {{3 3 {3 2} {2 1 2 2}} {3 2 0 s} {} 0 12}
 
 test ktr-1.1 {print 1.0} -body {
     ::automata::KTR create M {
@@ -48,15 +48,15 @@ test ktr-1.1 {print 1.0} -body {
                         TEST:right-is-clear
                         JZ:b,0
                         CALL:turnright
-                        J:c
+                        JMP:c
             b:          TEST:front-is-clear
                         JNZ:c,0
-                        TURN
-                        J:b
-            c:          MOVE
-                        J:a
+                        OUT:robot,TURN
+                        JMP:b
+            c:          OUT:robot,MOVE
+                        JMP:a
             end:        HALT
-            turnright:  TURN TURN TURN RET
+            turnright:  OUT:robot,TURN OUT:robot,TURN OUT:robot,TURN RET
         }
     }
     M print
@@ -69,19 +69,19 @@ a           TEST  next  to a
             TEST  right is clear
             JZ    b     0 
             CALL  turnright 
-            J     c      
+            JMP   c      
 b           TEST  front is clear
             JNZ   c     0 
-            TURN         
-            J     b      
-c           MOVE         
-            J     a      
+            OUT   robot TURN 
+            JMP   b      
+c           OUT   robot MOVE 
+            JMP   a      
 end         HALT         
-turnright   TURN         
-            TURN         
-            TURN         
+turnright   OUT   robot TURN 
+            OUT   robot TURN 
+            OUT   robot TURN 
             RET          
-Instantaneous description: width, height, xpos, ypos, bag, facing, returns, beepers, walls, flag, ipointer
+Instantaneous description: world, robot, returns, zflag, ipointer
 }
 
 if {[package vcompare [package present automata::machine] 0.4] > 0} { 

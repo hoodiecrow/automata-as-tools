@@ -272,7 +272,7 @@ oo::class create ::automata::Processor {
         my returns: [expr {[my :ipointer] + 1}]
         my jmp: $a
     }
-    method RET {} {
+    method RET args {
         my jmp: [my :returns]
     }
     method NOP args {}
@@ -297,8 +297,15 @@ oo::class create ::automata::Processor {
                 my acc: [my :tape]
             }
             robot {
-                my robot-act $act
-                my robot-move $move
+                switch $act {
+                    TURN { my robot: [$machine Turn [my :robot]] }
+                    MOVE {
+                        my robot: [$machine Move [my :robot]]
+                        if {[$machine CheckCollision [my :world] [my :robot]]} {
+                            return -code error [format {collision with a wall!}]
+                        }
+                    }
+                }
             }
             default { return }
         }
@@ -307,22 +314,17 @@ oo::class create ::automata::Processor {
         lassign $args a b c
         switch $a {
             front - left - right {
-                <get robot facing and position>
-                <ask world if f/l/r square is clear>
+                my acc: [$machine TestClear [string index $a 0] [my :world] [my :robot]]
             }
             next {
-                <get robot position>
-                <ask world if a beeper is present>
+                lassign [my :robot] xpos ypos
+                my acc: [expr {[list $xpos $ypos] in [lmap {x y} [lindex [my :world] 2] {list $x $y}]}]
             }
             facing {
-                my acc: <get robot facing>
-                my aux: [string index $b 0]
-                my exec CMP
+                my acc: [expr {[lindex [my :robot] 3] eq [string index $b 0]}]
             }
             any {
-                my acc: <get robot #beepers>
-                my aux: 0
-                my exec GT
+                my acc: [expr {[lindex [my :robot] 2] > 0}]
             }
             default {
                 return -code error [format {unknown test "%s"} $a]
@@ -365,7 +367,10 @@ oo::class create ::automata::Processor {
     }
 
     method extract args {
-        dict filter $data script {key val} {expr {$key in $args}}
+        foreach arg $args {
+            dict set res $arg [dict get $data $arg]
+        }
+        return $res
     }
 }
 

@@ -39,16 +39,12 @@ oo::class create ::automata::Machine {
         foreach script $args {
             oo::objdefine [self] $script
         }
-        if no {
-            namespace path {::tcl::mathop}
-        }
     }
     method AddToken token {
         log::log d [info level 0] 
+        # TODO could probably be more elegant
         if {[string match *: $token]} {
             my matrix add row [string trimright $token :]
-        } elseif {  no  &&  [string is entier -strict $token]} {
-            my matrix add row [list {} PUSH $token]
         } else {
             set tuple [regexp -all -inline {(?:[-+]\d+|\w+)} $token]
             if {[my matrix rows] eq 0} {
@@ -62,23 +58,13 @@ oo::class create ::automata::Machine {
             }
         }
     }
-    method NextInstruction {ipointer jump} {
-        if {$jump eq {}} {
-            incr ipointer
-        } elseif {[regexp {[-+]\d+} $jump]} {
-            expr $ipointer $jump
-        } elseif {![string is integer -strict $jump]} {
-            lindex [my matrix search column 0 $jump] 0 1
-        } else {
-            set jump
-        }
-    }
     method Execute {model args} {
         ::automata::Processor create P $model [namespace which my]
         set f [my MakeFrame {*}$args [my GetValues start]]
         P cycle $f
         set result [P extract {*}[my GetFrame]]
         P destroy
+        log::log d \$result=$result 
         dict values $result
     }
     method print {} {
@@ -117,7 +103,7 @@ oo::class create ::automata::KTR {
     superclass ::automata::Machine
     constructor args {
         next {*}$args {
-            frame width height xpos ypos bag facing returns beepers walls flag ipointer
+            frame world robot returns zflag ipointer
             start 0
         }
     }
@@ -133,103 +119,45 @@ oo::class create ::automata::KTR {
         } \n]]
         puts $str
     }
-    method TestClear {dir width height xpos ypos facing walls} {
+    method TestClear {dir world robot} {
+        lassign $world width height beepers walls
+        log::log d [info level 0] 
         switch $dir {
-            f {
-                set flag [expr {![my CheckCollision $width $height {*}[my Move $xpos $ypos [my Turn $facing front]] $walls]}]
-            }
-            l {
-                set flag [expr {![my CheckCollision $width $height {*}[my Move $xpos $ypos [my Turn $facing]] $walls]}]
-            }
-            r {
-                set flag [expr {![my CheckCollision $width $height {*}[my Move $xpos $ypos [my Turn $facing right]] $walls]}]
-            }
+            f { set zflag [expr {![my CheckCollision $world [my Move $robot]]}] }
+            l { set zflag [expr {![my CheckCollision $world [my Move [my Turn $robot]]]}] }
+            r { set zflag [expr {![my CheckCollision $world [my Move [my Turn [my Turn [my Turn $robot]]]]]}] }
         }
-        return $flag
+        return $zflag
     }
-    method Turn {facing {turn left}} {
-        switch $turn {
-            left  { dict get {e n n w w s s e} $facing }
-            front { set facing }
-            right { dict get {e s s w w n n e} $facing }
-        }
+    method Turn robot {
+        lassign $robot xpos ypos bag facing
+        set facing [dict get {e n n w w s s e} $facing]
+        list $xpos $ypos $bag $facing
     }
-    method Move {xpos ypos facing} {
+    method Move robot {
+        lassign $robot xpos ypos bag facing
         switch $facing {
             e { incr xpos }
             n { incr ypos }
             w { incr xpos -1 }
             s { incr ypos -1 }
         }
-        return [list $xpos $ypos]
+        list $xpos $ypos $bag $facing
     }
-    method CheckCollision {width height xpos ypos walls} {
-        incr width
-        incr height
-        lappend walls 0 $ypos $width $ypos $xpos 0 $xpos $height
-        expr {[list $xpos $ypos] in [lmap {x y} $walls {list $x $y}]}
-    }
-    method Execute f {
-        dict with f {
-            while {$ipointer < [my matrix rows]} {
-                lassign [my matrix get row $ipointer] - op a b c
-                set jump {}
-                set _flag 0
-                switch $op {
-                    HALT { break }
-                    TEST {
-                        switch $a {
-                            front - left - right {
-                                set _flag [my TestClear [string index $a 0] $width $height $xpos $ypos $facing $walls]
-                            }
-                            next {
-                                set _flag [expr {[list $xpos $ypos] in [lmap {x y} $beepers {list $x $y}]}]
-                            }
-                            facing {
-                                set _flag [expr {$facing eq [string index $b 0]}]
-                            }
-                            any { set _flag [expr {$bag > 0}] }
-                            default {
-                                return -code error [format {unknown test "%s"} $a]
-                            }
-                        }
-                    }
-                    TURN { set facing [my Turn $facing left] }
-                    MOVE {
-                        lassign [my Move $xpos $ypos $facing] xpos ypos
-                        if {[my CheckCollision $width $height $xpos $ypos $walls]} {
-                            return -code error [format {collision with a wall!}]
-                        }
-                    }
-                    JZ   { if {$flag eq 0} {set jump $a} }
-                    JNZ  { if {$flag ne 0} {set jump $a} }
-                    J    { set jump $a }
-                    CALL {
-                        set returns [linsert $returns 0 $ipointer]
-                        set jump $a
-                    }
-                    RET  { set returns [lassign $returns ipointer] }
-                    NOP  {}
-                    default {
-                        error \$op=$op 
-                    }
-                }
-                set ipointer [my NextInstruction $ipointer $jump]
-                set flag $_flag
-            }
+    method CheckCollision {world robot} {
+        lassign $world width height beepers walls
+        log::log d [info level 0] 
+        lassign $robot xpos ypos bag facing
+        if {$xpos <= 0 || $ypos <= 0 || $xpos > $width || $ypos > $height} {
+            return 1
+        } elseif {[list $xpos $ypos] in [lmap {x y} $walls {list $x $y}]} {
+            return 1
+        } else {
+            return 0
         }
-        return $f
     }
-    method run {world robot beepers walls} {
-        lappend f {*}$world
-        lappend f {*}$robot
-        lappend f [list]
-        lappend f $beepers
-        lappend f $walls
-        lappend f 0
-        lappend f [my GetValues start]
-        set result [dict values [my Execute [my MakeFrame {*}$f]]]
-        list [lrange $result 0 1] [lrange $result 2 5] {*}[lrange $result 6 end]
+    method run {world robot} {
+        my Execute KTR $world $robot [list] 0
     }
 }
 
