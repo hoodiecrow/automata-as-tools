@@ -73,10 +73,13 @@ oo::class create ::automata::Machine {
             set jump
         }
     }
-    method run data {
-        set data [list {*}$data]
-        set f [my MakeFrame $data [my GetValues start]]
-        dict values [my Execute $f]
+    method Execute {model args} {
+        ::automata::Processor create P $model [namespace which my]
+        set f [my MakeFrame {*}$args [my GetValues start]]
+        P cycle $f
+        set result [P extract {*}[my GetFrame]]
+        P destroy
+        dict values $result
     }
 
     method dump args {
@@ -106,12 +109,8 @@ oo::class create ::automata::CM {
         } \n]]
         puts $str
     }
-    method Execute f {
-        ::automata::Processor create P CM [namespace which my]
-        P cycle $f
-        set result [P extract {*}[my GetFrame]]
-        P destroy
-        return $result
+    method run registers {
+        my Execute CM [list {*}$registers]
     }
 }
 
@@ -259,15 +258,8 @@ oo::class create ::automata::PTM {
         } \n]]
         puts $str
     }
-    method Execute f {
-        ::automata::Processor create P PTM [namespace which my]
-        P cycle $f
-        set result [P extract {*}[my GetFrame]]
-        P destroy
-        return $result
-    }
     method run tape {
-        dict values [my Execute [my MakeFrame $tape 0 [my GetValues start]]]
+        my Execute PTM [list {*}$tape] 0
     }
 }
 
@@ -292,14 +284,7 @@ oo::class create ::automata::SM {
         } \n]]
         puts $str
     }
-    method Execute f {
-        ::automata::Processor create P SM [namespace which my]
-        P cycle $f
-        set result [P extract {*}[my GetFrame]]
-        P destroy
-        return $result
-    }
     method run stack {
-        dict values [my Execute [my MakeFrame $stack [my GetValues start]]]
+        my Execute SM [list {*}$stack]
     }
 }
