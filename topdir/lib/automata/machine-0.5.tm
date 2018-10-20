@@ -119,15 +119,12 @@ oo::class create ::automata::KTR {
         } \n]]
         puts $str
     }
-    method TestClear {dir world robot} {
-        lassign $world width height beepers walls
-        log::log d [info level 0] 
-        switch $dir {
-            f { set zflag [expr {![my CheckCollision $world [my Move $robot]]}] }
-            l { set zflag [expr {![my CheckCollision $world [my Move [my Turn $robot]]]}] }
-            r { set zflag [expr {![my CheckCollision $world [my Move [my Turn [my Turn [my Turn $robot]]]]]}] }
-        }
-        return $zflag
+    method TestBlocked {dir world robot} {
+        my CheckCollision $world [my Move [switch $dir {
+            front { set robot }
+            left  { my Turn $robot }
+            right { my Turn [my Turn [my Turn $robot]] }
+        }]]
     }
     method Turn robot {
         lassign $robot xpos ypos bag facing

@@ -314,7 +314,7 @@ oo::class create ::automata::Processor {
         lassign $args a b c
         switch $a {
             front - left - right {
-                my acc: [$machine TestClear [string index $a 0] [my :world] [my :robot]]
+                my acc: [$machine TestBlocked $a [my :world] [my :robot]]
             }
             next {
                 lassign [my :robot] xpos ypos

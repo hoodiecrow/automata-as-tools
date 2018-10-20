@@ -20,12 +20,12 @@ test ktr-1.0 {} -body {
         code {
             a:          TEST:next-to-a-beeper
                         J1:end
-                        TEST:right-is-clear
-                        J0:b
+                        TEST:right-is-blocked
+                        J1:b
                         CALL:turnright
                         JMP:c
-            b:          TEST:front-is-clear
-                        J1:c
+            b:          TEST:front-is-blocked
+                        J0:c
                         OUT:robot,TURN
                         JMP:b
             c:          OUT:robot,MOVE
@@ -44,13 +44,13 @@ test ktr-1.1 {print 1.0} -body {
     ::automata::KTR create M {
         code {
             a:          TEST:next-to-a-beeper
-                        JNZ:end,0
-                        TEST:right-is-clear
-                        JZ:b,0
+                        J1:end
+                        TEST:right-is-blocked
+                        J1:b
                         CALL:turnright
                         JMP:c
-            b:          TEST:front-is-clear
-                        JNZ:c,0
+            b:          TEST:front-is-blocked
+                        J0:c
                         OUT:robot,TURN
                         JMP:b
             c:          OUT:robot,MOVE
@@ -65,13 +65,13 @@ test ktr-1.1 {print 1.0} -body {
     log::lvSuppressLE i 1
 } -output {Code
 a           TEST  next  to a
-            JNZ   end   0 
-            TEST  right is clear
-            JZ    b     0 
+            J1    end    
+            TEST  right is blocked
+            J1    b      
             CALL  turnright 
             JMP   c      
-b           TEST  front is clear
-            JNZ   c     0 
+b           TEST  front is blocked
+            J0    c      
             OUT   robot TURN 
             JMP   b      
 c           OUT   robot MOVE 
