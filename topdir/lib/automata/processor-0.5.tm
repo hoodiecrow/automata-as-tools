@@ -41,7 +41,6 @@ oo::class create ::automata::Processor {
     }
 
     # the flag pseudo-registers depend on <=>
-    method :cflag {} { dict with data { expr {${<=>} > 0} }}
     method :zflag {} { dict with data { expr {${<=>} eq 0} }}
 
     # make the setter for <=> a no-op
@@ -191,13 +190,22 @@ oo::class create ::automata::Processor {
                 lassign $args a b c
                 my acc: [my :registers $c]
                 my aux: [my :registers $b]
-                my acc: [::tcl::mathop::$op [my :aux] [my :acc]]
-                my registers: $a [my :acc]
             }
             SM {
                 my popx
                 my pop
+            }
+        }
+        switch $op {
+            default {
                 my acc: [::tcl::mathop::$op [my :aux] [my :acc]]
+            }
+        }
+        switch [my :model] {
+            CM {
+                my registers: $a [my :acc]
+            }
+            SM {
                 my push
             }
         }
@@ -208,22 +216,31 @@ oo::class create ::automata::Processor {
         lassign $args a
         my jmp: $a
     }
-    method jmpc {op addr} {
-        my BINOP $op {*}$args
-        if {[my :cflag]} {my jmp: $addr}
+
+    method cmp args {
+        lassign $args b c
+        switch [my :model] {
+            CM { my acc: [expr {cmp([my :registers $c], [my :registers $b])}] }
+            SM { my acc: [expr {cmp([my :stack 1], [my :stack 0])}] }
+        }
     }
     method JEQ args {
-        my jmpc eq {*}$args
+        my cmp {*}[lassign $args addr]
+        if {[my :<=>] eq 0} {my jmp: $addr}
     }
     method JNE args {
-        my jmpc ne {*}$args
+        my cmp {*}[lassign $args addr]
+        if {[my :<=>] ne 0} {my jmp: $addr}
     }
     method JG args {
-        my jmpc > {*}$args
+        my cmp {*}[lassign $args addr]
+        if {[my :<=>] > 0} {my jmp: $addr}
     }
     method JGE args {
-        my jmpc >= {*}$args
+        my cmp {*}[lassign $args addr]
+        if {[my :<=>] >= 0} {my jmp: $addr}
     }
+
     method J0 args {
         my load {*}$args
         if {[my :zflag]} {my jmp: [lindex $args 0]}
@@ -232,6 +249,7 @@ oo::class create ::automata::Processor {
         my load {*}$args
         if {![my :zflag]} {my jmp: [lindex $args 0]}
     }
+
     method JZ args {
         my load {*}$args
         if {[my :zflag]} {my jmp: [lindex $args 0]}
@@ -354,7 +372,14 @@ oo::class create ::automata::Processor {
 
     method extract args {
         foreach arg $args {
-            dict set res $arg [dict get $data $arg]
+            switch $arg {
+                zflag {
+                    dict set res $arg [my :zflag]
+                }
+                default {
+                    dict set res $arg [dict get $data $arg]
+                }
+            }
         }
         return $res
     }

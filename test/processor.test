@@ -138,6 +138,31 @@ test processor-3.4 {INC} -body {
 } -result {registers {0 0 4} stack {4 0}}
 
 
+test processor-3.5 {JEQ} -body {
+    ::automata::Processor create P
+    P merge {model CM acc 0 registers {0 0 3 3 2} ipointer 0}
+    P JEQ 99 2 3
+    set res [P extract <=> jmp]
+    P merge {<=> 0 jmp {}}
+    P JEQ 99 3 4
+    lappend res [P extract <=> jmp]
+    P merge {<=> 0 jmp {}}
+    P merge {model SM acc 0 stack {0} ipointer 0}
+    P PUSH 3
+    P PUSH 3
+    P JEQ 99
+    lappend res [P extract <=> jmp]
+    P merge {<=> 0 jmp {}}
+    P PUSH 2
+    P PUSH 3
+    P JEQ 99
+    lappend res [P extract <=> jmp]
+} -cleanup {
+    P destroy
+    log::lvSuppressLE i 1
+} -result {<=> 0 jmp 99 {<=> -1 jmp {}} {<=> 0 jmp 99} {<=> -1 jmp {}}}
+
+
 if {[package vcompare [package present automata::processor] 0.4] > 0} { 
     cleanupTests ; return 
 } 
