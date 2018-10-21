@@ -96,54 +96,8 @@ oo::class create ::automata::Processor {
     method push {} { dict with data { set stack [linsert $stack 0 $acc] } }
     method drop {} { dict with data { set stack [lassign $stack top] } }
 
-    # PUSH val: push val onto stack / PUSH: push acc onto stack
-    method PUSH args {
-        switch [my :model] {
-            SM {
-                lassign $args a
-                if {$a ne {}} {
-                    my acc: $a
-                }
-                my push
-            }
-        }
-    }
-    method POP {} {
-        switch [my :model] { SM { my pop } }
-    }
-
-    # clear acc and store in default location
-    method CLR args {
-        my acc: 0
-        my store {} {*}$args
-    }
-
-    # copy register a ← b (CM only)
-    method CPY args {
-        switch [my :model] {
-            CM {
-                lassign $args a b
-                my registers: $a [my :registers $b]
-            }
-        }
-    }
-
-    # duplicate top item (SM only)
-    method DUP args {
-        switch [my :model] {
-            SM {
-                my top
-                my push
-            }
-        }
-    }
-
     # arithmetic / logic operations (CM and SM only)
-    forward NOT my UNOP !
-    forward NEG my UNOP NEG
-    forward INC my UNOP INC
-    forward DEC my UNOP DEC
-    method UNOP {op args} {
+    method UnaryOperation {op args} {
         my load {} {*}$args
         switch $op {
             NEG { my acc: [::tcl::mathop::* [my :acc] -1] }
@@ -155,23 +109,7 @@ oo::class create ::automata::Processor {
         }
         my store {} {*}$args
     }
-    forward EQ  my BINOP eq
-    forward NE  my BINOP ne
-    forward EQL my BINOP ==
-    forward NEQ my BINOP !=
-    forward GT  my BINOP >
-    forward GE  my BINOP >=
-    forward LT  my BINOP <
-    forward LE  my BINOP <=
-    forward ADD my BINOP +
-    forward SUB my BINOP -
-    forward MUL my BINOP *
-    forward DIV my BINOP /
-    forward MOD my BINOP %
-    forward AND my BINOP &&
-    forward OR  my BINOP ||
-    forward XOR my BINOP ^
-    method BINOP {op args} {
+    method BinaryOperation {op args} {
         switch [my :model] {
             CM {
                 lassign $args a b c
@@ -192,12 +130,6 @@ oo::class create ::automata::Processor {
                 my push
             }
         }
-    }
-
-    # jumps
-    method JMP args {
-        lassign $args a
-        my jmp: $a
     }
 
     # swap values between acc and aux
@@ -235,116 +167,22 @@ oo::class create ::automata::Processor {
         }
     }
 
-    # compare values and conditionally jump
-    method JEQ args {
-        my cmp {*}[lassign $args addr]
-        if {[my :<=>] eq 0} {my jmp: $addr}
-    }
-    method JNE args {
-        my cmp {*}[lassign $args addr]
-        if {[my :<=>] ne 0} {my jmp: $addr}
-    }
-    method JG args {
-        my cmp {*}[lassign $args addr]
-        if {[my :<=>] > 0} {my jmp: $addr}
-    }
-    method JGE args {
-        my cmp {*}[lassign $args addr]
-        if {[my :<=>] >= 0} {my jmp: $addr}
+    method set args {
+        set data [dict merge $data $args]
     }
 
-    # check zero flag and conditionally jump
-    method J0 args {
-        my load {*}$args
-        if {[my :zflag]} {my jmp: [lindex $args 0]}
-    }
-    method J1 args {
-        my load {*}$args
-        if {![my :zflag]} {my jmp: [lindex $args 0]}
-    }
-    method JZ args {
-        my load {*}$args
-        if {[my :zflag]} {my jmp: [lindex $args 0]}
-    }
-    method JNZ args {
-        my load {*}$args
-        if {![my :zflag]} {my jmp: [lindex $args 0]}
-    }
-
-    # subroutine call/return
-    method CALL args {
-        lassign $args addr
-        my returns: [expr {[my :ipointer] + 1}]
-        my jmp: $addr
-    }
-    method RET args {
-        my jmp: [my :returns]
-    }
-
-    method NOP args {}
-
-    method HALT args {
-        return -code break -level 2
-    }
-
-    # manipulate the machine's environment somehow
-    method OUT args {
-        lassign $args what act move
-        switch $what {
-            tape {
-                dict with data {
-                    set tape [$machine Print $tape $head $act]
-                    lassign [$machine Roll $tape $head $move] tape head
+    method get args {
+        foreach arg $args {
+            switch $arg {
+                zflag {
+                    dict set res $arg [my :zflag]
                 }
-                my acc: [my :tape]
-            }
-            head {
-                dict with data {
-                    set tape [$machine Print $tape $head $act]
-                    lassign [$machine Roll $tape $head [string map {R L L R} $move]] tape head
+                default {
+                    dict set res $arg [dict get $data $arg]
                 }
-                my acc: [my :tape]
-            }
-            robot {
-                switch $act {
-                    TURN { my robot: [$machine Turn [my :robot]] }
-                    MOVE {
-                        my robot: [$machine Move [my :robot]]
-                        if {[$machine CheckCollision [my :world] [my :robot]]} {
-                            return -code error [format {collision with a wall!}]
-                        }
-                    }
-                }
-            }
-            default { return }
-        }
-    }
-
-    # inspect the machine's environment
-    method TEST args {
-        lassign $args a b c
-        switch $a {
-            front - left - right {
-                my acc: [$machine TestBlocked $a [my :world] [my :robot]]
-            }
-            next {
-                lassign [my :robot] xpos ypos
-                my acc: [expr {[list $xpos $ypos] in [lmap {x y} [lindex [my :world] 2] {list $x $y}]}]
-            }
-            facing {
-                my acc: [expr {[lindex [my :robot] 3] eq [string index $b 0]}]
-            }
-            any {
-                my acc: [expr {[lindex [my :robot] 2] > 0}]
-            }
-            default {
-                return -code error [format {unknown test "%s"} $a]
             }
         }
-    }
-
-    method merge f {
-        set data [dict merge $data $f]
+        return $res
     }
 
     method step {} {
@@ -367,31 +205,188 @@ oo::class create ::automata::Processor {
     }
 
     method exec instr {
-        my {*}$instr
+        # All the opwords of the language are interpreted here.
+        set args [lassign $instr op]
+        switch $op {
+            PUSH {
+                # PUSH val: push val onto stack / PUSH: push acc onto stack
+                switch [my :model] {
+                    SM {
+                        lassign $args a
+                        if {$a ne {}} {
+                            my acc: $a
+                        }
+                        my push
+                    }
+                }
+            }
+            POP { switch [my :model] { SM { my pop } } }
+
+            CLR {
+                # clear acc and store in default location
+                my acc: 0
+                my store {} {*}$args
+            }
+
+            CPY {
+                # copy register a ← b (CM only)
+                switch [my :model] {
+                    CM {
+                        lassign $args a b
+                        my registers: $a [my :registers $b]
+                    }
+                }
+            }
+
+            DUP {
+                # duplicate top item (SM only)
+                switch [my :model] {
+                    SM {
+                        my top
+                        my push
+                    }
+                }
+            }
+            NOT { my UnaryOperation ! {*}$args }
+            NEG - INC -
+            DEC { my UnaryOperation $op {*}$args }
+            EQ  { my BinaryOperation eq {*}$args }
+            NE  { my BinaryOperation ne {*}$args }
+            EQL { my BinaryOperation == {*}$args }
+            NEQ { my BinaryOperation != {*}$args }
+            GT  { my BinaryOperation > {*}$args }
+            GE  { my BinaryOperation >= {*}$args }
+            LT  { my BinaryOperation < {*}$args }
+            LE  { my BinaryOperation <= {*}$args }
+            ADD { my BinaryOperation + {*}$args }
+            SUB { my BinaryOperation - {*}$args }
+            MUL { my BinaryOperation * {*}$args }
+            DIV { my BinaryOperation / {*}$args }
+            MOD { my BinaryOperation % {*}$args }
+            AND { my BinaryOperation && {*}$args }
+            OR  { my BinaryOperation || {*}$args }
+            XOR { my BinaryOperation ^ {*}$args }
+
+            JMP { my jmp: [lindex $args 0] }
+
+            JEQ {
+                # compare values and conditionally jump
+                my cmp {*}[lassign $args addr]
+                if {[my :<=>] eq 0} {my jmp: $addr}
+            }
+            JNE {
+                my cmp {*}[lassign $args addr]
+                if {[my :<=>] ne 0} {my jmp: $addr}
+            }
+            JG {
+                my cmp {*}[lassign $args addr]
+                if {[my :<=>] > 0} {my jmp: $addr}
+            }
+            JGE {
+                my cmp {*}[lassign $args addr]
+                if {[my :<=>] >= 0} {my jmp: $addr}
+            }
+
+            J0 {
+                # check zero flag and conditionally jump
+                my load {*}$args
+                if {[my :zflag]} {my jmp: [lindex $args 0]}
+            }
+            J1 {
+                my load {*}$args
+                if {![my :zflag]} {my jmp: [lindex $args 0]}
+            }
+            JZ {
+                my load {*}$args
+                if {[my :zflag]} {my jmp: [lindex $args 0]}
+            }
+            JNZ {
+                my load {*}$args
+                if {![my :zflag]} {my jmp: [lindex $args 0]}
+            }
+
+            CALL {
+                # subroutine call/return
+                lassign $args addr
+                my returns: [expr {[my :ipointer] + 1}]
+                my jmp: $addr
+            }
+            RET { my jmp: [my :returns] }
+
+            NOP {}
+
+            HALT { return -code break }
+
+            OUT {
+                # manipulate the machine's environment somehow
+                lassign $args what act move
+                switch $what {
+                    tape {
+                        dict with data {
+                            set tape [$machine Print $tape $head $act]
+                            lassign [$machine Roll $tape $head $move] tape head
+                        }
+                        my acc: [my :tape]
+                    }
+                    head {
+                        dict with data {
+                            set tape [$machine Print $tape $head $act]
+                            lassign [$machine Roll $tape $head [string map {R L L R} $move]] tape head
+                        }
+                        my acc: [my :tape]
+                    }
+                    robot {
+                        switch $act {
+                            TURN { my robot: [$machine Turn [my :robot]] }
+                            MOVE {
+                                my robot: [$machine Move [my :robot]]
+                                if {[$machine CheckCollision [my :world] [my :robot]]} {
+                                    return -code error [format {collision with a wall!}]
+                                }
+                            }
+                        }
+                    }
+                    default { return }
+                }
+            }
+
+            TEST {
+                # inspect the machine's environment
+                lassign $args a b c
+                switch $a {
+                    front - left - right {
+                        my acc: [$machine TestBlocked $a [my :world] [my :robot]]
+                    }
+                    next {
+                        lassign [my :robot] xpos ypos
+                        my acc: [expr {[list $xpos $ypos] in [lmap {x y} [lindex [my :world] 2] {list $x $y}]}]
+                    }
+                    facing {
+                        my acc: [expr {[lindex [my :robot] 3] eq [string index $b 0]}]
+                    }
+                    any {
+                        my acc: [expr {[lindex [my :robot] 2] > 0}]
+                    }
+                    default {
+                        return -code error [format {unknown test "%s"} $a]
+                    }
+                }
+            }
+
+            default {
+                return -code error [format {unknown operation: %s} $instr]
+            }
+        }
     }
 
     method cycle f {
-        my merge $f
+        my set {*}$f
         set ip [my :ipointer]
         while {0 <= $ip && $ip < [$machine matrix rows]} {
             my exec [lrange [$machine matrix get row $ip] 1 end]
             my step
             set ip [my :ipointer]
         }
-    }
-
-    method extract args {
-        foreach arg $args {
-            switch $arg {
-                zflag {
-                    dict set res $arg [my :zflag]
-                }
-                default {
-                    dict set res $arg [dict get $data $arg]
-                }
-            }
-        }
-        return $res
     }
 
     # resolve unknown methods

@@ -60,9 +60,8 @@ oo::class create ::automata::Machine {
     }
     method Execute {model args} {
         ::automata::Processor create P $model [namespace which my]
-        set f [my MakeFrame {*}$args [my GetValues start]]
-        P cycle $f
-        set result [P extract {*}[my GetFrame]]
+        P cycle [my MakeFrame {*}$args [my GetValues start]]
+        set result [P get {*}[my GetFrame]]
         P destroy
         log::log d \$result=$result 
         dict values $result
