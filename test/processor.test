@@ -32,11 +32,11 @@ test processor-1.1 {set acc and check <=>} -body {
 test processor-2.0 {CALL and RET} -body {
     ::automata::Processor create P
     P ipointer: 10
-    P CALL 99
+    P exec {CALL 99}
     P step
-    P CALL 77
+    P exec {CALL 77}
     P step
-    P CALL 55
+    P exec {CALL 55}
     P step
     set res [P extract jmp returns ipointer]
 } -cleanup {
@@ -48,15 +48,15 @@ test processor-2.0 {CALL and RET} -body {
 test processor-2.1 {CALL and RET} -body {
     ::automata::Processor create P
     P ipointer: 10
-    P CALL 99
+    P exec {CALL 99}
     P step
-    P CALL 77
+    P exec {CALL 77}
     P step
-    P CALL 55
+    P exec {CALL 55}
     P step
-    P RET
+    P exec RET
     P step
-    P RET
+    P exec RET
     P step
     set res [P extract jmp returns ipointer]
 } -cleanup {
@@ -68,13 +68,13 @@ test processor-2.1 {CALL and RET} -body {
 test processor-3.0 {CLR} -body {
     ::automata::Processor create P
     P merge {model CM registers {0 0 3 0 0}}
-    P CLR 2
+    P exec {CLR 2}
     set res [P extract registers]
     P merge {model PTM tape {0 0 3 0 0} head 2}
-    P CLR
+    P exec CLR
     lappend res {*}[P extract tape]
     P merge {model SM stack {3 0 0}}
-    P CLR
+    P exec CLR
     lappend res {*}[P extract stack]
 } -cleanup {
     P destroy
@@ -85,10 +85,10 @@ test processor-3.0 {CLR} -body {
 test processor-3.1 {ADD} -body {
     ::automata::Processor create P
     P merge {model CM acc 0 registers {0 0 3 2 0}}
-    P ADD 1 2 3
+    P exec {ADD 1 2 3}
     set res [P extract registers]
     P merge {model SM acc 0 stack {3 2 0}}
-    P ADD
+    P exec ADD
     lappend res {*}[P extract stack]
 } -cleanup {
     P destroy
@@ -99,10 +99,10 @@ test processor-3.1 {ADD} -body {
 test processor-3.2 {SUB} -body {
     ::automata::Processor create P
     P merge {model CM acc 0 registers {0 0 3 2 0}}
-    P SUB 1 2 3
+    P exec {SUB 1 2 3}
     set res [P extract registers]
     P merge {model SM acc 0 stack {3 2 0}}
-    P SUB
+    P exec SUB
     lappend res {*}[P extract stack]
 } -cleanup {
     P destroy
@@ -113,9 +113,9 @@ test processor-3.2 {SUB} -body {
 test processor-3.3 {PUSH} -body {
     ::automata::Processor create P
     P merge {model SM acc 0 stack {0}}
-    P PUSH 3
+    P exec {PUSH 3}
     P acc: 5
-    P PUSH
+    P exec PUSH
     set res [P extract stack]
 } -cleanup {
     P destroy
@@ -126,11 +126,11 @@ test processor-3.3 {PUSH} -body {
 test processor-3.4 {INC} -body {
     ::automata::Processor create P
     P merge {model CM acc 0 registers {0 0 3}}
-    P INC 2
+    P exec {INC 2}
     set res [P extract registers]
     P merge {model SM acc 0 stack {0}}
-    P PUSH 3
-    P INC
+    P exec {PUSH 3}
+    P exec INC
     lappend res {*}[P extract stack]
 } -cleanup {
     P destroy
@@ -141,21 +141,21 @@ test processor-3.4 {INC} -body {
 test processor-3.5 {JEQ} -body {
     ::automata::Processor create P
     P merge {model CM acc 0 registers {0 0 3 3 2} ipointer 0}
-    P JEQ 99 2 3
+    P exec {JEQ 99 2 3}
     set res [P extract <=> jmp]
     P merge {<=> 0 jmp {}}
-    P JEQ 99 3 4
+    P exec {JEQ 99 3 4}
     lappend res [P extract <=> jmp]
     P merge {<=> 0 jmp {}}
     P merge {model SM acc 0 stack {0} ipointer 0}
-    P PUSH 3
-    P PUSH 3
-    P JEQ 99
+    P exec {PUSH 3}
+    P exec {PUSH 3}
+    P exec {JEQ 99}
     lappend res [P extract <=> jmp]
     P merge {<=> 0 jmp {}}
-    P PUSH 2
-    P PUSH 3
-    P JEQ 99
+    P exec {PUSH 2}
+    P exec {PUSH 3}
+    P exec {JEQ 99}
     lappend res [P extract <=> jmp]
 } -cleanup {
     P destroy

@@ -8,7 +8,7 @@ proc ::tcl::mathfunc::cmp {a b} { if {$a == $b} {return 0} elseif {$a < $b} {ret
 oo::class create ::automata::Processor {
     variable data machine
 
-    # TODO eliminate reduntant data items?
+    # TODO eliminate redundant data items?
     constructor args {
         lassign $args model machine
         my reset $model
@@ -67,6 +67,7 @@ oo::class create ::automata::Processor {
     method tape: val { dict with data { lset tape $head $val } }
     method :tape {} { dict with data { lindex $tape $head } }
 
+    # generalized copy memory → accumulator → memory
     method load {{- {}} {b 0} args} {
         log::log d [info level 0] 
         # load accumulator with a value from the default location
@@ -110,17 +111,7 @@ oo::class create ::automata::Processor {
     method POP {} {
         switch [my :model] { SM { my pop } }
     }
-    export PUSH POP
 
-    # swap values between acc and aux
-    method swap {} {
-        dict with data {
-            set val $aux
-            set aux $acc
-        }
-        my acc: $val
-    }
-                    
     # clear acc and store in default location
     method CLR args {
         my acc: 0
@@ -147,14 +138,11 @@ oo::class create ::automata::Processor {
         }
     }
 
-    export CLR CPY DUP
-
     # arithmetic / logic operations (CM and SM only)
     forward NOT my UNOP !
     forward NEG my UNOP NEG
     forward INC my UNOP INC
     forward DEC my UNOP DEC
-    export NOT NEG INC DEC
     method UNOP {op args} {
         my load {} {*}$args
         switch $op {
@@ -183,7 +171,6 @@ oo::class create ::automata::Processor {
     forward AND my BINOP &&
     forward OR  my BINOP ||
     forward XOR my BINOP ^
-    export EQ NE EQL NEQ GT GE LT LE ADD SUB MUL DIV MOD AND OR XOR 
     method BINOP {op args} {
         switch [my :model] {
             CM {
@@ -196,11 +183,7 @@ oo::class create ::automata::Processor {
                 my pop
             }
         }
-        switch $op {
-            default {
-                my acc: [::tcl::mathop::$op [my :aux] [my :acc]]
-            }
-        }
+        my acc: [::tcl::mathop::$op [my :aux] [my :acc]]
         switch [my :model] {
             CM {
                 my registers: $a [my :acc]
@@ -217,6 +200,33 @@ oo::class create ::automata::Processor {
         my jmp: $a
     }
 
+    # swap values between acc and aux
+    method swapAA {} {
+        dict with data {
+            set val $aux
+            set aux $acc
+        }
+        my acc: $val
+    }
+                    
+    # swap values between locations
+    method swap args {
+        lassign $args b c
+        switch [my :model] {
+            CM {
+                set val [my :registers $c]
+                my registers: $c [my :registers $b]
+                my registers: $b $val
+            }
+            SM {
+                set val [my :stack 1]
+                my stack: 1 [my :stack 0]
+                my stack: 0 $val
+            }
+        }
+    }
+
+    # compare and store result (-1, 0, 1) in accumulator
     method cmp args {
         lassign $args b c
         switch [my :model] {
@@ -224,6 +234,8 @@ oo::class create ::automata::Processor {
             SM { my acc: [expr {cmp([my :stack 1], [my :stack 0])}] }
         }
     }
+
+    # compare values and conditionally jump
     method JEQ args {
         my cmp {*}[lassign $args addr]
         if {[my :<=>] eq 0} {my jmp: $addr}
@@ -241,6 +253,7 @@ oo::class create ::automata::Processor {
         if {[my :<=>] >= 0} {my jmp: $addr}
     }
 
+    # check zero flag and conditionally jump
     method J0 args {
         my load {*}$args
         if {[my :zflag]} {my jmp: [lindex $args 0]}
@@ -249,7 +262,6 @@ oo::class create ::automata::Processor {
         my load {*}$args
         if {![my :zflag]} {my jmp: [lindex $args 0]}
     }
-
     method JZ args {
         my load {*}$args
         if {[my :zflag]} {my jmp: [lindex $args 0]}
@@ -258,26 +270,22 @@ oo::class create ::automata::Processor {
         my load {*}$args
         if {![my :zflag]} {my jmp: [lindex $args 0]}
     }
-    export JMP JEQ JNE JG JGE J0 J1 JZ JNZ
 
     # subroutine call/return
     method CALL args {
-        lassign $args a
+        lassign $args addr
         my returns: [expr {[my :ipointer] + 1}]
-        my jmp: $a
+        my jmp: $addr
     }
     method RET args {
         my jmp: [my :returns]
     }
-    export CALL RET
 
     method NOP args {}
-    export NOP
 
     method HALT args {
-        return -code break
+        return -code break -level 2
     }
-    export HALT
 
     # manipulate the machine's environment somehow
     method OUT args {
@@ -311,7 +319,6 @@ oo::class create ::automata::Processor {
             default { return }
         }
     }
-    export OUT
 
     # inspect the machine's environment
     method TEST args {
@@ -335,7 +342,6 @@ oo::class create ::automata::Processor {
             }
         }
     }
-    export TEST
 
     method merge f {
         set data [dict merge $data $f]
@@ -360,11 +366,15 @@ oo::class create ::automata::Processor {
         }
     }
 
+    method exec instr {
+        my {*}$instr
+    }
+
     method cycle f {
         my merge $f
         set ip [my :ipointer]
         while {0 <= $ip && $ip < [$machine matrix rows]} {
-            my {*}[lrange [$machine matrix get row $ip] 1 end]
+            my exec [lrange [$machine matrix get row $ip] 1 end]
             my step
             set ip [my :ipointer]
         }
