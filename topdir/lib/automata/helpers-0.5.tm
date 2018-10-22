@@ -6,11 +6,11 @@ oo::class create ::automata::TapeHandler {
             set head 0
         }
         switch $print {
-            N - 0 { return $tape }
-            E { return [lset tape $head [lindex [my GetValues print] 0]] }
-            P - {} { return [lset tape $head [lindex [my GetValues print] 1]] }
+            N - _ { return $tape }
+            E - 0 { return [lset tape $head [lindex [my GetValues print] 0]] }
+            P - 1 { return [lset tape $head [lindex [my GetValues print] 1]] }
             default {
-                return [lset tape $head [lindex [my GetValues print] $print-1]]
+                return [lset tape $head [lindex [my GetValues print] $print]]
             }
         }
         return $tape

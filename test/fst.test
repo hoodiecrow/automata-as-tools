@@ -355,19 +355,19 @@ State symbols     Q = {s0, s1, si}
 Start symbols     S = {si}
 Final symbols     F = {s0, s1}
 Transitions
-si × 0 → s0
-si × 1 → s1
-s0 × 0 → s0
-s0 × 1 → s1
-s1 × 0 → s0
-s1 × 1 → s1
+si, 0 → s0
+si, 1 → s1
+s0, 0 → s0
+s0, 1 → s1
+s1, 0 → s0
+s1, 1 → s1
 Output
-si × 0 → 0
-si × 1 → 0
-s0 × 0 → 0
-s0 × 1 → 1
-s1 × 0 → 1
-s1 × 1 → 0
+si, 0 → 0
+si, 1 → 0
+s0, 0 → 0
+s0, 1 → 1
+s1, 0 → 1
+s1, 1 → 0
 Instantaneous description: input, state, output
 }
 

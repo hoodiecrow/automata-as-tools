@@ -80,18 +80,18 @@ Instantaneous description: tape, head, ipointer
 test ptm-1.2 {multiply two numbers in unary} -body {
     ::automata::PTM create M {
         code {
-            begin:      OUT:head,0,R J1:-1,0 OUT:head,0,R J1:-1,0 OUT:head,0,R OUT:head,P,L
-            a_loop:     OUT:head,0,L J1:-1,0 OUT:head,0,L J1:-1,0 OUT:head,0,R OUT:head,E,R
+            begin:      OUT:head,N,R J1:-1,0 OUT:head,N,R J1:-1,0 OUT:head,N,R OUT:head,P,L
+            a_loop:     OUT:head,N,L J1:-1,0 OUT:head,N,L J1:-1,0 OUT:head,N,R OUT:head,E,R
                         J0:done,0
-                        OUT:head,0,R J1:-1,0 OUT:head,0,R
-            b_loop:     OUT:head,0,R
+                        OUT:head,N,R J1:-1,0 OUT:head,N,R
+            b_loop:     OUT:head,N,R
                         J0:a_loop,0
                         OUT:head,E
-                        OUT:head,0,R J1:-1,0 OUT:head,0,R J1:-1,0
+                        OUT:head,N,R J1:-1,0 OUT:head,N,R J1:-1,0
                         OUT:head,P
-                        OUT:head,0,L J1:-1,0 OUT:head,0,L J1:-1,0 OUT:head,P
+                        OUT:head,N,L J1:-1,0 OUT:head,N,L J1:-1,0 OUT:head,P
                         J1:b_loop,0
-                        OUT:head,0,R
+                        OUT:head,N,R
                         J0:a_loop,0
                         OUT:head,E
             done:       HALT

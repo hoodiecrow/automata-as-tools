@@ -20,8 +20,8 @@ if no {
 test pda-1.0 {0^n1^n | n >= 0} -setup {
     ::automata::PDA create M {
         tuples {*}{
-            {p 0/Z;AZ p}
-            {p 0/A;AA p}
+            {p 0/Z;A,Z p}
+            {p 0/A;A,A p}
             {p _/Z;Z  q}
             {p _/A;A  q}
             {q 1/A;_  q}
@@ -41,8 +41,8 @@ test pda-1.0 {0^n1^n | n >= 0} -setup {
 test pda-1.1 {0^n1^n | n >= 0} -setup {
     ::automata::PDA create M {
         tuples {*}{
-            {p 0/Z;AZ p}
-            {p 0/A;AA p}
+            {p 0/Z;A,Z p}
+            {p 0/A;A,A p}
             {p _/Z;Z  q}
             {p _/A;A  q}
             {q 1/A;_  q}
@@ -62,8 +62,8 @@ test pda-1.1 {0^n1^n | n >= 0} -setup {
 test pda-1.2 {} -setup {
     ::automata::PDA create M {
         tuples {*}{
-            {p 0/Z;AZ p}
-            {p 0/A;AA p}
+            {p 0/Z;A,Z p}
+            {p 0/A;A,A p}
             {p _/Z;Z  q}
             {p _/A;A  q}
             {q 1/A;_  q}
@@ -88,8 +88,8 @@ test pda-1.2 {} -setup {
 test pda-1.3 {} -setup {
     ::automata::PDA create M {
         tuples {*}{
-            {p 0/Z;AZ p}
-            {p 0/A;AA p}
+            {p 0/Z;A,Z p}
+            {p 0/A;A,A p}
             {p _/Z;Z  q}
             {p _/A;A  q}
             {q 1/A;_  q}
@@ -111,19 +111,19 @@ Initial stack     Z = Z
 Start symbol      S = p
 Final symbols     F = {r}
 Transitions
-p × 0 × Z → p
-p × 0 × A → p
-p × ε × Z → q
-p × ε × A → q
-q × 1 × A → q
-q × ε × Z → r
+p, 0, Z → p
+p, 0, A → p
+p, ε, Z → q
+p, ε, A → q
+q, 1, A → q
+q, ε, Z → r
 Output
-p × 0 × Z → AZ
-p × 0 × A → AA
-p × ε × Z → Z
-p × ε × A → A
-q × 1 × A → ε
-q × ε × Z → Z
+p, 0, Z → A,Z
+p, 0, A → A,A
+p, ε, Z → Z
+p, ε, A → A
+q, 1, A → ε
+q, ε, Z → Z
 Instantaneous description: input, state, stack
 }
 

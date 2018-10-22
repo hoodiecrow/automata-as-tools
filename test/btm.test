@@ -56,19 +56,19 @@ State symbols     Q = {A, B, C, H}
 Start symbol      S = A
 Final symbols     F = {H}
 Transitions
-A × 0 → B
-A × 1 → C
-B × 0 → A
-B × 1 → B
-C × 0 → B
-C × 1 → H
+A, 0 → B
+A, 1 → C
+B, 0 → A
+B, 1 → B
+C, 0 → B
+C, 1 → H
 Tape actions
-A × 0 → P R
-A × 1 → P L
-B × 0 → P L
-B × 1 → P R
-C × 0 → P L
-C × 1 → P R
+A, 0 → P R
+A, 1 → P L
+B, 0 → P L
+B, 1 → P R
+C, 0 → P L
+C, 1 → P R
 Instantaneous description: tape, head, state
 }
 

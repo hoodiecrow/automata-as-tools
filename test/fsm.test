@@ -105,10 +105,10 @@ State symbols     Q = {s1, s2}
 Start symbols     S = {s1}
 Final symbols     F = {s1}
 Transitions
-s1 × 0 → s2
-s1 × 1 → s1
-s2 × 0 → s1
-s2 × 1 → s2
+s1, 0 → s2
+s1, 1 → s1
+s2, 0 → s1
+s2, 1 → s2
 Instantaneous description: input, state
 }
 

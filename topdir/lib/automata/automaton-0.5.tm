@@ -64,7 +64,7 @@ oo::class create ::automata::Automaton {
         }
     }
     method AddRow tuple {
-        set tuple [regexp -all -inline {\w+} $tuple]
+        set tuple [regexp -all -inline {(?:,|\w)+} $tuple]
         set n [expr {[llength $tuple] - [my matrix columns]}]
         if {$n > 0} {
             my matrix add columns $n
@@ -221,7 +221,7 @@ oo::class create ::automata::Automaton {
                         lappend fs [dict create input $input state $target stack $stack]
                     } elseif {$b eq $_top} {
                         # consume stack token
-                        lappend fs [dict create input $input state $target stack [concat [split $bs {}] $_tail]]
+                        lappend fs [dict create input $input state $target stack [concat [split $bs ,] $_tail]]
                     }
                 } elseif {$a eq $itop} {
                     if {$b eq "_"} {
@@ -229,7 +229,7 @@ oo::class create ::automata::Automaton {
                         lappend fs [dict create input $itail state $target stack $stack]
                     } elseif {$b eq $_top} {
                         # consume input and stack token
-                        lappend fs [dict create input $itail state $target stack [concat [split $bs {}] $_tail]]
+                        lappend fs [dict create input $itail state $target stack [concat [split $bs ,] $_tail]]
                     }
                 }
             }
@@ -289,7 +289,7 @@ oo::class create ::automata::FSM {
     method print {} {
         set str {}
         set maplist [my MakeMaplist A {Q T} S F]
-        lappend maplist %T [my MakeTable {%1$s × %2$s → %3$s}]
+        lappend maplist %T [my MakeTable {%1$s, %2$s → %3$s}]
         lappend maplist %D [join [my GetFrame] ", "]
         append str [string map $maplist [join {
             {Input symbols     A = {%A}}
@@ -335,8 +335,8 @@ oo::class create ::automata::FST {
         set str {}
         set col 0
         set maplist [my MakeMaplist A B {Q T} S F]
-        lappend maplist %T [my MakeTable {%1$s × %2$s → %4$s}]
-        lappend maplist %O [my MakeTable {%1$s × %2$s → %3$s}]
+        lappend maplist %T [my MakeTable {%1$s, %2$s → %4$s}]
+        lappend maplist %O [my MakeTable {%1$s, %2$s → %3$s}]
         lappend maplist %D [join [my GetFrame] ", "]
         append str [string map $maplist [join {
             {Input symbols     A = {%A}}
@@ -444,8 +444,8 @@ oo::class create ::automata::PDA {
     method print {} {
         set str {}
         set maplist [my MakeMaplist A B {Q T} Z S F]
-        lappend maplist %T [my MakeTable {%1$s × %2$s × %3$s → %5$s}]
-        lappend maplist %O [my MakeTable {%1$s × %2$s × %3$s → %4$s}]
+        lappend maplist %T [my MakeTable {%1$s, %2$s, %3$s → %5$s}]
+        lappend maplist %O [my MakeTable {%1$s, %2$s, %3$s → %4$s}]
         lappend maplist %D [join [my GetFrame] ", "]
         append str [string map $maplist [join {
             {Input symbols     A = {%A}}
@@ -501,8 +501,8 @@ oo::class create ::automata::BTM {
     method print {} {
         set str {}
         set maplist [my MakeMaplist {A B} {Q T} P M S F]
-        lappend maplist %T [my MakeTable {%1$s × %2$s → %5$s}]
-        lappend maplist %O [my MakeTable {%1$s × %2$s → %3$s %4$s}]
+        lappend maplist %T [my MakeTable {%1$s, %2$s → %5$s}]
+        lappend maplist %O [my MakeTable {%1$s, %2$s → %3$s %4$s}]
         lappend maplist %D [join [my GetFrame] ", "]
         append str [string map $maplist [join {
             {Tape symbols      A = {%A}}
