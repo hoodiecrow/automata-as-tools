@@ -517,7 +517,7 @@ oo::class create ::automata::BTM {
         } \n]]
         puts $str
     }
-    method run tape {
+    method run {{tape {0}}} {
         #: Run this tape from start index, return tape, current index, and ending state.
         set tape [list {*}$tape]
         set fs [lmap state [my GetValues start] {
