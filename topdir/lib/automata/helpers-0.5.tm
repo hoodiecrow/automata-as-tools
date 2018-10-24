@@ -37,21 +37,56 @@ oo::class create ::automata::TapeHandler {
     }
 }
 
-oo::class create ::automata::FrameHandler {
-    variable frame
+oo::class create ::automata::LabelsHandler {
     constructor args {next {*}$args}
-    method SetFrame frm {
-        set frame $frm
+    method SetLabels args {
+        set labels $args
+        foreach v $labels {
+            my SetValues $v
+        }
+        set labels [::automata::Labels new {*}$args]
+        foreach m {get dump} {
+            oo::objdefine [self] forward [string totitle $m]Labels $labels $m
+        }
     }
-    method MakeFrame args {
+}
+
+oo::class create ::automata::Labels {
+    variable labels
+    constructor args {
+        set labels $args
+    }
+    method get {} {
+        return $labels
+    }
+    forward dump my get
+}
+
+oo::class create ::automata::FrameHandler {
+    constructor args {next {*}$args}
+    method SetFrame args {
+        set frame [::automata::Frame new {*}$args]
+        foreach m {make get dump} {
+            oo::objdefine [self] forward [string totitle $m]Frame $frame $m
+        }
+    }
+}
+
+oo::class create ::automata::Frame {
+    variable frame
+    constructor args {
+        set frame $args
+    }
+    method make args {
         foreach key $frame val $args {
             dict set res $key $val
         }
         return $res
     }
-    method GetFrame {} {
+    method get {} {
         return $frame
     }
+    forward dump my get
 }
 
 oo::class create ::automata::ValuesHandler {

@@ -19,7 +19,7 @@ proc ::oo::objdefine::print args {
 
 proc ::oo::objdefine::frame args {
     set obj [lindex [info level -1] 1]
-    [info object namespace $obj]::my SetFrame $args
+    [info object namespace $obj]::my SetFrame {*}$args
 }
 
 proc ::oo::objdefine::code body {
@@ -31,7 +31,7 @@ proc ::oo::objdefine::code body {
 }
 
 oo::class create ::automata::Machine {
-    mixin ::automata::FrameHandler ::automata::ValuesHandler ::automata::PrintHelper
+    mixin ::automata::FrameHandler ::automata::ValuesHandler ::automata::LabelsHandler ::automata::PrintHelper
     constructor args {
         set matrix [::struct::matrix]
         oo::objdefine [self] forward matrix $matrix

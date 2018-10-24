@@ -8,7 +8,7 @@ namespace eval automata {}
 
 proc ::oo::objdefine::table args {
     set obj [lindex [info level -1] 1]
-    [info object namespace $obj]::my SetLabels $args
+    [info object namespace $obj]::my SetLabels {*}$args
     [info object namespace $obj]::my matrix add columns [llength $args]
 }
 
@@ -46,14 +46,12 @@ proc ::oo::objdefine::stack args {
 
 proc ::oo::objdefine::frame args {
     set obj [lindex [info level -1] 1]
-    [info object namespace $obj]::my SetFrame $args
+    [info object namespace $obj]::my SetFrame {*}$args
 }
 
 oo::class create ::automata::Automaton {
-    mixin ::automata::ValuesHandler ::automata::PrintHelper ::automata::FrameHandler
-    variable labels values frame
+    mixin ::automata::ValuesHandler ::automata::LabelsHandler ::automata::PrintHelper ::automata::FrameHandler
     constructor args {
-        lassign {} labels frame
         set matrix [::struct::matrix]
         oo::objdefine [self] forward matrix $matrix
         foreach script [lreverse $args] {
@@ -66,15 +64,6 @@ oo::class create ::automata::Automaton {
             set var [my matrix get row $row]
             if {[lindex $var 0] eq $state} {uplevel 1 $body}
         }
-    }
-    method SetLabels _ {
-        set labels $_
-        foreach v $labels {
-            my SetValues $v
-        }
-    }
-    method GetLabels {} {
-        return $labels
     }
     method RecognizeA f {
         set fs [list]
@@ -251,7 +240,7 @@ oo::class create ::automata::Automaton {
     }
 
     method dump args {
-        list $labels [my matrix serialize] [my DumpValues] $frame
+        list [my DumpLabels] [my matrix serialize] [my DumpValues] [my DumpFrame]
     }
 }
 
