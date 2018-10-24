@@ -55,33 +55,38 @@ oo::class create ::automata::FrameHandler {
 }
 
 oo::class create ::automata::ValuesHandler {
+    constructor args {
+        set values [::automata::Values new]
+        foreach m {add set get dump} {
+            oo::objdefine [self] forward [string totitle $m]Values $values $m
+        }
+        next {*}$args
+    }
+}
+
+oo::class create ::automata::Values {
     variable values
     constructor args {
         array set values {}
-        next {*}$args
     }
-    method SetValues {name {value {}}} {
+    method add {name value} {
+        if {$value ni $values($name)} {
+            set values($name) [lsort -dict [concat $values($name) $value]]
+        }
+    }
+    method set {name {value {}}} {
         set values($name) $value
     }
-    method GetValues name {
+    method get name {
         switch $name {
             start { set name S }
             final { set name F }
             print { set name B }
             stack { set name Z }
         }
-        if {$name ne "*"} {
-            if {$values($name) eq {}} {
-                if {$name in [my GetLabels]} {
-                    set values($name) [my matrix get column [lsearch [my GetLabels] $name]]
-                } else {
-                    return -code error [format {no such value: %s} $name]
-                }
-            }
-        }
-        return [concat {*}[dict values [array get values $name]]]
+        return $values($name)
     }
-    method DumpValues {} {
+    method dump {} {
         return [array get values]
     }
 }

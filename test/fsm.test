@@ -32,7 +32,7 @@ test foo-1.0 {} -body {
 } -cleanup {
     M destroy
     log::lvSuppressLE i 1
-} -result {{Q A T} {4 3 {{s1 0 s2} {s1 1 s1} {s2 0 s1} {s2 1 s2}}} {T {} A {} Q {} F s1 S s1} {input state}}
+} -result {{Q A T} {4 3 {{s1 0 s2} {s1 1 s1} {s2 0 s1} {s2 1 s2}}} {T {s1 s2} A {0 1} Q {s1 s2} F s1 S s1} {input state}}
 
 test dfa-1.0 {accept binary numbers that are multiples of 3} -body {
     ::automata::FSM create M {

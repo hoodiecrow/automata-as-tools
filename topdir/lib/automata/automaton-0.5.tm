@@ -16,7 +16,11 @@ proc ::oo::objdefine::tuples args {
     set obj [lindex [info level -1] 1]
     set my [info object namespace $obj]::my
     foreach tuple $args {
-        $my matrix add row [regexp -all -inline {(?:,|\w)+} $tuple]
+        set fields [regexp -all -inline {(?:,|\w)+} $tuple]
+        $my matrix add row $fields
+        foreach label [$my GetLabels] field $fields {
+            $my AddValues $label $field
+        }
     }
 }
 
