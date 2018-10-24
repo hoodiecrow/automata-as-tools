@@ -183,3 +183,29 @@ oo::class create ::automata::SM {
         my Execute SM [list {*}$stack]
     }
 }
+
+oo::class create ::automata::CC {
+    superclass ::automata::Machine
+    method Lookup sym {
+        # based on the minimal base {cons sip k}
+        switch $sym {
+            cons { return {my pop ; my popx ; my cons} }
+            sip  { return {my pop ; my dup ; my popx ; my ev [my :acc] ; my push ; my pushx} }
+            k    { return {my pop ; my popx ; my ev [my :acc]} }
+            zap  { return {my push _ ; my ev k} }
+            i    { return {my push _ ; my push sip ; my ev k} }
+            default {
+                return [format {my push $sym}]
+            }
+        }
+    }
+    constructor args {
+        next {*}$args {
+            frame stack ipointer
+            start 0
+        }
+    }
+    method run stack {
+        my Execute CC [list {*}$stack]
+    }
+}

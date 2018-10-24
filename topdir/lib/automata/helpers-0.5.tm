@@ -1,16 +1,18 @@
 
 oo::class create ::automata::TapeHandler {
+    constructor args {next {*}$args}
     method Print {tape head print} {
         if {$head eq -1} {
             set tape [linsert $tape 0 {}]
             set head 0
         }
+        set printsyms [my GetValues print]
         switch $print {
-            N - _ { return $tape }
-            E - 0 { return [lset tape $head [lindex [my GetValues print] 0]] }
-            P - 1 { return [lset tape $head [lindex [my GetValues print] 1]] }
+            N - _ {}
+            E - 0 { lset tape $head [lindex [my GetValues print] 0] }
+            P - 1 { lset tape $head [lindex [my GetValues print] 1] }
             default {
-                return [lset tape $head [lindex [my GetValues print] $print]]
+                lset tape $head [lindex [my GetValues print] $print]
             }
         }
         return $tape
@@ -54,7 +56,10 @@ oo::class create ::automata::FrameHandler {
 
 oo::class create ::automata::ValuesHandler {
     variable values
-    constructor args {next {*}$args}
+    constructor args {
+        array set values {}
+        next {*}$args
+    }
     method SetValues {name {value {}}} {
         set values($name) $value
     }
@@ -65,7 +70,19 @@ oo::class create ::automata::ValuesHandler {
             print { set name B }
             stack { set name Z }
         }
-        return [lindex [array get values $name] 1]
+        if {$name ne "*"} {
+            if {$values($name) eq {}} {
+                if {$name in [my GetLabels]} {
+                    set values($name) [my matrix get column [lsearch [my GetLabels] $name]]
+                } else {
+                    return -code error [format {no such value: %s} $name]
+                }
+            }
+        }
+        return [concat {*}[dict values [array get values $name]]]
+    }
+    method DumpValues {} {
+        return [array get values]
     }
 }
 

@@ -9,13 +9,14 @@ namespace eval automata {}
 proc ::oo::objdefine::table args {
     set obj [lindex [info level -1] 1]
     [info object namespace $obj]::my SetLabels $args
+    [info object namespace $obj]::my matrix add columns [llength $args]
 }
 
 proc ::oo::objdefine::tuples args {
     set obj [lindex [info level -1] 1]
     set my [info object namespace $obj]::my
     foreach tuple $args {
-        $my AddRow $tuple
+        $my matrix add row [regexp -all -inline {(?:,|\w)+} $tuple]
     }
 }
 
@@ -45,14 +46,13 @@ proc ::oo::objdefine::frame args {
 }
 
 oo::class create ::automata::Automaton {
-    mixin ::automata::PrintHelper ::automata::FrameHandler
+    mixin ::automata::ValuesHandler ::automata::PrintHelper ::automata::FrameHandler
     variable labels values frame
     constructor args {
         lassign {} labels frame
-        array set values {}
         set matrix [::struct::matrix]
         oo::objdefine [self] forward matrix $matrix
-        foreach script $args {
+        foreach script [lreverse $args] {
             oo::objdefine [self] $script
         }
     }
@@ -63,14 +63,6 @@ oo::class create ::automata::Automaton {
             if {[lindex $var 0] eq $state} {uplevel 1 $body}
         }
     }
-    method AddRow tuple {
-        set tuple [regexp -all -inline {(?:,|\w)+} $tuple]
-        set n [expr {[llength $tuple] - [my matrix columns]}]
-        if {$n > 0} {
-            my matrix add columns $n
-        }
-        my matrix add row $tuple
-    }
     method SetLabels _ {
         set labels $_
         foreach v $labels {
@@ -79,25 +71,6 @@ oo::class create ::automata::Automaton {
     }
     method GetLabels {} {
         return $labels
-    }
-    method SetValues {name {value {}}} {
-        set values($name) $value
-    }
-    method GetValues name {
-        switch $name {
-            start { set name S }
-            final { set name F }
-            print { set name B }
-            stack { set name Z }
-        }
-        if {$values($name) eq {}} {
-            if {$name in $labels} {
-                set values($name) [my matrix get column [lsearch $labels $name]]
-            } else {
-                return -code error [format {no such value: %s} $name]
-            }
-        }
-        return $values($name)
     }
     method RecognizeA f {
         set fs [list]
@@ -274,7 +247,7 @@ oo::class create ::automata::Automaton {
     }
 
     method dump args {
-        list $labels [my matrix serialize] [array get values] $frame
+        list $labels [my matrix serialize] [my DumpValues] $frame
     }
 }
 
