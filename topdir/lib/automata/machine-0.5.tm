@@ -17,6 +17,11 @@ proc ::oo::objdefine::print args {
     [info object namespace $obj]::my SetValues B $args
 }
 
+proc ::oo::objdefine::options args {
+    set obj [lindex [info level -1] 1]
+    [info object namespace $obj]::my SetOptions {*}$args
+}
+
 proc ::oo::objdefine::frame args {
     set obj [lindex [info level -1] 1]
     [info object namespace $obj]::my SetFrame {*}$args
@@ -31,12 +36,11 @@ proc ::oo::objdefine::code body {
 }
 
 oo::class create ::automata::Machine {
-    mixin ::automata::FrameHandler ::automata::ValuesHandler ::automata::LabelsHandler ::automata::PrintHelper
+    mixin ::automata::FrameHandler ::automata::ValuesHandler ::automata::LabelsHandler ::automata::OptionsHandler ::automata::PrintHelper
     constructor args {
-        set matrix [::struct::matrix]
-        oo::objdefine [self] forward matrix $matrix
+        oo::objdefine [self] forward matrix [::struct::matrix]
         my matrix add columns 5
-        foreach script $args {
+        foreach script [lreverse $args] {
             oo::objdefine [self] $script
         }
     }
@@ -91,6 +95,7 @@ oo::class create ::automata::CM {
             frame registers ipointer
             start 0
             print 0 1
+            options -halting 1 -epsilon 0
         }
     }
     method run registers {
@@ -104,6 +109,7 @@ oo::class create ::automata::KTR {
         next {*}$args {
             frame world robot returns zflag ipointer
             start 0
+            options -halting 1 -epsilon 0
         }
     }
     method print {} {
@@ -164,6 +170,7 @@ oo::class create ::automata::PTM {
             frame tape head ipointer
             start 0
             print 0 1
+            options -halting 1 -epsilon 0
         }
     }
     method run tape {
@@ -177,6 +184,7 @@ oo::class create ::automata::SM {
         next {*}$args {
             frame stack ipointer
             start 0
+            options -halting 1 -epsilon 0
         }
     }
     method run stack {

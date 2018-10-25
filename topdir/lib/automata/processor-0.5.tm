@@ -315,7 +315,11 @@ oo::class create ::automata::Processor {
 
             NOP {}
 
-            HALT { return -code break }
+            HALT {
+                if {[$machine GetOptions -halting]} {
+                    return -code break
+                }
+            }
 
             OUT {
                 # manipulate the machine's environment somehow

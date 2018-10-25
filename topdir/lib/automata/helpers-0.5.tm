@@ -89,6 +89,35 @@ oo::class create ::automata::Frame {
     forward dump my get
 }
 
+oo::class create ::automata::OptionsHandler {
+    constructor args {
+        set options [::automata::Options new {*}{
+            -halting 0
+            -epsilon 1
+        }]
+        foreach m {set get dump} {
+            oo::objdefine [self] forward [string totitle $m]Options $options $m
+        }
+        next {*}$args
+    }
+}
+
+oo::class create ::automata::Options {
+    variable options
+    constructor args {
+        array set options $args
+    }
+    method set args {
+        array set options $args
+    }
+    method get name {
+        return $options($name)
+    }
+    method dump {} {
+        return [array get options *]
+    }
+}
+
 oo::class create ::automata::ValuesHandler {
     constructor args {
         set values [::automata::Values new]

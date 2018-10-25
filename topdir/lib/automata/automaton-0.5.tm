@@ -19,6 +19,9 @@ proc ::oo::objdefine::tuples args {
     foreach tuple $args {
         set fields [regexp -all -inline {(?:,|\w)+} $tuple]
         $my matrix add row $fields
+        if {![$my GetOptions -epsilon] && [lindex $fields 1] eq "_"} {
+            return -code error [format "machine not configured for epsilon moves"]
+        }
         foreach label [$my GetLabels] field $fields {
             $my AddValues $label $field
         }
@@ -45,13 +48,18 @@ proc ::oo::objdefine::stack args {
     [info object namespace $obj]::my SetValues Z $args
 }
 
+proc ::oo::objdefine::options args {
+    set obj [lindex [info level -1] 1]
+    [info object namespace $obj]::my SetOptions {*}$args
+}
+
 proc ::oo::objdefine::frame args {
     set obj [lindex [info level -1] 1]
     [info object namespace $obj]::my SetFrame {*}$args
 }
 
 oo::class create ::automata::Automaton {
-    mixin ::automata::ValuesHandler ::automata::LabelsHandler ::automata::PrintHelper ::automata::FrameHandler
+    mixin ::automata::ValuesHandler ::automata::LabelsHandler ::automata::PrintHelper ::automata::FrameHandler ::automata::OptionsHandler
     constructor args {
         oo::objdefine [self] forward matrix [::struct::matrix]
         foreach script [lreverse $args] {
@@ -70,13 +78,13 @@ oo::class create ::automata::Automaton {
     method RecognizeA f {
         set fs [list]
         dict with f {
+            if {[my GetOptions -halting] && $state in [my GetValues final]} {
+                return
+            }
             set tail [lassign $input top]
             my SelectQ {q a t} $state {
-                if {$a eq "_"} {
-                    lappend fs [my MakeFrame $input $t]
-                } elseif {$a eq $top} {
-                    lappend fs [my MakeFrame $tail $t]
-                }
+                set _input [switch $a "_" {set input} $top {set tail} default {continue}]
+                lappend fs [my MakeFrame $_input $t]
             }
         }
         return $fs
@@ -84,22 +92,15 @@ oo::class create ::automata::Automaton {
     method RecognizeAB f {
         set fs [list]
         dict with f {
+            if {[my GetOptions -halting] && $state in [my GetValues final]} {
+                return
+            }
             set itail [lassign $input itop]
             set otail [lassign $output otop]
             my SelectQ {q a b t} $state {
-                if {$a eq "_"} {
-                    if {$b eq "_"} {
-                        lappend fs [my MakeFrame $input $t $output]
-                    } elseif {$b eq $otop} {
-                        lappend fs [my MakeFrame $input $t $otail]
-                    }
-                } elseif {$a eq $itop} {
-                    if {$b eq "_"} {
-                        lappend fs [my MakeFrame $itail $t $output]
-                    } elseif {$b eq $otop} {
-                        lappend fs [my MakeFrame $itail $t $otail]
-                    }
-                }
+                set _input [switch $a "_" {set input} $itop {set itail} default {continue}]
+                set _output [switch $b "_" {set output} $otop {set otail} default {continue}]
+                lappend fs [my MakeFrame $_input $t $_output]
             }
         }
         return $fs
@@ -107,21 +108,14 @@ oo::class create ::automata::Automaton {
     method TranslateAB f {
         set fs [list]
         dict with f {
+            if {[my GetOptions -halting] && $state in [my GetValues final]} {
+                return
+            }
             set itail [lassign $input itop]
             my SelectQ {q a b t} $state {
-                if {$a eq "_"} {
-                    if {$b eq "_"} {
-                        lappend fs [my MakeFrame $input $t $output]
-                    } else {
-                        lappend fs [my MakeFrame $input $t [linsert $output end $b]]
-                    }
-                } elseif {$a eq $itop} {
-                    if {$b eq "_"} {
-                        lappend fs [my MakeFrame $itail $t $output]
-                    } else {
-                        lappend fs [my MakeFrame $itail $t [linsert $output end $b]]
-                    }
-                }
+                set _input [switch $a "_" {set input} $itop {set itail} default {continue}]
+                set _output [switch $b "_" {set output} default {linsert $output end $b}]
+                lappend fs [my MakeFrame $_input $t $_output]
             }
         }
         return $fs
@@ -129,21 +123,14 @@ oo::class create ::automata::Automaton {
     method TranslateBA f {
         set fs [list]
         dict with f {
+            if {[my GetOptions -halting] && $state in [my GetValues final]} {
+                return
+            }
             set otail [lassign $output otop]
             my SelectQ {q a b t} $state {
-                if {$a eq "_"} {
-                    if {$b eq "_"} {
-                        lappend fs [my MakeFrame $input $t $output]
-                    } elseif {$b eq $otop} {
-                        lappend fs [my MakeFrame $input $t $otail]
-                    }
-                } else {
-                    if {$b eq "_"} {
-                        lappend fs [my MakeFrame [linsert $input end $a] $t $output]
-                    } elseif {$b eq $otop} {
-                        lappend fs [my MakeFrame [linsert $input end $a] $t $otail]
-                    }
-                }
+                set _input [switch $a "_" {set input} default {linsert $input end $a}]
+                set _output [switch $b "_" {set output} $otop {set otail} default {continue}]
+                lappend fs [my MakeFrame $_input $t $_output]
             }
         }
         return $fs
@@ -151,20 +138,13 @@ oo::class create ::automata::Automaton {
     method Generate f {
         set fs [list]
         dict with f {
+            if {[my GetOptions -halting] && $state in [my GetValues final]} {
+                return
+            }
             my SelectQ {q a b t} $state {
-                if {$a eq "_"} {
-                    if {$b eq "_"} {
-                        lappend fs [my MakeFrame $input $t $output]
-                    } else {
-                        lappend fs [my MakeFrame $input $t [linsert $output end $b]]
-                    }
-                } else {
-                    if {$b eq "_"} {
-                        lappend fs [my MakeFrame [linsert $input end $a] $t $output]
-                    } else {
-                        lappend fs [my MakeFrame [linsert $input end $a] $t [linsert $output end $b]]
-                    }
-                }
+                set _input [switch $a "_" {set input} default {linsert $input end $a}]
+                set _output [switch $b "_" {set output} default {linsert $output end $b}]
+                lappend fs [my MakeFrame $_input $t $_output]
             }
         }
         return $fs
@@ -172,28 +152,19 @@ oo::class create ::automata::Automaton {
     method RecognizeStack f {
         set fs [list]
         dict with f {
+            if {[my GetOptions -halting] && $state in [my GetValues final]} {
+                return
+            }
             set itail [lassign $input itop]
             set _tail [lassign $stack _top]
             my SelectQ {q a b bs t} $state {
                 if {$bs eq "_"} {
                     set bs {}
                 }
-                if {$a eq "_"} {
-                    if {$b eq "_"} {
-                        lappend fs [my MakeFrame $input $t $stack]
-                    } elseif {$b eq $_top} {
-                        # consume stack token
-                        lappend fs [my MakeFrame $input $t [concat [split $bs ,] $_tail]]
-                    }
-                } elseif {$a eq $itop} {
-                    if {$b eq "_"} {
-                        # consume input token
-                        lappend fs [my MakeFrame $itail $t $stack]
-                    } elseif {$b eq $_top} {
-                        # consume input and stack token
-                        lappend fs [my MakeFrame $itail $t [concat [split $bs ,] $_tail]]
-                    }
-                }
+                set _stack [concat [split $bs ,] $_tail]
+                set _input [switch $a "_" {set input} $itop {set itail} default {continue}]
+                set _stack [switch $b "_" {set stack} $_top {set _stack} default {continue}]
+                lappend fs [my MakeFrame $_input $t $_stack]
             }
         }
         return $fs
@@ -201,7 +172,7 @@ oo::class create ::automata::Automaton {
     method RecognizeTape f {
         set fs [list]
         dict with f {
-            if {$state in [my GetValues final]} {
+            if {[my GetOptions -halting] && $state in [my GetValues final]} {
                 return
             }
             set cur [lindex $tape $head]
@@ -245,6 +216,7 @@ oo::class create ::automata::FSM {
         next {*}$args {
             table Q A T
             frame input state
+            options -halting 0 -epsilon 1
         }
     }
     method print {} {
@@ -290,6 +262,7 @@ oo::class create ::automata::FST {
         next {*}$args {
             table Q A B T
             frame input state output
+            options -halting 0 -epsilon 1
         }
     }
     method print {} {
@@ -400,6 +373,7 @@ oo::class create ::automata::PDA {
         next {*}$args {
             table Q A B B* T
             frame input state stack
+            options -halting 0 -epsilon 1
         }
     }
     method print {} {
@@ -457,6 +431,7 @@ oo::class create ::automata::BTM {
             table Q A P M T
             frame tape head state
             print 0 1
+            options -halting 1 -epsilon 0
         }
     }
     method print {} {
