@@ -69,20 +69,21 @@ z     NOP
 Instantaneous description: registers, ipointer
 }
 
-test cm-2.0 {Implement a DEC operation using instruction set 2} -constraints SKIP -setup {
-    ::automata::CM create M -instructionset 2
-} -body {
-    M compile {
-        _:  INC:1
-        a:  JE:b,2,3
-            INC:3
-            JE:a,0,0
-        b:  CLR:2
-        c:  JE:z,1,3
-            INC:1
-            INC:2
-            JE:c,0,0
-        z:  NOP
+test cm-2.0 {Implement a DEC operation using instruction set 2} -body {
+    ::automata::CM create M {
+        options -instructions CM2
+        code {
+            _:  INC:1
+            a:  JEQ:b,2,3
+                INC:3
+                JEQ:a,0,0
+            b:  CLR:2
+            c:  JEQ:z,1,3
+                INC:1
+                INC:2
+                JEQ:c,0,0
+            z:  NOP
+        }
     }
     # in a real program there would be cleanup
     M run {0 0 2 0}

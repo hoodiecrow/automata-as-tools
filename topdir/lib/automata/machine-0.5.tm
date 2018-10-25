@@ -46,11 +46,24 @@ oo::class create ::automata::Machine {
     }
     method AddToken token {
         log::log d [info level 0] 
+        switch [my GetOptions -instructions] {
+            CM1 { my SetOptions -instructions {INC DEC JZ} }
+            CM2 { my SetOptions -instructions {CLR INC JEQ} }
+            CM3 { my SetOptions -instructions {INC CPY JEQ} }
+            CM4 { my SetOptions -instructions {INC DEC CLR CPY JMP JZ} }
+        }
+        set instructions [my GetOptions -instructions]
         # TODO could probably be more elegant
         if {[string match *: $token]} {
             my matrix add row [string trimright $token :]
         } else {
             set tuple [regexp -all -inline {(?:[-+]\d+|\w+)} $token]
+            if {$instructions ne {}} {
+                set opcode [lindex $tuple 0]
+                if {$opcode ne "NOP" && $opcode ni $instructions} {
+                    return -code error [format "illegal instruction %s" $opcode]
+                }
+            }
             if {[my matrix rows] eq 0} {
                 my matrix add row {}
             }
@@ -67,7 +80,6 @@ oo::class create ::automata::Machine {
         P cycle [my MakeFrame {*}$args [my GetValues start]]
         set result [P get {*}[my GetFrame]]
         P destroy
-        log::log d \$result=$result 
         dict values $result
     }
     method print {} {
@@ -95,7 +107,7 @@ oo::class create ::automata::CM {
             frame registers ipointer
             start 0
             print 0 1
-            options -halting 1 -epsilon 0
+            options -halting 1 -epsilon 0 -instructions CM4
         }
     }
     method run registers {
@@ -170,7 +182,9 @@ oo::class create ::automata::PTM {
             frame tape head ipointer
             start 0
             print 0 1
-            options -halting 1 -epsilon 0
+            options -halting 1 -epsilon 0 -instructions {
+                CLR DEC HALT INC J0 J1 JMP JNZ JZ OUT 
+            }
         }
     }
     method run tape {

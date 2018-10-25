@@ -94,6 +94,7 @@ oo::class create ::automata::OptionsHandler {
         set options [::automata::Options new {*}{
             -halting 0
             -epsilon 1
+            -instructions {}
         }]
         foreach m {set get dump} {
             oo::objdefine [self] forward [string totitle $m]Options $options $m
