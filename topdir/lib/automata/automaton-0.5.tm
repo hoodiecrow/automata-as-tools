@@ -8,8 +8,9 @@ namespace eval automata {}
 
 proc ::oo::objdefine::table args {
     set obj [lindex [info level -1] 1]
-    [info object namespace $obj]::my SetLabels {*}$args
-    [info object namespace $obj]::my matrix add columns [llength $args]
+    set my [info object namespace $obj]::my
+    $my SetLabels {*}$args
+    $my matrix add columns [llength $args]
 }
 
 proc ::oo::objdefine::tuples args {
@@ -52,25 +53,25 @@ proc ::oo::objdefine::frame args {
 oo::class create ::automata::Automaton {
     mixin ::automata::ValuesHandler ::automata::LabelsHandler ::automata::PrintHelper ::automata::FrameHandler
     constructor args {
-        set matrix [::struct::matrix]
-        oo::objdefine [self] forward matrix $matrix
+        oo::objdefine [self] forward matrix [::struct::matrix]
         foreach script [lreverse $args] {
             oo::objdefine [self] $script
         }
     }
-    method SelectQ {varName state body} {
-        upvar 1 $varName var
+    method SelectQ {varNames state body} {
+        foreach name $varNames {
+            upvar 1 $name $name
+        }
         for {set row 0} {$row < [my matrix rows]} {incr row} {
-            set var [my matrix get row $row]
-            if {[lindex $var 0] eq $state} {uplevel 1 $body}
+            lassign [my matrix get row $row] {*}$varNames
+            if {[my matrix get cell 0 $row] eq $state} {uplevel 1 $body}
         }
     }
     method RecognizeA f {
         set fs [list]
         dict with f {
             set tail [lassign $input top]
-            my SelectQ tuple $state {
-                lassign $tuple q a t
+            my SelectQ {q a t} $state {
                 if {$a eq "_"} {
                     lappend fs [my MakeFrame $input $t]
                 } elseif {$a eq $top} {
@@ -85,19 +86,18 @@ oo::class create ::automata::Automaton {
         dict with f {
             set itail [lassign $input itop]
             set otail [lassign $output otop]
-            my SelectQ tuple $state {
-                lassign $tuple q a b target
+            my SelectQ {q a b t} $state {
                 if {$a eq "_"} {
                     if {$b eq "_"} {
-                        lappend fs [dict create input $input state $target output $output]
+                        lappend fs [my MakeFrame $input $t $output]
                     } elseif {$b eq $otop} {
-                        lappend fs [dict create input $input state $target output $otail]
+                        lappend fs [my MakeFrame $input $t $otail]
                     }
                 } elseif {$a eq $itop} {
                     if {$b eq "_"} {
-                        lappend fs [dict create input $itail state $target output $output]
+                        lappend fs [my MakeFrame $itail $t $output]
                     } elseif {$b eq $otop} {
-                        lappend fs [dict create input $itail state $target output $otail]
+                        lappend fs [my MakeFrame $itail $t $otail]
                     }
                 }
             }
@@ -108,19 +108,18 @@ oo::class create ::automata::Automaton {
         set fs [list]
         dict with f {
             set itail [lassign $input itop]
-            my SelectQ tuple $state {
-                lassign $tuple q a b target
+            my SelectQ {q a b t} $state {
                 if {$a eq "_"} {
                     if {$b eq "_"} {
-                        lappend fs [dict create input $input state $target output $output]
+                        lappend fs [my MakeFrame $input $t $output]
                     } else {
-                        lappend fs [dict create input $input state $target output [linsert $output end $b]]
+                        lappend fs [my MakeFrame $input $t [linsert $output end $b]]
                     }
                 } elseif {$a eq $itop} {
                     if {$b eq "_"} {
-                        lappend fs [dict create input $itail state $target output $output]
+                        lappend fs [my MakeFrame $itail $t $output]
                     } else {
-                        lappend fs [dict create input $itail state $target output [linsert $output end $b]]
+                        lappend fs [my MakeFrame $itail $t [linsert $output end $b]]
                     }
                 }
             }
@@ -131,19 +130,18 @@ oo::class create ::automata::Automaton {
         set fs [list]
         dict with f {
             set otail [lassign $output otop]
-            my SelectQ tuple $state {
-                lassign $tuple q a b target
+            my SelectQ {q a b t} $state {
                 if {$a eq "_"} {
                     if {$b eq "_"} {
-                        lappend fs [dict create input $input state $target output $output]
+                        lappend fs [my MakeFrame $input $t $output]
                     } elseif {$b eq $otop} {
-                        lappend fs [dict create input $input state $target output $otail]
+                        lappend fs [my MakeFrame $input $t $otail]
                     }
                 } else {
                     if {$b eq "_"} {
-                        lappend fs [dict create input [linsert $input end $a] state $target output $output]
+                        lappend fs [my MakeFrame [linsert $input end $a] $t $output]
                     } elseif {$b eq $otop} {
-                        lappend fs [dict create input [linsert $input end $a] state $target output $otail]
+                        lappend fs [my MakeFrame [linsert $input end $a] $t $otail]
                     }
                 }
             }
@@ -153,19 +151,18 @@ oo::class create ::automata::Automaton {
     method Generate f {
         set fs [list]
         dict with f {
-            my SelectQ tuple $state {
-                lassign $tuple q a b target
+            my SelectQ {q a b t} $state {
                 if {$a eq "_"} {
                     if {$b eq "_"} {
-                        lappend fs [dict create input $input state $target output $output]
+                        lappend fs [my MakeFrame $input $t $output]
                     } else {
-                        lappend fs [dict create input $input state $target output [linsert $output end $b]]
+                        lappend fs [my MakeFrame $input $t [linsert $output end $b]]
                     }
                 } else {
                     if {$b eq "_"} {
-                        lappend fs [dict create input [linsert $input end $a] state $target output $output]
+                        lappend fs [my MakeFrame [linsert $input end $a] $t $output]
                     } else {
-                        lappend fs [dict create input [linsert $input end $a] state $target output [linsert $output end $b]]
+                        lappend fs [my MakeFrame [linsert $input end $a] $t [linsert $output end $b]]
                     }
                 }
             }
@@ -177,25 +174,24 @@ oo::class create ::automata::Automaton {
         dict with f {
             set itail [lassign $input itop]
             set _tail [lassign $stack _top]
-            my SelectQ tuple $state {
-                lassign $tuple q a b bs target
+            my SelectQ {q a b bs t} $state {
                 if {$bs eq "_"} {
                     set bs {}
                 }
                 if {$a eq "_"} {
                     if {$b eq "_"} {
-                        lappend fs [dict create input $input state $target stack $stack]
+                        lappend fs [my MakeFrame $input $t $stack]
                     } elseif {$b eq $_top} {
                         # consume stack token
-                        lappend fs [dict create input $input state $target stack [concat [split $bs ,] $_tail]]
+                        lappend fs [my MakeFrame $input $t [concat [split $bs ,] $_tail]]
                     }
                 } elseif {$a eq $itop} {
                     if {$b eq "_"} {
                         # consume input token
-                        lappend fs [dict create input $itail state $target stack $stack]
+                        lappend fs [my MakeFrame $itail $t $stack]
                     } elseif {$b eq $_top} {
                         # consume input and stack token
-                        lappend fs [dict create input $itail state $target stack [concat [split $bs ,] $_tail]]
+                        lappend fs [my MakeFrame $itail $t [concat [split $bs ,] $_tail]]
                     }
                 }
             }
@@ -209,12 +205,11 @@ oo::class create ::automata::Automaton {
                 return
             }
             set cur [lindex $tape $head]
-            my SelectQ tuple $state {
-                lassign $tuple q a print move target
+            my SelectQ {q a p m t} $state {
                 if {$a eq $cur} {
-                    set t [my Print $tape $head $print]
-                    lassign [my Roll $t $head $move] t h
-                    lappend fs [dict create tape $t head $h state $target]
+                    set _tape [my Print $tape $head $p]
+                    lassign [my Roll $_tape $head $m] _tape _head
+                    lappend fs [my MakeFrame $_tape $_head $t]
                 }
             }
         }
