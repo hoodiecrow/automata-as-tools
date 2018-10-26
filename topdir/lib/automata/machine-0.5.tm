@@ -30,9 +30,7 @@ proc ::oo::objdefine::frame args {
 proc ::oo::objdefine::code body {
     set obj [lindex [info level -1] 1]
     set my [info object namespace $obj]::my
-    foreach token [list {*}$body] {
-        $my AddToken $token
-    }
+    $my StoreProgram [list {*}$body]
 }
 
 oo::class create ::automata::Machine {
@@ -44,24 +42,22 @@ oo::class create ::automata::Machine {
             oo::objdefine [self] $script
         }
     }
-    method AddToken token {
-        log::log d [info level 0] 
-        # TODO could probably be more elegant
-        if {[string match *: $token]} {
-            my matrix add row [string trimright $token :]
-        } else {
-            set tuple [regexp -all -inline {(?:[-+]\d+|\w+)} $token]
-            if {[my matrix rows] eq 0} {
-                my matrix add row {}
-            }
-            if {[my matrix get cell 1 end] eq {}} {
-                set label [my matrix get cell 0 end]
-                my matrix set row end [linsert $tuple 0 $label]
+
+    method StoreProgram tokens {
+        for {set i 0} {$i < [llength $tokens]} {incr i} {
+            set tuple [list]
+            set token [lindex $tokens $i]
+            if {[string match *: $token]} {
+                lappend tuple [string trimright $token :]
+                set token [lindex $tokens [incr i]]
             } else {
-                my matrix add row [linsert $tuple 0 {}]
+                lappend tuple {}
             }
+            lappend tuple {*}[regexp -all -inline {(?:[-+]\d+|\w+)} $token]
+            my matrix add row $tuple
         }
     }
+
     method Execute {model args} {
         ::automata::Processor create P $model [namespace which my] [my GetOptions -instructions]
         P cycle [my MakeFrame {*}$args [my GetValues start]]
