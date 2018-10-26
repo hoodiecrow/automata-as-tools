@@ -46,24 +46,11 @@ oo::class create ::automata::Machine {
     }
     method AddToken token {
         log::log d [info level 0] 
-        switch [my GetOptions -instructions] {
-            CM1 { my SetOptions -instructions {INC DEC JZ} }
-            CM2 { my SetOptions -instructions {CLR INC JEQ} }
-            CM3 { my SetOptions -instructions {INC CPY JEQ} }
-            CM4 { my SetOptions -instructions {INC DEC CLR CPY JMP JZ} }
-        }
-        set instructions [my GetOptions -instructions]
         # TODO could probably be more elegant
         if {[string match *: $token]} {
             my matrix add row [string trimright $token :]
         } else {
             set tuple [regexp -all -inline {(?:[-+]\d+|\w+)} $token]
-            if {$instructions ne {}} {
-                set opcode [lindex $tuple 0]
-                if {$opcode ne "NOP" && $opcode ni $instructions} {
-                    return -code error [format "illegal instruction %s" $opcode]
-                }
-            }
             if {[my matrix rows] eq 0} {
                 my matrix add row {}
             }
@@ -76,7 +63,7 @@ oo::class create ::automata::Machine {
         }
     }
     method Execute {model args} {
-        ::automata::Processor create P $model [namespace which my]
+        ::automata::Processor create P $model [namespace which my] [my GetOptions -instructions]
         P cycle [my MakeFrame {*}$args [my GetValues start]]
         set result [P get {*}[my GetFrame]]
         P destroy

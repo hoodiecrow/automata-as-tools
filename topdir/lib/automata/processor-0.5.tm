@@ -6,12 +6,18 @@ namespace eval automata {}
 proc ::tcl::mathfunc::cmp {a b} { if {$a == $b} {return 0} elseif {$a < $b} {return -1} else {return 1}}
 
 oo::class create ::automata::Processor {
-    variable data machine
+    variable data machine instructions
 
     # TODO eliminate redundant data items?
     constructor args {
-        lassign $args model machine
+        lassign $args model machine instructions
         my reset $model
+        switch $instructions {
+            CM1 { set instructions {INC DEC JZ} }
+            CM2 { set instructions {CLR INC JEQ} }
+            CM3 { set instructions {INC CPY JEQ} }
+            CM4 { set instructions {INC DEC CLR CPY JMP JZ} }
+        }
     }
 
     method reset model {
@@ -161,9 +167,13 @@ oo::class create ::automata::Processor {
     # compare and store result (-1, 0, 1) in accumulator
     method cmp args {
         lassign $args b c
-        switch [my :model] {
-            CM { my acc: [expr {cmp([my :registers $c], [my :registers $b])}] }
-            SM { my acc: [expr {cmp([my :stack 1], [my :stack 0])}] }
+        set val [switch [my :model] {
+            CM { expr {cmp([my :registers $c], [my :registers $b])} }
+            SM { expr {cmp([my :stack 1], [my :stack 0])} }
+        }]
+        dict with data {
+            set acc $val
+            set <=> $val
         }
     }
 
@@ -172,6 +182,7 @@ oo::class create ::automata::Processor {
     }
 
     method get args {
+        set res {}
         foreach arg $args {
             switch $arg {
                 zflag {
@@ -202,11 +213,17 @@ oo::class create ::automata::Processor {
                 incr ipointer
             }
         }
+        return $ipointer
     }
 
-    method exec instr {
+    method exec {label args} {
         # All the opwords of the language are interpreted here.
-        set args [lassign $instr op]
+        set args [lassign $args op]
+        if {$instructions ne {}} {
+            if {$op ne "NOP" && $op ni $instructions} {
+                return -code error [format "illegal instruction %s" $op]
+            }
+        }
         switch $op {
             PUSH {
                 # PUSH val: push val onto stack / PUSH: push acc onto stack
@@ -378,18 +395,18 @@ oo::class create ::automata::Processor {
             }
 
             default {
-                return -code error [format {unknown operation: %s} $instr]
+                return -code error [format {unknown operation: %s} $args]
             }
         }
+        return [my step]
     }
 
     method cycle f {
+        # running out of synonyms for execute
         my set {*}$f
         set ip [my :ipointer]
         while {0 <= $ip && $ip < [$machine matrix rows]} {
-            my exec [lrange [$machine matrix get row $ip] 1 end]
-            my step
-            set ip [my :ipointer]
+            set ip [my exec {*}[$machine matrix get row $ip]]
         }
     }
 

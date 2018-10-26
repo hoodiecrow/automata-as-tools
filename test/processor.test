@@ -32,12 +32,9 @@ test processor-1.1 {set acc and check <=>} -body {
 test processor-2.0 {CALL and RET} -body {
     ::automata::Processor create P
     P ipointer: 10
-    P exec {CALL 99}
-    P step
-    P exec {CALL 77}
-    P step
-    P exec {CALL 55}
-    P step
+    P exec {} CALL 99
+    P exec {} CALL 77
+    P exec {} CALL 55
     set res [P get jmp returns ipointer]
 } -cleanup {
     P destroy
@@ -48,16 +45,11 @@ test processor-2.0 {CALL and RET} -body {
 test processor-2.1 {CALL and RET} -body {
     ::automata::Processor create P
     P ipointer: 10
-    P exec {CALL 99}
-    P step
-    P exec {CALL 77}
-    P step
-    P exec {CALL 55}
-    P step
-    P exec RET
-    P step
-    P exec RET
-    P step
+    P exec {} CALL 99
+    P exec {} CALL 77
+    P exec {} CALL 55
+    P exec {} RET
+    P exec {} RET
     set res [P get jmp returns ipointer]
 } -cleanup {
     P destroy
@@ -68,13 +60,13 @@ test processor-2.1 {CALL and RET} -body {
 test processor-3.0 {CLR} -body {
     ::automata::Processor create P
     P set model CM registers {0 0 3 0 0}
-    P exec {CLR 2}
+    P exec {} CLR 2
     set res [P get registers]
     P set model PTM tape {0 0 3 0 0} head 2
-    P exec CLR
+    P exec {} CLR
     lappend res {*}[P get tape]
     P set model SM stack {3 0 0}
-    P exec CLR
+    P exec {} CLR
     lappend res {*}[P get stack]
 } -cleanup {
     P destroy
@@ -85,10 +77,10 @@ test processor-3.0 {CLR} -body {
 test processor-3.1 {ADD} -body {
     ::automata::Processor create P
     P set model CM acc 0 registers {0 0 3 2 0}
-    P exec {ADD 1 2 3}
+    P exec {} ADD 1 2 3
     set res [P get registers]
     P set model SM acc 0 stack {3 2 0}
-    P exec ADD
+    P exec {} ADD
     lappend res {*}[P get stack]
 } -cleanup {
     P destroy
@@ -99,10 +91,10 @@ test processor-3.1 {ADD} -body {
 test processor-3.2 {SUB} -body {
     ::automata::Processor create P
     P set model CM acc 0 registers {0 0 3 2 0}
-    P exec {SUB 1 2 3}
+    P exec {} SUB 1 2 3
     set res [P get registers]
     P set model SM acc 0 stack {3 2 0}
-    P exec SUB
+    P exec {} SUB
     lappend res {*}[P get stack]
 } -cleanup {
     P destroy
@@ -113,9 +105,9 @@ test processor-3.2 {SUB} -body {
 test processor-3.3 {PUSH} -body {
     ::automata::Processor create P
     P set model SM acc 0 stack {0}
-    P exec {PUSH 3}
+    P exec {} PUSH 3
     P acc: 5
-    P exec PUSH
+    P exec {} PUSH
     set res [P get stack]
 } -cleanup {
     P destroy
@@ -126,11 +118,11 @@ test processor-3.3 {PUSH} -body {
 test processor-3.4 {INC} -body {
     ::automata::Processor create P
     P set model CM acc 0 registers {0 0 3}
-    P exec {INC 2}
+    P exec {} INC 2
     set res [P get registers]
     P set model SM acc 0 stack {0}
-    P exec {PUSH 3}
-    P exec INC
+    P exec {} PUSH 3
+    P exec {} INC
     lappend res {*}[P get stack]
 } -cleanup {
     P destroy
@@ -141,26 +133,36 @@ test processor-3.4 {INC} -body {
 test processor-3.5 {JEQ} -body {
     ::automata::Processor create P
     P set model CM acc 0 registers {0 0 3 3 2} ipointer 0
-    P exec {JEQ 99 2 3}
-    set res [P get <=> jmp]
+    P exec {} JEQ 99 2 3
+    set res [P get <=> ipointer]
     P set <=> 0 jmp {}
-    P exec {JEQ 99 3 4}
-    lappend res [P get <=> jmp]
+    P exec {} JEQ 99 3 4
+    lappend res [P get <=> ipointer]
     P set <=> 0 jmp {}
     P set model SM acc 0 stack {0} ipointer 0
-    P exec {PUSH 3}
-    P exec {PUSH 3}
-    P exec {JEQ 99}
-    lappend res [P get <=> jmp]
+    P exec {} PUSH 3
+    P exec {} PUSH 3
+    P exec {} JEQ 99
+    lappend res [P get <=> ipointer]
     P set <=> 0 jmp {}
-    P exec {PUSH 2}
-    P exec {PUSH 3}
-    P exec {JEQ 99}
-    lappend res [P get <=> jmp]
+    P exec {} PUSH 2
+    P exec {} PUSH 3
+    P exec {} JEQ 99
+    lappend res [P get <=> ipointer]
 } -cleanup {
     P destroy
     log::lvSuppressLE i 1
-} -result {<=> 0 jmp 99 {<=> -1 jmp {}} {<=> 0 jmp 99} {<=> -1 jmp {}}}
+} -result {<=> 0 ipointer 99 {<=> -1 ipointer 100} {<=> 0 ipointer 99} {<=> -1 ipointer 102}}
+
+test processor-4.0 {illegal instruction} -body {
+    ::automata::Processor create P SM {} {PUSH}
+    P exec {} PUSH 3
+    P exec {} INC
+} -cleanup {
+    P destroy
+    log::lvSuppressLE i 1
+} -result {illegal instruction INC} -returnCodes error
+
 
 
 if {[package vcompare [package present automata::processor] 0.4] > 0} { 
