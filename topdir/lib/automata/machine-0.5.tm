@@ -30,7 +30,19 @@ proc ::oo::objdefine::frame args {
 proc ::oo::objdefine::code body {
     set obj [lindex [info level -1] 1]
     set my [info object namespace $obj]::my
-    $my StoreProgram [list {*}$body]
+    set tokens [list {*}$body]
+    for {set i 0} {$i < [llength $tokens]} {incr i} {
+        set tuple [list]
+        set token [lindex $tokens $i]
+        if {[string match *: $token]} {
+            lappend tuple [string trimright $token :]
+            set token [lindex $tokens [incr i]]
+        } else {
+            lappend tuple {}
+        }
+        lappend tuple {*}[regexp -all -inline {(?:[-+]\d+|\w+)} $token]
+        $my matrix add row $tuple
+    }
 }
 
 oo::class create ::automata::Machine {
@@ -40,21 +52,6 @@ oo::class create ::automata::Machine {
         my matrix add columns 5
         foreach script [lreverse $args] {
             oo::objdefine [self] $script
-        }
-    }
-
-    method StoreProgram tokens {
-        for {set i 0} {$i < [llength $tokens]} {incr i} {
-            set tuple [list]
-            set token [lindex $tokens $i]
-            if {[string match *: $token]} {
-                lappend tuple [string trimright $token :]
-                set token [lindex $tokens [incr i]]
-            } else {
-                lappend tuple {}
-            }
-            lappend tuple {*}[regexp -all -inline {(?:[-+]\d+|\w+)} $token]
-            my matrix add row $tuple
         }
     }
 
