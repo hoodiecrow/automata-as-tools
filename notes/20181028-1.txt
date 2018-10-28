@@ -1,0 +1,90 @@
+
+general:
+
+	jmp ← val(a)
+	[rp] ← ip + 1
+	...
+	if jflag
+		ip ← jmp
+		jflag ← 0
+	else
+		ip+
+
+
+receivers:
+
+acc
+aux
+jflag
+jmp
+reg(a)
+tape/head
+[sp]
+
+producers:
+
+0
+*,EQ,NE,GT,GE,0,1,Z,NZ/<=>
+acc
+reg(a)
+reg(b)
+reg(c)
+tape/head
+[sp]
+val(a)
+
+operations:
+
+cmp (sets <=>)
+halt
+op (sets <=>)
+out
+ip+
+ip-
+rp+
+rp-
+sp+
+sp-
+test
+
+expressions:
+
+[sp] ← 0 
+[sp] ← acc
+[sp] ← val(a)
+acc ← [sp]
+acc ← reg(a)
+acc ← reg(c)
+aux ← [sp]
+aux ← reg(b)
+jflag ← *,EQ,NE,GT,GE,0,1,Z,NZ/<=>
+jmp ← [rp]
+reg(a) ← 0
+reg(a) ← acc
+reg(a) ← reg(b)
+
+??            tape/head ← acc
+??            acc ← tape/head
+
+push imm      sp+, [sp] ← val(a)
+push acc      sp+, [sp] ← acc
+pop           acc ← [sp], sp-
+top           acc ← [sp]
+clr reg       reg(a) ← 0
+clr stack     [sp] ← 0 
+cpy reg       reg(a) ← reg(b)
+dup stack     acc ← [sp], sp+, [sp] ← acc
+unop reg      acc ← reg(a), op, reg(a) ← acc
+unop stack    acc ← [sp], op, [sp] ← acc
+binop reg     acc ← reg(c), aux ← reg(b), op, reg(a) ← acc
+binop stk     aux ← [sp], sp-, acc ← [sp], op, [sp] ← acc
+jmp           jflag ← 1
+cmp reg reg   acc ← reg(c), aux ← reg(b), cmp (sets <=>)
+cmp stack     aux ← [sp], sp-, acc ← [sp], sp+, cmp (sets <=>)
+j<cmp> reg    jflag ← cmpop/<=>
+j0,j1,jz,jnz  jflag ← op/<=>
+call          jflag ← 1, rp+
+ret           jflag ← 1, jmp ← [rp], rp-
+halt          
+out
+test          
