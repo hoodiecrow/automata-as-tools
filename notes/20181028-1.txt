@@ -55,6 +55,7 @@ expressions:
 acc ← [sp]
 acc ← reg(a)
 acc ← reg(c)
+acc ← tape/head
 aux ← [sp]
 aux ← reg(b)
 jflag ← *,EQ,NE,GT,GE,0,1,Z,NZ/<=>
@@ -62,29 +63,39 @@ jmp ← [rp]
 reg(a) ← 0
 reg(a) ← acc
 reg(a) ← reg(b)
+tape/head ← acc
 
+STA
+[sp] ← acc
+reg(a) ← acc
+tape/head ← acc
+
+LDA
+acc ← [sp]
+acc ← reg(a)
+acc ← tape/head
+
+LDAX
+acc ← reg(c), aux ← reg(b)
+aux ← [sp], sp-, acc ← [sp]
+
+-- try to get rid of acc/aux
 ??            tape/head ← acc
 ??            acc ← tape/head
-
 push imm      sp+, [sp] ← val(a)
-push acc      sp+, [sp] ← acc
-pop           acc ← [sp], sp-
-top           acc ← [sp]
+push acc      sp+, STA
+pop           LDA, sp-
+top           LDA
+drop          sp-
 clr reg       reg(a) ← 0
 clr stack     [sp] ← 0 
 cpy reg       reg(a) ← reg(b)
-dup stack     acc ← [sp], sp+, [sp] ← acc
-unop reg      acc ← reg(a), op, reg(a) ← acc
-unop stack    acc ← [sp], op, [sp] ← acc
-binop reg     acc ← reg(c), aux ← reg(b), op, reg(a) ← acc
-binop stk     aux ← [sp], sp-, acc ← [sp], op, [sp] ← acc
+dup stack     LDA, sp+, STA
+unop          LDA, op, STA
+binop         LDAX, op, STA
+cmp           LDAX, cmp (sets <=>)
+cmp           LDAX, sp+, cmp (sets <=>)
 jmp           jflag ← 1
-cmp reg reg   acc ← reg(c), aux ← reg(b), cmp (sets <=>)
-cmp stack     aux ← [sp], sp-, acc ← [sp], sp+, cmp (sets <=>)
-j<cmp> reg    jflag ← cmpop/<=>
-j0,j1,jz,jnz  jflag ← op/<=>
+j<cond>       jflag ← EQ,NE,GT,GE,0,1,Z,NZ/<=>
 call          jflag ← 1, rp+
 ret           jflag ← 1, jmp ← [rp], rp-
-halt          
-out
-test          

@@ -1,0 +1,64 @@
+
+receiver:
+
+reg(a)
+tape
+[sp]
+jmp
+jflag
+
+producer:
+
+0
+*,EQ,NE,GT,GE,0,1,Z,NZ/<=>
+reg(a)
+reg(b)
+reg(c)
+tape
+[sp]
+val(a)
+
+operations:
+
+cmp (sets <=>)
+halt
+op (sets <=>)
+out
+ip+
+ip-
+rp+
+rp-
+sp+
+sp-
+test
+
+expressions:
+
+[sp] ← 0 
+[sp] ← val(a)
+jflag ← *,EQ,NE,GT,GE,0,1,Z,NZ/<=>
+jmp ← [rp]
+reg(a) ← 0
+reg(a) ← reg(b)
+
+store and op-store use a pointer: (a), head, or sp depending on model
+
+mark uses (a), head, or sp
+
+mark2 uses (c,b) or sp,sp-1
+
+jmp register and const uses value of a
+
+unary:       mark, op-store
+binary:      mark2, op-store
+push imm:    const, store
+drop         sp-
+clear        zero, store
+copy:        mark, store
+dup stack:   mark, sp+, store
+cmp          mark2, (sp+), set<=>
+jump         jflag ← 1
+j<cond>      jflag ← ?
+call         jflag ← 1, rp+
+ret          jflag ← 1, jmp ← [rp], rp-
+
