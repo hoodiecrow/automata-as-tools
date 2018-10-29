@@ -1,0 +1,33 @@
+
+jmp ← arg(a)
+[rp] ← ip + 1
+if JUMP|CALL|RET jexpr ← TRUE
+elseif J<COND> jexpr ← COND
+if CALL rp+
+if RET jmp ← [rp] ; rp-
+CM:
+ap ← arg(a)
+bp ← arg(b)
+cp ← arg(c)
+PTM:
+ap ← head:actualpointer
+SM:
+bp ← sp
+cp ← sp - 1
+if CONST|DUP sp+
+if <BINARY>|DROP sp-
+ap ← sp
+if CONST [ap] ← arg(a)
+if CLEAR [ap] ← 0
+if COPY|DUP [ap] ← [bp]
+if <UNARY> [ap] ← UNARY([ap])
+if <BINARY> [ap] ← BINARY([bp], [cp])
+if CMP CMP([bp], [cp])
+if [jexpr(<=>)]
+	ip ← jmp
+	jexpr ← FALSE
+else
+	ip ← [rp]
+
+
+tape: head ≥ 0 : tapeA(head) ; head < 0 : tapeB(-head+1) ; if [head] eq {} print 0 
