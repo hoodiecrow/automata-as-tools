@@ -1,2 +1,5 @@
 
 topdir/lib/tcltest-2.4.666.tm
+libRedRT-defs.r
+libRedRT-include.red
+libRedRT.dll

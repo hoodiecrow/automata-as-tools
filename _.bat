@@ -1,2 +1,1 @@
-rem "argl topdir/lib/**/*.tcl topdir/lib/**/*.tm |argd **/pkgIndex.tcl |argu |bd **/pkgIndex.tcl"
-@gvim -p3 -c "argl topdir/lib/**/*.tcl topdir/lib/**/*.tm" +tabn -c "argl ./**/*.test" +tabn -c "argl ./**/testreport.txt" +tabn
+@gvim -p3 -c "argl source/**/*.red" +tabn -c "argl tests/*-test.red" +tabn -c "argl source/quick-test.log" +tabn
