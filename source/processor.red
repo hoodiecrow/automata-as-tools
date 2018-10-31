@@ -1,45 +1,40 @@
 
 Red []
 
-pointers: make map! [
-	ap 0
-	bp 0
-	cp 0
-	ip 0
-	jp 0
-	rp 0
-	sp 0
-]
-
-memory: make vector! 50
-
-resetptr: func [key][pointers/:key: 0]
-copyptr: func [key1 key2][pointers/:key1: pointers/:key2]
-incptr: func [key][pointers/:key: pointers/:key + 1]
-decptr: func [key][if pointers/:key > 0 [pointers/:key: pointers/:key - 1]]
-
-memset: func [key val][poke memory pointers/:key val]
-memget: func [key][pick memory pointers/:key]
-
-arch: [
-	jmp: 0
-	rp: 0
-	ip: 0
-	jexpr: FALSE
-	model: ""
-	ap: 0
-	bp: 0
-	cp: 0
-	sp: 0
-	regs: make vector! [0]
-	rets: make vector! [0]
-	stack: make vector! [0]
-
-]
-
 execute: func [op a b c][
 	;-- TODO 
+	p/j: a
+	mem/(:p/r): 1 + p/i
+	either false [][
+		p/i: mem/(:p/r)
+	]
 ]
+
+p: make map! [
+	a 0
+	b 0
+	c 0
+	i 0
+	j 0
+	r 1
+	s 1
+]
+
+mem: make vector! 50
+
+++: func ['val [path!]] [set val 1 + get val]
+--: func ['val [path!]] [if 0 < get val [set val -1 + get val]]
+
+comment {
+resetptr: func [key][pointers/:key: 0]
+			  setptr: func [key val][pointers/:key: val]
+			  copyptr: func [key1 key2][pointers/:key1: pointers/:key2]
+			  incptr: func [key][pointers/:key: pointers/:key + 1]
+			  decptr: func [key][if pointers/:key > 0 [pointers/:key: pointers/:key - 1]]
+}
+
+memset: func [key val][poke memory p/:key val]
+memget: func [key][pick memory p/:key]
 
 ops: make map! [
 	;--    type   jmp      jexpr      body
