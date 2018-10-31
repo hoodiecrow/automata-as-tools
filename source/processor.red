@@ -1,29 +1,57 @@
 
 Red []
 
+p: make map! 7
+
+reset: does [
+	foreach key [a b c i j s] [
+		p/(key): 0
+	]
+	foreach key [r] [
+		p/(key): 1
+	]
+	mem: make vector! 50
+	ret: make vector! 10
+]
+
 execute: func [op a b c][
 	;-- TODO 
 	p/j: a
-	mem/(:p/r): 1 + p/i
+	ret/(:p/r): 1 + p/i
+	if-unary op [p/a: p/s]
+	if-binary op [
+		p/b: p/s
+		-- p/s
+		p/c: p/s
+		p/a: p/s
+		poke mem p/a do reduce [op mem/(p/b) mem/(p/c)]
+	]
+	if-const op [
+		++ p/s
+		mem/(:p/s): p/j
+	]
 	either false [][
-		p/i: mem/(:p/r)
+		p/i: ret/(:p/r)
 	]
 ]
 
-p: make map! [
-	a 0
-	b 0
-	c 0
-	i 0
-	j 0
-	r 1
-	s 1
-]
-
-mem: make vector! 50
-
 ++: func ['val [path!]] [set val 1 + get val]
 --: func ['val [path!]] [if 0 < get val [set val -1 + get val]]
+
+if-unary: func [op body][
+	if none <> find [NOT NEG INC DEC] op [do body]
+]
+
+if-binary: func [op body][
+	if none <> find [
+        EQ NE EQL NEQ GT GE LT LE ADD SUB MUL DIV MOD AND OR XOR
+	] op [do body]
+]
+
+if-const: func [op body][
+	if none <> find [CONST] op [do body]
+]
+
 
 comment {
 resetptr: func [key][pointers/:key: 0]
