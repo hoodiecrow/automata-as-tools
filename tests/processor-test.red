@@ -89,13 +89,13 @@ do %/C/users/peter/code/red/quick-test/quick-test.red
 
   --test-- "processor-test-10"
 	reset
-    execute 0 0 1 2
+    execute 'NOP 0 1 2
   --assert 1 = p/i
 
   --test-- "processor-test-11"
 	reset
-    execute 0 0 1 2
-    execute 0 0 1 2
+    execute 'NOP 0 1 2
+    execute 'NOP 0 1 2
   --assert 2 = p/i
 
   --test-- "processor-test-12"

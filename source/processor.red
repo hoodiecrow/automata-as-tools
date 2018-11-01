@@ -24,7 +24,9 @@ execute: func [op a b c][
 		-- p/s
 		p/c: p/s
 		p/a: p/s
-		poke mem p/a do reduce [op mem/(p/b) mem/(p/c)]
+		;use [operator][
+		operator: get op
+		poke mem p/a operator mem/(p/b) mem/(p/c)
 	]
 	if-const op [
 		++ p/s
