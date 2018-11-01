@@ -120,9 +120,31 @@ do %/C/users/peter/code/red/quick-test/quick-test.red
     execute 'CONST 3 0 0
     execute 'CONST 2 0 0
     execute 'ADD 0 0 0
+  --assert "make vector! [5 2 0 0 0 0 0 0]" = mold copy/part mem 8
+
+  --test-- "processor-test-16"
+	reset
+    execute 'CONST 3 0 0
+    execute 'CLEAR 0 0 0
+    execute 'CONST 2 0 0
+    execute 'DUP 0 0 0
+  --assert "make vector! [0 2 2 0 0 0 0 0]" = mold copy/part mem 8
+
+  --test-- "processor-test-17"
+	reset
+    execute 'CONST 3 0 0
+    execute 'CONST 2 0 0
+    execute 'CMP 0 0 0
+  --assert -1 = cmp
+
+  --test-- "processor-test-18"
+	reset
+    execute 'CONST 2 0 0
+    execute 'CONST 3 0 0
+    execute 'CMP 0 0 0
 	print p
 	print mem
-  --assert "make vector! [5 2 0 0 0 0 0 0]" = mold copy/part mem 8
+  --assert 1 = cmp
 
 ===end-group===
 
