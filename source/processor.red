@@ -3,22 +3,77 @@ Red []
 
 p: make map! 7
 
-reset: does [
-	foreach key [a b c i j r s] [
+reset: func [m][
+	foreach key [a b c i r s] [
 		p/(key): 0
 	]
 	++ p/r
 	mem: make vector! 50
 	ret: make vector! 10
+	jmp: 0
 	cmp: 0
+	model: m
 ]
 
-execute: func [op a b c][
+execute: func [
+		op
+		args [block!]
+	][
 	;-- TODO 
-	p/j: a
+	jmp: first args
 	ret/(:p/r): 1 + p/i
+	switch model [
+		"CM" [
+			if-unary op [ p/a: first args ]
+			if-binary op [
+		        p/a: first args
+		        p/b: second args
+		        p/c: third args
+			]
+	        if-const op [
+		        p/a: second args
+			]
+	        if 'CLEAR == op [
+	        	p/a: first args
+	        ]
+	        if-copy op [
+	        	p/a: first args
+	        	p/b: second args
+	        ]
+	        if 'CMP == op [
+		        p/a: first args
+		        p/b: second args
+		        p/c: third args
+	        ]
+		]
+		"SM" [
+			if-unary op [ p/a: p/s ]
+			if-binary op [
+		        p/b: p/s
+		        -- p/s
+		        p/c: p/s
+		        p/a: p/s
+			]
+	        if-const op [
+	        	++ p/s
+	        	p/a: p/s
+			]
+	        if 'CLEAR == op [
+	        	p/a: p/s
+	        ]
+	        if-copy op [
+	        	p/b: p/s
+	        	++ p/s
+	        	p/a: p/s
+	        ]
+	        if 'CMP == op [
+		        p/b: p/s
+		        p/c: p/s
+		        -- p/c
+	        ]
+		]
+	]
 	if-unary op [
-		p/a: p/s
 		poke mem p/a (switch op [
 			NOT [either mem/(:p/a) == 0 [1][0]]
 			NEG [- mem/(:p/a)]
@@ -29,36 +84,23 @@ execute: func [op a b c][
 		cmp: do-cmp
 	]
 	if-binary op [
-		p/b: p/s
-		-- p/s
-		p/c: p/s
-		p/a: p/s
 		operator: get op
 		poke mem p/a operator mem/(:p/b) mem/(:p/c)
 		cmp: do-cmp
 	]
 	if-const op [
-		++ p/s
-		p/a: p/s
-		mem/(:p/a): p/j
+		mem/(:p/a): jmp
 		cmp: do-cmp
 	]
 	if 'CLEAR == op [
-		p/a: p/s
 		poke mem p/a 0
 		cmp: do-cmp
 	]
 	if-copy op [
-		p/b: p/s
-		++ p/s
-		p/a: p/s
 		poke mem p/a mem/(:p/b)
 		cmp: do-cmp
 	]
 	if 'CMP == op [
-		p/b: p/s
-		p/c: p/s
-		-- p/c
 		cmp: either mem/(:p/b) < mem/(:p/c) [
 			-1
 		][
@@ -71,23 +113,23 @@ execute: func [op a b c][
 	p/i: ret/(:p/r)
 	if-jump op [
 		switch op [
-			JUMP [p/i: p/j]
+			JUMP [p/i: jmp]
 			CALL [
 				++ p/r
-				p/i: p/j
+				p/i: jmp
 			]
 			RET [
 				-- p/r
 				p/i: ret/(:p/r)
 			]
-			JEQ [ if cmp == 0 [p/i: p/j] ]
-			JNE [ if cmp <> 0 [p/i: p/j] ]
-			JGT [ if cmp > 0 [p/i: p/j] ]
-			JGE [ if cmp >= 0 [p/i: p/j] ]
-			J0 [ if cmp == 0 [p/i: p/j] ]
-			J1 [ if cmp == 1 [p/i: p/j] ]
-			JZ [ if cmp == 0 [p/i: p/j] ]
-			JNZ [ if cmp <> 0 [p/i: p/j] ]
+			JEQ [ if cmp == 0 [p/i: jmp] ]
+			JNE [ if cmp <> 0 [p/i: jmp] ]
+			JGT [ if cmp > 0 [p/i: jmp] ]
+			JGE [ if cmp >= 0 [p/i: jmp] ]
+			J0 [ if cmp == 0 [p/i: jmp] ]
+			J1 [ if cmp == 1 [p/i: jmp] ]
+			JZ [ if cmp == 0 [p/i: jmp] ]
+			JNZ [ if cmp <> 0 [p/i: jmp] ]
 		]
 	]
 ]
