@@ -15,6 +15,53 @@ reset: func [m][
 	model: m
 ]
 
+operations: [
+	PUSH   noarg     [++ p/s mem/(:p/s): jmp]                     no
+	POP    noarg     [-- p/s]                                     no
+	CLEAR  onearg    [mem/(:p/a): 0]                              yes
+	COPY   copyarg   [mem/(:p/a): mem/(:p/b)]                     yes
+	DUP    copyarg   [mem/(:p/a): mem/(:p/b)]                     yes
+	NOT    onearg    [mem/(:p/a): either mem/(:p/a) == 0 [1][0]]  yes
+    NEG    onearg    [mem/(:p/a): - mem/(:p/a)]                   yes
+    ABS    onearg    [mem/(:p/a): absolute mem/(:p/a)]            yes
+	INC    onearg    [mem/(:p/a): mem/(:p/a) + 1]                 yes
+    DEC    onearg    [mem/(:p/a): mem/(:p/a) - 1]                 yes
+    CONST  onearg2   [mem/(:p/a): jmp]                            yes
+    EQ     threearg  [mem/(:p/a): mem/(:p/b) ==  mem/(:p/c)]      yes
+    NE     threearg  [mem/(:p/a): mem/(:p/b) <>  mem/(:p/c)]      yes
+    EQL    threearg  [mem/(:p/a): mem/(:p/b) =   mem/(:p/c)]      yes
+    NEQ    threearg  [mem/(:p/a): mem/(:p/b) <>  mem/(:p/c)]      yes
+    GT     threearg  [mem/(:p/a): mem/(:p/b) >   mem/(:p/c)]      yes
+    GE     threearg  [mem/(:p/a): mem/(:p/b) >=  mem/(:p/c)]      yes
+    LT     threearg  [mem/(:p/a): mem/(:p/b) <   mem/(:p/c)]      yes
+    LE     threearg  [mem/(:p/a): mem/(:p/b) <=  mem/(:p/c)]      yes
+    ADD    threearg  [mem/(:p/a): mem/(:p/b) +   mem/(:p/c)]      yes
+    SUB    threearg  [mem/(:p/a): mem/(:p/b) -   mem/(:p/c)]      yes
+    MUL    threearg  [mem/(:p/a): mem/(:p/b) *   mem/(:p/c)]      yes
+    EXP    threearg  [mem/(:p/a): mem/(:p/b) **  mem/(:p/c)]      yes
+    DIV    threearg  [mem/(:p/a): mem/(:p/b) /   mem/(:p/c)]      yes
+    MOD    threearg  [mem/(:p/a): mem/(:p/b) %   mem/(:p/c)]      yes
+    AND    threearg  [mem/(:p/a): mem/(:p/b) and mem/(:p/c)]      yes
+    OR     threearg  [mem/(:p/a): mem/(:p/b) or  mem/(:p/c)]      yes
+    XOR    threearg  [mem/(:p/a): mem/(:p/b) xor mem/(:p/c)]      yes
+	; p/i: ret/(:p/r)
+    JUMP   noarg     [p/i: jmp]                                   no
+    JEQ    noarg     [if cmp == 0 [p/i: jmp]]                     no
+    JNE    noarg     [if cmp <> 0 [p/i: jmp]]                     no
+    JGT    noarg     [if cmp >  0 [p/i: jmp]]                     no
+    JGE    noarg     [if cmp >= 0 [p/i: jmp]]                     no
+    J0     noarg     [if cmp == 0 [p/i: jmp]]                     no
+    J1     noarg     [if cmp == 1 [p/i: jmp]]                     no
+    JZ     noarg     [if cmp == 0 [p/i: jmp]]                     no
+    JNZ    noarg     [if cmp <> 0 [p/i: jmp]]                     no
+    CALL   noarg     [++ p/r p/i: jmp]                            no
+    RET    noarg	 [-- p/r p/i: ret/(:p/r)]                     no
+    NOP    noarg     []                                           no
+    HALT   noarg     ;stop processor
+    OUT    litarg
+    TEST   litarg
+]
+
 execute: func [
 		op
 		args [block!]
@@ -24,53 +71,49 @@ execute: func [
 	ret/(:p/r): 1 + p/i
 	switch model [
 		"CM" [
-			if-unary op [ p/a: first args ]
-			if-binary op [
-		        p/a: first args
-		        p/b: second args
-		        p/c: third args
-			]
-	        if-const op [
-		        p/a: second args
-			]
-	        if 'CLEAR == op [
-	        	p/a: first args
-	        ]
-	        if-copy op [
+			onearg: [ p/a: first args ]
+			onearg2: [ p/a: second args ]
+			twoarg: [
 	        	p/a: first args
 	        	p/b: second args
 	        ]
-	        if 'CMP == op [
+			threearg: [
 		        p/a: first args
 		        p/b: second args
 		        p/c: third args
 	        ]
+			if-unary op onearg
+	        if 'CLEAR == op onearg
+	        if-const op onearg2
+	        if-copy op twoarg
+	        if 'CMP == op threearg
+			if-binary op threearg
 		]
 		"SM" [
-			if-unary op [ p/a: p/s ]
-			if-binary op [
-		        p/b: p/s
-		        -- p/s
-		        p/c: p/s
-		        p/a: p/s
-			]
-	        if-const op [
-	        	++ p/s
-	        	p/a: p/s
-			]
-	        if 'CLEAR == op [
-	        	p/a: p/s
-	        ]
-	        if-copy op [
-	        	p/b: p/s
-	        	++ p/s
-	        	p/a: p/s
-	        ]
-	        if 'CMP == op [
-		        p/b: p/s
-		        p/c: p/s
-		        -- p/c
-	        ]
+            onearg: [ p/a: p/s ]
+            pusharg: [ ++ p/s p/a: p/s ]
+            pushtwoarg: [
+            	p/b: p/s
+            	++ p/s
+            	p/a: p/s
+            ]
+            threearg: [
+            	p/b: p/s
+            	-- p/s
+            	p/c: p/s
+            	p/a: p/s
+            ]
+            cmparg: [
+            	p/b: p/s
+            	p/c: p/s
+            	-- p/c
+            ]
+			if-unary op onearg
+	        if 'CLEAR == op onearg
+	        if-const op pusharg
+	        if-copy op pushtwoarg
+	        if 'CMP == op cmparg
+			if-binary op threearg
 		]
 	]
 	if-unary op [
