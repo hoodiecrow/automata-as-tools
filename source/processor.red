@@ -1,13 +1,11 @@
 
 Red []
 
-p: make map! 7
-
 reset: func [m][
-	foreach key [a b c i r s] [
-		p/(key): 0
+	foreach key [ap bp cp ip rp sp] [
+		set :key 0
 	]
-	++ p/r
+	++ rp
 	mem: make vector! 50
 	ret: make vector! 10
 	jmp: 0
@@ -15,72 +13,140 @@ reset: func [m][
 	model: m
 ]
 
-operations: [
-	PUSH   noarg     [++ p/s mem/(:p/s): jmp]                     no
-	POP    noarg     [-- p/s]                                     no
-	CLEAR  onearg    [mem/(:p/a): 0]                              yes
-	COPY   copyarg   [mem/(:p/a): mem/(:p/b)]                     yes
-	DUP    copyarg   [mem/(:p/a): mem/(:p/b)]                     yes
-	NOT    onearg    [mem/(:p/a): either mem/(:p/a) == 0 [1][0]]  yes
-    NEG    onearg    [mem/(:p/a): - mem/(:p/a)]                   yes
-    ABS    onearg    [mem/(:p/a): absolute mem/(:p/a)]            yes
-	INC    onearg    [mem/(:p/a): mem/(:p/a) + 1]                 yes
-    DEC    onearg    [mem/(:p/a): mem/(:p/a) - 1]                 yes
-    CONST  onearg2   [mem/(:p/a): jmp]                            yes
-    EQ     threearg  [mem/(:p/a): mem/(:p/b) ==  mem/(:p/c)]      yes
-    NE     threearg  [mem/(:p/a): mem/(:p/b) <>  mem/(:p/c)]      yes
-    EQL    threearg  [mem/(:p/a): mem/(:p/b) =   mem/(:p/c)]      yes
-    NEQ    threearg  [mem/(:p/a): mem/(:p/b) <>  mem/(:p/c)]      yes
-    GT     threearg  [mem/(:p/a): mem/(:p/b) >   mem/(:p/c)]      yes
-    GE     threearg  [mem/(:p/a): mem/(:p/b) >=  mem/(:p/c)]      yes
-    LT     threearg  [mem/(:p/a): mem/(:p/b) <   mem/(:p/c)]      yes
-    LE     threearg  [mem/(:p/a): mem/(:p/b) <=  mem/(:p/c)]      yes
-    ADD    threearg  [mem/(:p/a): mem/(:p/b) +   mem/(:p/c)]      yes
-    SUB    threearg  [mem/(:p/a): mem/(:p/b) -   mem/(:p/c)]      yes
-    MUL    threearg  [mem/(:p/a): mem/(:p/b) *   mem/(:p/c)]      yes
-    EXP    threearg  [mem/(:p/a): mem/(:p/b) **  mem/(:p/c)]      yes
-    DIV    threearg  [mem/(:p/a): mem/(:p/b) /   mem/(:p/c)]      yes
-    MOD    threearg  [mem/(:p/a): mem/(:p/b) %   mem/(:p/c)]      yes
-    AND    threearg  [mem/(:p/a): mem/(:p/b) and mem/(:p/c)]      yes
-    OR     threearg  [mem/(:p/a): mem/(:p/b) or  mem/(:p/c)]      yes
-    XOR    threearg  [mem/(:p/a): mem/(:p/b) xor mem/(:p/c)]      yes
-	; p/i: ret/(:p/r)
-    JUMP   noarg     [p/i: jmp]                                   no
-    JEQ    noarg     [if cmp == 0 [p/i: jmp]]                     no
-    JNE    noarg     [if cmp <> 0 [p/i: jmp]]                     no
-    JGT    noarg     [if cmp >  0 [p/i: jmp]]                     no
-    JGE    noarg     [if cmp >= 0 [p/i: jmp]]                     no
-    J0     noarg     [if cmp == 0 [p/i: jmp]]                     no
-    J1     noarg     [if cmp == 1 [p/i: jmp]]                     no
-    JZ     noarg     [if cmp == 0 [p/i: jmp]]                     no
-    JNZ    noarg     [if cmp <> 0 [p/i: jmp]]                     no
-    CALL   noarg     [++ p/r p/i: jmp]                            no
-    RET    noarg	 [-- p/r p/i: ret/(:p/r)]                     no
-    NOP    noarg     []                                           no
-    HALT   noarg     ;stop processor
-    OUT    litarg
-    TEST   litarg
+execute: func [op args [block!]] [
+	operation: copy/part (next find operations op) 6
+	jmp: first args
+	ret/:rp: 1 + ip
+	set-pointers operation/a args
+	ip: ret/:rp
+	do operation/b
+	if get operation/c [cmp: do-cmp]
 ]
 
-execute: func [
+set-pointers: func [type args [block!]][
+	switch model [
+		"CM" [
+			switch type [
+				noarg    []
+				onearg   [ ap: first args ]
+				onearg2  [ ap: second args ]
+				copyarg  [
+					ap: first args
+					bp: second args
+				]
+				threearg [
+					ap: first args
+					bp: second args
+					cp: third args
+				]
+				cmparg [
+					ap: first args
+					bp: second args
+					cp: third args
+				]
+				litarg   [
+				]
+			]
+		]
+		"SM" [
+			switch type [
+				noarg    []
+				onearg   [ ap: sp ]
+				onearg2  [ ++ sp ap: sp ]
+				copyarg  [
+					bp: sp
+					++ sp
+					ap: sp
+				]
+				threearg [
+					bp: sp
+					-- sp
+					cp: sp
+					ap: sp
+				]
+				cmparg [
+					bp: sp
+					cp: sp
+					-- cp
+				]
+				litarg   [
+				]
+			]
+		]
+	]
+]
+
+operations: [
+	PUSH   a noarg     b [++ sp mem/:sp: jmp]                   c no
+	POP    a noarg     b [-- sp]                                c no
+	CMP    a cmparg    b [cmp: either mem/:bp < mem/:cp [-1][either mem/:bp > mem/:cp [1][0]]] c no
+	CLEAR  a onearg    b [mem/:ap: 0]                           c yes
+	COPY   a copyarg   b [mem/:ap: mem/:bp]                     c yes
+	DUP    a copyarg   b [mem/:ap: mem/:bp]                     c yes
+	NOT    a onearg    b [mem/:ap: either mem/:ap == 0 [1][0]]  c yes
+    NEG    a onearg    b [mem/:ap: - mem/:ap]                   c yes
+    ABS    a onearg    b [mem/:ap: absolute mem/:ap]            c yes
+	INC    a onearg    b [mem/:ap: mem/:ap + 1]                 c yes
+    DEC    a onearg    b [mem/:ap: mem/:ap - 1]                 c yes
+    CONST  a onearg2   b [mem/:ap: jmp]                         c yes
+    EQ     a threearg  b [mem/:ap: mem/:bp ==  mem/:cp]         c yes
+    NE     a threearg  b [mem/:ap: mem/:bp <>  mem/:cp]         c yes
+    EQL    a threearg  b [mem/:ap: mem/:bp =   mem/:cp]         c yes
+    NEQ    a threearg  b [mem/:ap: mem/:bp <>  mem/:cp]         c yes
+    GT     a threearg  b [mem/:ap: mem/:bp >   mem/:cp]         c yes
+    GE     a threearg  b [mem/:ap: mem/:bp >=  mem/:cp]         c yes
+    LT     a threearg  b [mem/:ap: mem/:bp <   mem/:cp]         c yes
+    LE     a threearg  b [mem/:ap: mem/:bp <=  mem/:cp]         c yes
+    ADD    a threearg  b [mem/:ap: mem/:bp +   mem/:cp]         c yes
+    SUB    a threearg  b [mem/:ap: mem/:bp -   mem/:cp]         c yes
+    MUL    a threearg  b [mem/:ap: mem/:bp *   mem/:cp]         c yes
+    EXP    a threearg  b [mem/:ap: mem/:bp **  mem/:cp]         c yes
+    DIV    a threearg  b [mem/:ap: mem/:bp /   mem/:cp]         c yes
+    MOD    a threearg  b [mem/:ap: mem/:bp %   mem/:cp]         c yes
+    AND    a threearg  b [mem/:ap: mem/:bp and mem/:cp]         c yes
+    OR     a threearg  b [mem/:ap: mem/:bp or  mem/:cp]         c yes
+    XOR    a threearg  b [mem/:ap: mem/:bp xor mem/:cp]         c yes
+    JUMP   a noarg     b [ip: jmp]                              c no
+    JEQ    a noarg     b [if cmp == 0 [ip: jmp]]                c no
+    JNE    a noarg     b [if cmp <> 0 [ip: jmp]]                c no
+    JGT    a noarg     b [if cmp >  0 [ip: jmp]]                c no
+    JGE    a noarg     b [if cmp >= 0 [ip: jmp]]                c no
+    J0     a noarg     b [if cmp == 0 [ip: jmp]]                c no
+    J1     a noarg     b [if cmp == 1 [ip: jmp]]                c no
+    JZ     a noarg     b [if cmp == 0 [ip: jmp]]                c no
+    JNZ    a noarg     b [if cmp <> 0 [ip: jmp]]                c no
+    CALL   a noarg     b [++ rp ip: jmp]                        c no
+    RET    a noarg	   b [-- rp ip: ret/:rp]                    c no 
+    NOP    a noarg     b []                                     c no
+    HALT   a noarg     b ;stop processor
+    OUT    a litarg
+    TEST   a litarg
+]
+
+do-cmp: does [either mem/:ap < 0 [-1][either mem/:ap > 0 [1][0]]]
+
+++: func ['val [word!]] [set val 1 + get val]
+--: func ['val [word!]] [if 0 < get val [set val -1 + get val]]
+
+execute0: func [
 		op
 		args [block!]
 	][
 	;-- TODO 
 	jmp: first args
-	ret/(:p/r): 1 + p/i
+	ret/:rp: 1 + ip
 	switch model [
 		"CM" [
-			onearg: [ p/a: first args ]
-			onearg2: [ p/a: second args ]
+			onearg: [ ap: first args ]
+			onearg2: [ ap: second args ]
 			twoarg: [
-	        	p/a: first args
-	        	p/b: second args
+	        	ap: first args
+	        	bp: second args
 	        ]
 			threearg: [
-		        p/a: first args
-		        p/b: second args
-		        p/c: third args
+		        ap: first args
+		        bp: second args
+		        cp: third args
 	        ]
 			if-unary op onearg
 	        if 'CLEAR == op onearg
@@ -90,23 +156,23 @@ execute: func [
 			if-binary op threearg
 		]
 		"SM" [
-            onearg: [ p/a: p/s ]
-            pusharg: [ ++ p/s p/a: p/s ]
+            onearg: [ ap: sp ]
+            pusharg: [ ++ sp ap: sp ]
             pushtwoarg: [
-            	p/b: p/s
-            	++ p/s
-            	p/a: p/s
+            	bp: sp
+            	++ sp
+            	ap: sp
             ]
             threearg: [
-            	p/b: p/s
-            	-- p/s
-            	p/c: p/s
-            	p/a: p/s
+            	bp: sp
+            	-- sp
+            	cp: sp
+            	ap: sp
             ]
             cmparg: [
-            	p/b: p/s
-            	p/c: p/s
-            	-- p/c
+            	bp: sp
+            	cp: sp
+            	-- cp
             ]
 			if-unary op onearg
 	        if 'CLEAR == op onearg
@@ -117,70 +183,65 @@ execute: func [
 		]
 	]
 	if-unary op [
-		poke mem p/a (switch op [
-			NOT [either mem/(:p/a) == 0 [1][0]]
-			NEG [- mem/(:p/a)]
-			ABS [absolute mem/(:p/a)]
-			INC [mem/(:p/a) + 1]
-			DEC [mem/(:p/a) - 1]
+		poke mem ap (switch op [
+			NOT [either mem/:ap == 0 [1][0]]
+			NEG [- mem/:ap]
+			ABS [absolute mem/:ap]
+			INC [mem/:ap + 1]
+			DEC [mem/:ap - 1]
 		])
 		cmp: do-cmp
 	]
 	if-binary op [
 		operator: get op
-		poke mem p/a operator mem/(:p/b) mem/(:p/c)
+		poke mem ap operator mem/:bp mem/:cp
 		cmp: do-cmp
 	]
 	if-const op [
-		mem/(:p/a): jmp
+		mem/:ap: jmp
 		cmp: do-cmp
 	]
 	if 'CLEAR == op [
-		poke mem p/a 0
+		poke mem ap 0
 		cmp: do-cmp
 	]
 	if-copy op [
-		poke mem p/a mem/(:p/b)
+		poke mem ap mem/:bp
 		cmp: do-cmp
 	]
 	if 'CMP == op [
-		cmp: either mem/(:p/b) < mem/(:p/c) [
+		cmp: either mem/:bp < mem/:cp [
 			-1
 		][
-		either mem/(:p/b) > mem/(:p/c) [
+		either mem/:bp > mem/:cp [
 			1
 		][
 			0
 		]]
 	]
-	p/i: ret/(:p/r)
+	ip: ret/:rp
 	if-jump op [
 		switch op [
-			JUMP [p/i: jmp]
+			JUMP [ip: jmp]
 			CALL [
-				++ p/r
-				p/i: jmp
+				++ rp
+				ip: jmp
 			]
 			RET [
-				-- p/r
-				p/i: ret/(:p/r)
+				-- rp
+				ip: ret/:rp
 			]
-			JEQ [ if cmp == 0 [p/i: jmp] ]
-			JNE [ if cmp <> 0 [p/i: jmp] ]
-			JGT [ if cmp > 0 [p/i: jmp] ]
-			JGE [ if cmp >= 0 [p/i: jmp] ]
-			J0 [ if cmp == 0 [p/i: jmp] ]
-			J1 [ if cmp == 1 [p/i: jmp] ]
-			JZ [ if cmp == 0 [p/i: jmp] ]
-			JNZ [ if cmp <> 0 [p/i: jmp] ]
+			JEQ [ if cmp == 0 [ip: jmp] ]
+			JNE [ if cmp <> 0 [ip: jmp] ]
+			JGT [ if cmp > 0 [ip: jmp] ]
+			JGE [ if cmp >= 0 [ip: jmp] ]
+			J0 [ if cmp == 0 [ip: jmp] ]
+			J1 [ if cmp == 1 [ip: jmp] ]
+			JZ [ if cmp == 0 [ip: jmp] ]
+			JNZ [ if cmp <> 0 [ip: jmp] ]
 		]
 	]
 ]
-
-do-cmp: does [either mem/(:p/a) < 0 [-1][either mem/(:p/a) > 0 [1][0]]]
-
-++: func ['val [path!]] [set val 1 + get val]
---: func ['val [path!]] [if 0 < get val [set val -1 + get val]]
 
 if-unary: func [op body][
 	if none <> find [NOT NEG ABS INC DEC] op [do body]
