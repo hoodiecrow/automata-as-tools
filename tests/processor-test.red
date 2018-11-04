@@ -229,8 +229,6 @@ do %/C/users/peter/code/red/quick-test/quick-test.red
 	execute 'CONST [2 1]
 	execute 'CONST [3 2]
 	execute 'CMP [3 2 1]
-	print p
-	print mem
   --assert 1 = cmp
 
 comment {
