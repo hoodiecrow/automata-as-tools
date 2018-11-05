@@ -1,10 +1,11 @@
 
 Red []
 
+++: func ['val [word!]] [set val 1 + get val]
+--: func ['val [word!]] [if 0 < get val [set val -1 + get val]]
+
 reset: func [m][
-	foreach key [ap bp cp ip rp sp] [
-		set :key 0
-	]
+	foreach key [ap bp cp ip rp sp] [ set :key 0 ]
 	++ rp
 	mem: make vector! 50
 	ret: make vector! 10
@@ -124,6 +125,3 @@ operations: [
 ]
 
 do-cmp: does [either mem/:ap < 0 [-1][either mem/:ap > 0 [1][0]]]
-
-++: func ['val [word!]] [set val 1 + get val]
---: func ['val [word!]] [if 0 < get val [set val -1 + get val]]
