@@ -1,25 +1,54 @@
 
 Red []
 
+comment {
+
+Code: <label> <op> <a> <b> <c>
+
+Mach: <state> <input> <data…>
+
+Cm: op a b c
+SM: op -1 -0 -1
+
+Read from #0 means literal 0
+Write or jump to #0 is an error 
+Address #0 can be used as a null pointer 
+
+}
+
 ++: func ['val [word!]] [set val 1 + get val]
 --: func ['val [word!]] [if 0 < get val [set val -1 + get val]]
 
 reset: func [m][
-	foreach key [ap bp cp ip rp sp] [ set :key 0 ]
-	++ rp
-	mem: make vector! 50
-	ret: make vector! 10
+	ap: bp: cp: ip: rp: sp: 0
+	rp: 51
+	mem: make vector! 60
 	jmp: 0
 	cmp: 0
 	model: m
 ]
 
+comment {
+	; http://www.red-by-example.org/parse.html
+    ws: charset reduce [space tab cr lf]
+    digit:   charset "0123456789"
+    letters: charset [#"a" - #"z" #"A" - #"Z"]
+    chars: union union letters digit charset "_"
+    parse "  a:  FOO:a,b,c  BAR:a,b,c" tokens: [collect [some [ws | [":" | ","] | keep some chars]]]
+ ;== [#"a" "FOO" #"a" #"b" #"c" "BAR" #"a" #"b" #"c"]
+    split "  a:  FOO:a,b,c  BAR:a,b,c" ws
+    split "  a:  FOO:a,b,c  BAR:a,b,c" [some ws] ;-- ?
+}
+
+execute-code: func [ops [block!]][
+]
+
 execute: func [op args [block!]] [
 	operation: copy/part (next find operations op) 6
 	jmp: first args
-	ret/:rp: 1 + ip
+	mem/:rp: 1 + ip
 	set-pointers operation/a args
-	ip: ret/:rp
+	ip: mem/:rp
 	do operation/b
 	if get operation/c [cmp: do-cmp]
 ]
@@ -117,7 +146,7 @@ operations: [
     JZ     a noarg     b [if cmp == 0 [ip: jmp]]                c no
     JNZ    a noarg     b [if cmp <> 0 [ip: jmp]]                c no
     CALL   a noarg     b [++ rp ip: jmp]                        c no
-    RET    a noarg	   b [-- rp ip: ret/:rp]                    c no 
+    RET    a noarg	   b [-- rp ip: mem/:rp]                    c no 
     NOP    a noarg     b []                                     c no
     HALT   a noarg     b ;stop processor
     OUT    a litarg

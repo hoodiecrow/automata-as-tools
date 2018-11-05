@@ -237,4 +237,24 @@ comment {
 
 ===end-group===
 
+===start-group=== "counter machine: COPY operation"
+
+  --test-- "counter-machine-test-19"
+	reset "CM"
+	execute-code [
+		a:  JZ:b,2
+			DEC:2
+			INC:3
+			INC:1
+			JMP:a
+		b:  JZ:z,1
+			DEC:1
+			INC:2
+			JMP:b
+		z:  NOP
+	]
+  --assert "" = mold copy/part mem 5
+
+===end-group===
+
 ~~~end-file~~~
