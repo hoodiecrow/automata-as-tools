@@ -29,6 +29,35 @@ reset: func [m][
 ]
 
 comment {
+LDC  s              e  (LDC x.c)      d → (x.s)       e       c   d
+OP   (a b.s)        e  (OP.c)         d → (b op a.s)  e       c   d
+HALT s              e  (HALT)         d → s           e       NIL d
+LD   s              e  (LD (m.n).c)   d → (x.s)       e       c   d
+LDF  s              e  (LDF c'.c)     d → ((c'.e).s)  e       c   d
+AP   ((c'.e') v.s)  e  (AP.c)         d → NIL         (v.e')  c'  (s e c.d)
+RET  (x)            e' (RET)  (s e c.d) → (x.s)       e       c   d
+NIL  s              e  (NIL.c)        d → (NIL.s)     e       c   d
+CONS (a b.s)        e  (CONS.c)       d → ((a.b).s)   e       c   d
+CAR  ((a.b).s)      e  (CAR.c)        d → (a.s)       e       c   d
+CDR  ((a.b).s)      e  (CDR.c)        d → (b.s)       e       c   d
+JOIN  s             e  (JOIN)     (c.d) → s           e       c   d
+SEL   (x.s)         e  (SEL ct cf.c)  d → s           e       cx  (c.d)
+NULL  s             e  (NULL.c)       d → (x.s)       e       c   d
+PRINT
+READ
+(DUM)
+(RAP)
+ 
+INC  ldc 1, add
+DEC  ldc 1, sub
+CLR  dup, sub
+CPY  decSP, dup
+NEG  ldc -1, mul
+CALL incRP, ip←jmp
+RET  decRP, ip←[rp]
+}
+
+comment {
 	; http://www.red-by-example.org/parse.html
     ws: charset reduce [space tab cr lf]
     digit:   charset "0123456789"
@@ -37,14 +66,50 @@ comment {
     parse "  a:  FOO:a,b,c  BAR:a,b,c" tokens: [collect [some [ws | [":" | ","] | keep some chars]]]
  ;== [#"a" "FOO" #"a" #"b" #"c" "BAR" #"a" #"b" #"c"]
     split "  a:  FOO:a,b,c  BAR:a,b,c" ws
-    split "  a:  FOO:a,b,c  BAR:a,b,c" [some ws] ;-- ?
+	word: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9" #"_"]
+	non-word: complement word
+    parse "  a:  FOO:a,b,c  BAR:a,b,c" tokens: [collect [some [ws | [":" | ","] | keep some word]]]
+
+    space: charset reduce [space tab cr lf]
+    non-space: complement space
+	parse mold str [collect [ "[" some [space | keep some non-space] to "]" ]]
+	parse mold/only str [collect [ some [space | keep some non-space] ]]
+
+	parse str [collect [ some [keep set-word! | keep any-type!] ]]
+
+    ops: [  a:  FOO:a,b,c  BAR:a,b,c  ]
+	n: 1
+	labels: make map! []
+	program: make vector! length? ops
+	parse ops [ some [label: set-word! (put labels first label n) | operation: any-type! (program/:n: index? operation n: n + 1)] ]
 }
 
 execute-code: func [ops [block!]][
+	word: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9" #"_"]
+	non-word: complement word
+	n: 1
+	labels: make map! []
+	program: make vector! length? ops
+	parse ops [
+		some [
+			label: set-word! (put labels first label n) |
+			operation: any-type! (program/:n: index? operation n: n + 1)
+		]
+	]
+	ip: 1
+	print labels
+	print program
+	op: parse to-string ops/(program/:ip) [collect [some [keep some word | some non-word]]]
+	;print first op copy next op
+	execute first op copy next op
 ]
 
 execute: func [op args [block!]] [
-	operation: copy/part (next find operations op) 6
+print [mold op mold args]
+;print find/skip operations (make lit-word! op) 7
+print make lit-word! op
+;print find operations make lit-word! op
+	operation: copy/part (next find/skip operations make lit-word! op 7) 6
 	jmp: first args
 	mem/:rp: 1 + ip
 	set-pointers operation/a args
