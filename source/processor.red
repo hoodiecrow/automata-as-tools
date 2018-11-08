@@ -87,6 +87,8 @@ comment {
 execute-code: func [ops [block!]][
 	word: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9" #"_"]
 	non-word: complement word
+	digit: charset [#"0" - #"9"]
+	digits: [some digit]
 	n: 1
 	labels: make map! []
 	program: make vector! length? ops
@@ -100,21 +102,22 @@ execute-code: func [ops [block!]][
 	print labels
 	print program
 	op: parse to-string ops/(program/:ip) [collect [some [keep some word | some non-word]]]
-	;print first op copy next op
+	set 'jmp second op
+	if not parse to-string jmp [digits] [
+		set 'jmp select labels jmp
+	]
 	execute first op copy next op
 ]
 
 execute: func [op args [block!]] [
-print [mold op mold args]
-;print find/skip operations (make lit-word! op) 7
-print make lit-word! op
-;print find operations make lit-word! op
+;print [mold op mold args]
+;print mold find/skip operations (make lit-word! op) 7
 	operation: copy/part (next find/skip operations make lit-word! op 7) 6
-	jmp: first args
 	mem/:rp: 1 + ip
 	set-pointers operation/a args
 	ip: mem/:rp
 	do operation/b
+;print ['ap ap 'bp bp 'cp cp 'ip ip 'rp rp 'sp sp 'mem8 mold copy/part mem 8]
 	if get operation/c [cmp: do-cmp]
 ]
 
@@ -183,7 +186,7 @@ operations: [
     ABS    a onearg    b [mem/:ap: absolute mem/:ap]            c yes
 	INC    a onearg    b [mem/:ap: mem/:ap + 1]                 c yes
     DEC    a onearg    b [mem/:ap: mem/:ap - 1]                 c yes
-    CONST  a onearg2   b [mem/:ap: jmp]                         c yes
+    CONST  a onearg2   b [poke mem ap jmp]                         c yes
     EQ     a threearg  b [mem/:ap: mem/:bp ==  mem/:cp]         c yes
     NE     a threearg  b [mem/:ap: mem/:bp <>  mem/:cp]         c yes
     EQL    a threearg  b [mem/:ap: mem/:bp =   mem/:cp]         c yes
