@@ -87,11 +87,9 @@ comment {
 execute-code: func [ops [block!]][
 	word: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9" #"_"]
 	non-word: complement word
-	digit: charset [#"0" - #"9"]
-	digits: [some digit]
 	n: 1
-	labels: make map! []
-	program: make vector! length? ops
+	set 'labels make map! []
+	set 'program make vector! length? ops
 	parse ops [
 		some [
 			label: set-word! (put labels first label n) |
@@ -101,17 +99,33 @@ execute-code: func [ops [block!]][
 	ip: 1
 	print labels
 	print program
-	op: parse to-string ops/(program/:ip) [collect [some [keep some word | some non-word]]]
-	set 'jmp second op
-	if not parse to-string jmp [digits] [
-		set 'jmp select labels jmp
-	]
-	execute first op copy next op
+	ops: parse to-string ops/(program/:ip) [collect [some [keep some word | some non-word]]]
+print mold ops
+	execute ops
 ]
 
-execute: func [op args [block!]] [
-;print [mold op mold args]
+execute: func [ops [series!]] [
+;print [ops]
 ;print mold find/skip operations (make lit-word! op) 7
+	op: first ops
+	args: next ops
+;print ['op op 'args args]
+	either (length? args) == 0 [
+		set 'jmp 0
+	][
+		set 'jmp first args
+		digit: charset [#"0" - #"9"]
+		digits: [some digit]
+		if not parse to-string jmp [digits] [
+print labels
+print mold jmp
+			either jmp == [] [
+			][
+				set 'jmp select labels make lit-word! jmp
+			]
+		]
+print mold jmp
+	]
 	operation: copy/part (next find/skip operations make lit-word! op 7) 6
 	mem/:rp: 1 + ip
 	set-pointers operation/a args

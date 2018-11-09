@@ -89,62 +89,59 @@ do %/C/users/peter/code/red/quick-test/quick-test.red
 
   --test-- "stack-machine-test-10"
 	reset "SM"
-    execute "NOP" []
+    execute ["NOP" ]
   --assert 1 = ip
 
   --test-- "stack-machine-test-11"
 	reset "SM"
-    execute "NOP" []
-    execute "NOP" []
+    execute ["NOP" ]
+    execute ["NOP" ]
   --assert 2 = ip
 
   --test-- "stack-machine-test-12"
 	reset "SM"
     sp: 9
-    execute "NOT" [0]
+    execute ["NOT" 0]
   --assert 9 = ap
 
   --test-- "stack-machine-test-13"
 	reset "SM"
-	jmp: 3
-    execute "CONST" [3]
+    execute ["CONST" 3]
   --assert "make vector! [3 0 0 0 0 0 0 0]" = mold copy/part mem 8
 
   --test-- "stack-machine-test-14"
 	reset "SM"
-	jmp: 3
-    execute "CONST" [3]
-	jmp: 2
-    execute "CONST" [2]
+    execute ["CONST" 3]
+    execute ["CONST" 2]
   --assert "make vector! [3 2 0 0 0 0 0 0]" = mold copy/part mem 8
 
   --test-- "stack-machine-test-15"
 	reset "SM"
-	jmp: 3 execute "CONST" [3]
-	jmp: 2 execute "CONST" [2]
-	jmp: 0 execute "ADD" []
+	jmp: 3 execute ["CONST" 3]
+	jmp: 2 execute ["CONST" 2]
+	jmp: 0 execute ["ADD" ]
   --assert "make vector! [5 2 0 0 0 0 0 0]" = mold copy/part mem 8
 
   --test-- "stack-machine-test-16"
 	reset "SM"
-	jmp: 3 execute "CONST" [3]
-    jmp: 0 execute "CLEAR" []
-	jmp: 2 execute "CONST" [2]
-    jmp: 0 execute "DUP" []
+	jmp: 3 execute ["CONST" 3]
+    jmp: 0 execute ["CLEAR" ]
+	jmp: 2 execute ["CONST" 2]
+    jmp: 0 execute ["DUP" ]
   --assert "make vector! [0 2 2 0 0 0 0 0]" = mold copy/part mem 8
 
   --test-- "stack-machine-test-17"
 	reset "SM"
-	jmp: 3 execute "CONST" [3]
-	jmp: 2 execute "CONST" [2]
-    jmp: 0 execute "CMP" []
+	jmp: 3 execute ["CONST" 3]
+	jmp: 2 execute ["CONST" 2]
+    jmp: 0 execute ["CMP" ]
   --assert -1 = cmp
 
   --test-- "stack-machine-test-18"
 	reset "SM"
-	jmp: 2 execute "CONST" [2]
-	jmp: 3 execute "CONST" [3]
-    jmp: 0 execute "CMP" []
+	jmp: 2 execute ["CONST" 2]
+	jmp: 3 execute ["CONST" 3]
+    jmp: 0 execute ["CMP" ]
   --assert 1 = cmp
 
 ===end-group===
@@ -179,59 +176,59 @@ do %/C/users/peter/code/red/quick-test/quick-test.red
 
   --test-- "counter-machine-test-10"
 	reset "CM"
-	execute "NOP" []
+	execute ["NOP" ]
   --assert 1 = ip
 
   --test-- "counter-machine-test-11"
 	reset "CM"
-	execute "NOP" []
-	execute "NOP" []
+	execute ["NOP" ]
+	execute ["NOP" ]
   --assert 2 = ip
 
   --test-- "counter-machine-test-12"
 	reset "CM"
 	mem/1: 1
-	jmp: 1 execute "NOT" [1]
+	jmp: 1 execute ["NOT" 1]
   --assert 0 = mem/(:ap)
 
   --test-- "counter-machine-test-13"
 	reset "CM"
-	jmp: 3 execute "CONST" [3 1]
+	jmp: 3 execute ["CONST" 3 1]
   --assert "make vector! [3 0 0 0 0 0 0 0]" = mold copy/part mem 8
 
   --test-- "counter-machine-test-14"
 	reset "CM"
-	jmp: 3 execute "CONST" [3 1]
-	jmp: 2 execute "CONST" [2 2]
+	jmp: 3 execute ["CONST" 3 1]
+	jmp: 2 execute ["CONST" 2 2]
   --assert "make vector! [3 2 0 0 0 0 0 0]" = mold copy/part mem 8
 
   --test-- "counter-machine-test-15"
 	reset "CM"
-	jmp: 3 execute "CONST" [3 1]
-	jmp: 2 execute "CONST" [2 2]
-	jmp: 3 execute "ADD" [3 2 1]
+	jmp: 3 execute ["CONST" 3 1]
+	jmp: 2 execute ["CONST" 2 2]
+	jmp: 3 execute ["ADD" 3 2 1]
   --assert "make vector! [3 2 5 0 0 0 0 0]" = mold copy/part mem 8
 
   --test-- "counter-machine-test-16"
 	reset "CM"
-	jmp: 3 execute "CONST" [3 1]
-	jmp: 1 execute "CLEAR" [1]
-	jmp: 2 execute "CONST" [2 2]
-	jmp: 3 execute "COPY" [3 2]
+	jmp: 3 execute ["CONST" 3 1]
+	jmp: 1 execute ["CLEAR" 1]
+	jmp: 2 execute ["CONST" 2 2]
+	jmp: 3 execute ["COPY" 3 2]
   --assert "make vector! [0 2 2 0 0 0 0 0]" = mold copy/part mem 8
 
   --test-- "counter-machine-test-17"
 	reset "CM"
-	jmp: 3 execute "CONST" [3 1]
-	jmp: 2 execute "CONST" [2 2]
-	jmp: 3 execute "CMP" [3 2 1]
+	jmp: 3 execute ["CONST" 3 1]
+	jmp: 2 execute ["CONST" 2 2]
+	jmp: 3 execute ["CMP" 3 2 1]
   --assert -1 = cmp
 
   --test-- "counter-machine-test-18"
 	reset "CM"
-	jmp: 2 execute "CONST" [2 1]
-	jmp: 3 execute "CONST" [3 2]
-	jmp: 3 execute "CMP" [3 2 1]
+	jmp: 2 execute ["CONST" 2 1]
+	jmp: 3 execute ["CONST" 3 2]
+	jmp: 3 execute ["CMP" 3 2 1]
   --assert 1 = cmp
 
 comment {
