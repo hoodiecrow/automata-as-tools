@@ -243,14 +243,14 @@ comment {
 	reset "CM"
 	execute-code [
 	        CONST:2,2
-		a:  CMP:2,9,9
-			JZ:b,2
+		a:  CMP:2
+			JZ:b
 			DEC:2
 			INC:3
 			INC:1
 			JUMP:a
-		b:  CMP:1,9,9
-			JZ:z,1
+		b:  CMP:1
+			JZ:z
 			DEC:1
 			INC:2
 			JMP:b

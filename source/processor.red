@@ -125,28 +125,30 @@ comment {
 
 }
 
+parse-instruction: does [
+	word: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9" #"_"]
+	non-word: complement word
+	instr: program/:ip
+	if instr == none [cause-error 'foo 'bar ["off the end"]]
+print [mold instr type? instr]
+	if (not string? instr) [set 'instr to-string instr]
+print [mold instr type? instr]
+	parse instr [collect [some [keep some word | some non-word]]]
+]
+
 execute-code: func [code [block!]][
 	set 'labels make map! []
 	set 'program make block! length? code
     parse code [some [label: set-word! (put labels first label (length? program) + 1) | b: any-type! (append program first b)]]
-	word: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9" #"_"]
-	non-word: complement word
 	set 'ip 1
-	execute parse program/:ip [collect [some [keep some word | some non-word]]]
+	execute parse-instruction
 	; remove
-	execute parse program/:ip [collect [some [keep some word | some non-word]]]
-	execute parse program/:ip [collect [some [keep some word | some non-word]]]
-	execute parse program/:ip [collect [some [keep some word | some non-word]]]
-	execute parse program/:ip [collect [some [keep some word | some non-word]]]
-	execute parse program/:ip [collect [some [keep some word | some non-word]]]
-	execute parse program/:ip [collect [some [keep some word | some non-word]]]
-	execute parse program/:ip [collect [some [keep some word | some non-word]]]
-	execute parse program/:ip [collect [some [keep some word | some non-word]]]
-	execute parse program/:ip [collect [some [keep some word | some non-word]]]
-	execute parse program/:ip [collect [some [keep some word | some non-word]]]
-	execute parse program/:ip [collect [some [keep some word | some non-word]]]
-	execute parse program/:ip [collect [some [keep some word | some non-word]]]
-	execute parse program/:ip [collect [some [keep some word | some non-word]]]
+	execute parse-instruction
+	execute parse-instruction
+	execute parse-instruction
+	execute parse-instruction
+	execute parse-instruction
+	execute parse-instruction
 ]
 
 execute: func [instruction [series!]] [
@@ -199,7 +201,7 @@ print [mold instruction]
 		]
 	}
 	operation: copy/part (next find/skip operations make lit-word! op 7) 6
-	mem/:rp: 1 + ip
+	mset rp (1 + ip)
 	set-pointers operation/a reduce [a b c]
 	set 'ip mem/:rp
 print ['ap ap 'bp bp 'cp cp 'ip ip 'rp rp 'sp sp 'jmp jmp 'mem8 mold copy/part mem 8]
@@ -263,35 +265,35 @@ print ['set-pointers mold args]
 ]
 
 operations: [
-	PUSH   a noarg     b [++ sp mem/:sp: jmp]                   c no
+	PUSH   a noarg     b [++ sp mset sp jmp]                   c no
 	POP    a noarg     b [-- sp]                                c no
-	CMP    a cmparg    b [cmp: either mem/:bp < mem/:cp [-1][either mem/:bp > mem/:cp [1][0]]] c no
-	CLEAR  a onearg    b [mem/:ap: 0]                           c yes
-	COPY   a copyarg   b [mem/:ap: mem/:bp]                     c yes
-	DUP    a copyarg   b [mem/:ap: mem/:bp]                     c yes
-	NOT    a onearg    b [mem/:ap: either mem/:ap == 0 [1][0]]  c yes
-    NEG    a onearg    b [mem/:ap: - mem/:ap]                   c yes
-    ABS    a onearg    b [mem/:ap: absolute mem/:ap]            c yes
-	INC    a onearg    b [mem/:ap: mem/:ap + 1]                 c yes
-    DEC    a onearg    b [mem/:ap: mem/:ap - 1]                 c yes
+	CMP    a cmparg    b [cmp: either (mget bp) < (mget cp) [-1][either (mget bp) > (mget cp) [1][0]]] c no
+	CLEAR  a onearg    b [mset ap 0]                           c yes
+	COPY   a copyarg   b [mset ap (mget bp)]                     c yes
+	DUP    a copyarg   b [mset ap (mget bp)]                     c yes
+	NOT    a onearg    b [mset ap either (mget ap) == 0 [1][0]]  c yes
+    NEG    a onearg    b [mset ap - (mget ap)]                   c yes
+    ABS    a onearg    b [mset ap absolute (mget ap)]            c yes
+	INC    a onearg    b [mset ap (mget ap) + 1]                 c yes
+    DEC    a onearg    b [mset ap (mget ap) - 1]                 c yes
     CONST  a onearg2   b [poke mem ap jmp]                      c yes
-    EQ     a threearg  b [mem/:ap: mem/:bp ==  mem/:cp]         c yes
-    NE     a threearg  b [mem/:ap: mem/:bp <>  mem/:cp]         c yes
-    EQL    a threearg  b [mem/:ap: mem/:bp =   mem/:cp]         c yes
-    NEQ    a threearg  b [mem/:ap: mem/:bp <>  mem/:cp]         c yes
-    GT     a threearg  b [mem/:ap: mem/:bp >   mem/:cp]         c yes
-    GE     a threearg  b [mem/:ap: mem/:bp >=  mem/:cp]         c yes
-    LT     a threearg  b [mem/:ap: mem/:bp <   mem/:cp]         c yes
-    LE     a threearg  b [mem/:ap: mem/:bp <=  mem/:cp]         c yes
-    ADD    a threearg  b [mem/:ap: mem/:bp +   mem/:cp]         c yes
-    SUB    a threearg  b [mem/:ap: mem/:bp -   mem/:cp]         c yes
-    MUL    a threearg  b [mem/:ap: mem/:bp *   mem/:cp]         c yes
-    EXP    a threearg  b [mem/:ap: mem/:bp **  mem/:cp]         c yes
-    DIV    a threearg  b [mem/:ap: mem/:bp /   mem/:cp]         c yes
-    MOD    a threearg  b [mem/:ap: mem/:bp %   mem/:cp]         c yes
-    AND    a threearg  b [mem/:ap: mem/:bp and mem/:cp]         c yes
-    OR     a threearg  b [mem/:ap: mem/:bp or  mem/:cp]         c yes
-    XOR    a threearg  b [mem/:ap: mem/:bp xor mem/:cp]         c yes
+    EQ     a threearg  b [mset ap (mget bp) ==  (mget cp)]         c yes
+    NE     a threearg  b [mset ap (mget bp) <>  (mget cp)]         c yes
+    EQL    a threearg  b [mset ap (mget bp) =   (mget cp)]         c yes
+    NEQ    a threearg  b [mset ap (mget bp) <>  (mget cp)]         c yes
+    GT     a threearg  b [mset ap (mget bp) >   (mget cp)]         c yes
+    GE     a threearg  b [mset ap (mget bp) >=  (mget cp)]         c yes
+    LT     a threearg  b [mset ap (mget bp) <   (mget cp)]         c yes
+    LE     a threearg  b [mset ap (mget bp) <=  (mget cp)]         c yes
+    ADD    a threearg  b [mset ap (mget bp) +   (mget cp)]         c yes
+    SUB    a threearg  b [mset ap (mget bp) -   (mget cp)]         c yes
+    MUL    a threearg  b [mset ap (mget bp) *   (mget cp)]         c yes
+    EXP    a threearg  b [mset ap (mget bp) **  (mget cp)]         c yes
+    DIV    a threearg  b [mset ap (mget bp) /   (mget cp)]         c yes
+    MOD    a threearg  b [mset ap (mget bp) %   (mget cp)]         c yes
+    AND    a threearg  b [mset ap (mget bp) and (mget cp)]         c yes
+    OR     a threearg  b [mset ap (mget bp) or  (mget cp)]         c yes
+    XOR    a threearg  b [mset ap (mget bp) xor (mget cp)]         c yes
     JUMP   a noarg     b [set 'ip jmp]                          c no
     JEQ    a noarg     b [if cmp == 0 [ip: jmp]]                c no
     JNE    a noarg     b [if cmp <> 0 [ip: jmp]]                c no
@@ -302,13 +304,13 @@ operations: [
     JZ     a noarg     b [if cmp == 0 [ip: jmp]]                c no
     JNZ    a noarg     b [if cmp <> 0 [ip: jmp]]                c no
     CALL   a noarg     b [++ rp ip: jmp]                        c no
-    RET    a noarg	   b [-- rp ip: mem/:rp]                    c no 
+    RET    a noarg	   b [-- rp ip: (mget rp)]                    c no 
     NOP    a noarg     b []                                     c no
     HALT   a noarg     b ;stop processor
     OUT    a litarg
     TEST   a litarg
 ]
 
-mset: func [index [integer!] value][ if index > 0 [poke mem index value] ]
+mset: func [index [any-type!] value][if index > 0 [poke mem index value] ]
 mget: func [index [integer!]][ either index > 0 [pick mem index][return 0] ]
-do-cmp: does [either mem/:ap < 0 [-1][either mem/:ap > 0 [1][0]]]
+do-cmp: does [either (mget ap) < 0 [-1][either (mget ap) > 0 [1][0]]]
