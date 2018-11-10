@@ -242,12 +242,15 @@ comment {
   --test-- "counter-machine-test-19"
 	reset "CM"
 	execute-code [
-		a:  JZ:b,2
+	        CONST:2,2
+		a:  CMP:2,9,9
+			JZ:b,2
 			DEC:2
 			INC:3
 			INC:1
-			JMP:a
-		b:  JZ:z,1
+			JUMP:a
+		b:  CMP:1,9,9
+			JZ:z,1
 			DEC:1
 			INC:2
 			JMP:b
