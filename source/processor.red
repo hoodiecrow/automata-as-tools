@@ -274,7 +274,7 @@ operations: [
     ABS    a onearg    b [mset ap absolute (mget ap)]            c yes
 	INC    a onearg    b [mset ap (mget ap) + 1]                 c yes
     DEC    a onearg    b [mset ap (mget ap) - 1]                 c yes
-    CONST  a onearg2   b [poke mem ap jmp]                      c yes
+    CONST  a onearg2   b [mset ap jmp]                      c yes
     EQ     a threearg  b [mset ap (mget bp) ==  (mget cp)]         c yes
     NE     a threearg  b [mset ap (mget bp) <>  (mget cp)]         c yes
     EQL    a threearg  b [mset ap (mget bp) =   (mget cp)]         c yes
@@ -293,16 +293,16 @@ operations: [
     OR     a threearg  b [mset ap (mget bp) or  (mget cp)]         c yes
     XOR    a threearg  b [mset ap (mget bp) xor (mget cp)]         c yes
     JUMP   a noarg     b [set 'ip jmp]                          c no
-    JEQ    a noarg     b [if cmp == 0 [ip: jmp]]                c no
-    JNE    a noarg     b [if cmp <> 0 [ip: jmp]]                c no
-    JGT    a noarg     b [if cmp >  0 [ip: jmp]]                c no
-    JGE    a noarg     b [if cmp >= 0 [ip: jmp]]                c no
-    J0     a noarg     b [if cmp == 0 [ip: jmp]]                c no
-    J1     a noarg     b [if cmp == 1 [ip: jmp]]                c no
-    JZ     a threearg  b [if (mget bp) == 0 [ip: jmp]]                c no
-    JNZ    a threearg  b [if (mget bp) <> 0 [ip: jmp]]                c no
-    CALL   a noarg     b [++ rp ip: jmp]                        c no
-    RET    a noarg	   b [-- rp ip: (mget rp)]                    c no 
+    JEQ    a noarg     b [if cmp == 0 [set 'ip jmp]]                c no
+    JNE    a noarg     b [if cmp <> 0 [set 'ip jmp]]                c no
+    JGT    a noarg     b [if cmp >  0 [set 'ip jmp]]                c no
+    JGE    a noarg     b [if cmp >= 0 [set 'ip jmp]]                c no
+    J0     a noarg     b [if cmp == 0 [set 'ip jmp]]                c no
+    J1     a noarg     b [if cmp == 1 [set 'ip jmp]]                c no
+    JZ     a threearg  b [if (mget bp) == 0 [set 'ip jmp]]                c no
+    JNZ    a threearg  b [if (mget bp) <> 0 [set 'ip jmp]]                c no
+    CALL   a noarg     b [++ rp set 'ip jmp]                        c no
+    RET    a noarg	   b [-- rp set 'ip (mget rp)]                    c no 
     NOP    a noarg     b []                                     c no
     HALT   a noarg     b [set 'running false]                       c no
     OUT    a litarg
