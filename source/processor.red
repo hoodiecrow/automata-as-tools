@@ -22,9 +22,11 @@ Address #0 can be used as a null pointer
 reset: func [m][
 	ap: bp: cp: ip: rp: sp: 0
 	rp: 51
+	zflag: 0
 	mem: make vector! 60
 	jmp: 0
 	cmp: 0
+	running: false
 	model: m
 ]
 
@@ -141,14 +143,10 @@ execute-code: func [code [block!]][
 	set 'program make block! length? code
     parse code [some [label: set-word! (put labels first label (length? program) + 1) | b: any-type! (append program first b)]]
 	set 'ip 1
-	execute parse-instruction
-	; remove
-	execute parse-instruction
-	execute parse-instruction
-	execute parse-instruction
-	execute parse-instruction
-	execute parse-instruction
-	execute parse-instruction
+	set 'running true
+	while [running][
+		execute parse-instruction
+	]
 ]
 
 execute: func [instruction [series!]] [
@@ -207,7 +205,7 @@ print [mold instruction]
 print ['ap ap 'bp bp 'cp cp 'ip ip 'rp rp 'sp sp 'jmp jmp 'mem8 mold copy/part mem 8]
 	do operation/b
 ;print ['ap ap 'bp bp 'cp cp 'ip ip 'rp rp 'sp sp 'jmp jmp 'mem8 mold copy/part mem 8]
-	if get operation/c [cmp: do-cmp]
+	if get operation/c [do-cmp]
 ]
 
 set-pointers: func [type args [block!]][
@@ -301,16 +299,20 @@ operations: [
     JGE    a noarg     b [if cmp >= 0 [ip: jmp]]                c no
     J0     a noarg     b [if cmp == 0 [ip: jmp]]                c no
     J1     a noarg     b [if cmp == 1 [ip: jmp]]                c no
-    JZ     a noarg     b [if cmp == 0 [ip: jmp]]                c no
-    JNZ    a noarg     b [if cmp <> 0 [ip: jmp]]                c no
+    JZ     a threearg  b [if (mget bp) == 0 [ip: jmp]]                c no
+    JNZ    a threearg  b [if (mget bp) <> 0 [ip: jmp]]                c no
     CALL   a noarg     b [++ rp ip: jmp]                        c no
     RET    a noarg	   b [-- rp ip: (mget rp)]                    c no 
     NOP    a noarg     b []                                     c no
-    HALT   a noarg     b ;stop processor
+    HALT   a noarg     b [set 'running false]                       c no
     OUT    a litarg
     TEST   a litarg
 ]
 
+; in SM, #0 should be ToS?
 mset: func [index [any-type!] value][if index > 0 [poke mem index value] ]
 mget: func [index [integer!]][ either index > 0 [pick mem index][return 0] ]
-do-cmp: does [either (mget ap) < 0 [-1][either (mget ap) > 0 [1][0]]]
+do-cmp: does [
+	set 'cmp either (mget ap) < 0 [-1][either (mget ap) > 0 [1][0]]
+	set 'zflag (mget ap) == 0
+]

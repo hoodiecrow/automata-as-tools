@@ -243,20 +243,18 @@ comment {
 	reset "CM"
 	execute-code [
 	        CONST:2,2
-		a:  CMP:2
-			JZ:b
+		a:  JZ:b,2
 			DEC:2
 			INC:3
 			INC:1
 			JUMP:a
-		b:  CMP:1
-			JZ:z
+		b:  JZ:z,1
 			DEC:1
 			INC:2
-			JMP:b
-		z:  NOP
+			JUMP:b
+		z:  HALT
 	]
-  --assert "" = mold copy/part mem 5
+  --assert "make vector! [0 2 2 0 0]" = mold copy/part mem 5
 
 ===end-group===
 
