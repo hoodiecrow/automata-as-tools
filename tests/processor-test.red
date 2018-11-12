@@ -198,42 +198,84 @@ do %/C/users/peter/code/red/quick-test/quick-test.red
 
   --test-- "counter-machine-test-14"
 	reset "CM"
-	jmp: 3 execute ["CONST" 3 1]
-	jmp: 2 execute ["CONST" 2 2]
+	execute ["CONST" 3 1]
+	execute ["CONST" 2 2]
   --assert "make vector! [3 2 0 0 0 0 0 0]" = mold copy/part mem 8
 
   --test-- "counter-machine-test-15"
 	reset "CM"
-	jmp: 3 execute ["CONST" 3 1]
-	jmp: 2 execute ["CONST" 2 2]
-	jmp: 3 execute ["ADD" 3 2 1]
+	execute ["CONST" 3 1]
+	execute ["CONST" 2 2]
+	execute ["ADD" 3 2 1]
   --assert "make vector! [3 2 5 0 0 0 0 0]" = mold copy/part mem 8
 
   --test-- "counter-machine-test-16"
 	reset "CM"
-	jmp: 3 execute ["CONST" 3 1]
-	jmp: 1 execute ["CLEAR" 1]
-	jmp: 2 execute ["CONST" 2 2]
-	jmp: 3 execute ["COPY" 3 2]
+	execute ["CONST" 3 1]
+	execute ["CLEAR" 1]
+	execute ["CONST" 2 2]
+	execute ["COPY" 3 2]
   --assert "make vector! [0 2 2 0 0 0 0 0]" = mold copy/part mem 8
 
   --test-- "counter-machine-test-17"
 	reset "CM"
-	jmp: 3 execute ["CONST" 3 1]
-	jmp: 2 execute ["CONST" 2 2]
-	jmp: 3 execute ["CMP" 3 2 1]
+	execute ["CONST" 3 1]
+	execute ["CONST" 2 2]
+	execute ["CMP" 3 2 1]
   --assert -1 = cmp
 
   --test-- "counter-machine-test-18"
 	reset "CM"
-	jmp: 2 execute ["CONST" 2 1]
-	jmp: 3 execute ["CONST" 3 2]
-	jmp: 3 execute ["CMP" 3 2 1]
+	execute ["CONST" 2 1]
+	execute ["CONST" 3 2]
+	execute ["CMP" 3 2 1]
   --assert 1 = cmp
 
-comment {
+  --test-- "counter-machine-test-18"
+	reset "CM"
+	execute-code [
+		CONST:2,1
+		CONST:3,2
+		CMP:3,2,1
+		HALT
+	]
+  --assert 1 = cmp
 
-}
+  --test-- "parse-argument-1"
+    reset "CM"
+	labels: [a: 1]
+	instruction: [FOO #"a" #"2"]
+	set 'res parse-argument second instruction
+  --assert 1 = res
+
+  --test-- "parse-argument-2"
+    reset "CM"
+	labels: [a: 1]
+	instruction: [FOO #"a" #"2"]
+	set 'res parse-argument third instruction
+  --assert 2 = res
+
+  --test-- "parse-argument-3"
+    reset "CM"
+	labels: [a: 1]
+	instruction: [FOO #"a" #"2"]
+	set 'res parse-argument fourth instruction
+  --assert 0 = res
+
+  --test-- "parse-argument-4"
+    reset "CM"
+	instruction: [FOO #"3" #"2"]
+	set 'res parse-argument second instruction
+  --assert 3 = res
+
+  --test-- "parse-argument-5"
+    reset "CM"
+	instruction: [CONST #"3" #"2"]
+	set 'a parse-argument second instruction
+	set 'b parse-argument third instruction
+	set 'c parse-argument fourth instruction
+print mold reduce [a b c]
+  --assert "[3 2 0]" = mold reduce [a b c]
 
 ===end-group===
 

@@ -130,12 +130,27 @@ comment {
 parse-instruction: does [
 	word: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9" #"_"]
 	non-word: complement word
+print [mold ip mold program/:ip]
 	instr: program/:ip
-	if instr == none [cause-error 'foo 'bar ["off the end"]]
+	if none? instr [cause-error 'foo 'bar ["off the end"]]
 print [mold instr type? instr]
 	if (not string? instr) [set 'instr to-string instr]
 print [mold instr type? instr]
 	parse instr [collect [some [keep some word | some non-word]]]
+]
+
+parse-argument: func [arg][
+	if none? arg [return 0]
+	if integer? arg [return arg]
+	word: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9" #"_"]
+	digit: charset [#"0" - #"9"]
+	digits: [some digit]
+		parse to-string arg [
+			v: digits (res: to-integer v) |
+			v: [["-" - "+"] digits] (print ['offset v]) |
+			v: some word (res: select labels to-word v)
+		]
+		return res
 ]
 
 execute-code: func [code [block!]][
@@ -153,53 +168,25 @@ execute: func [instruction [series!]] [
 print [mold instruction]
 ;print mold find/skip operations (make lit-word! op) 7
 	op: to-string first instruction
-	args: next instruction
-	digit: charset [#"0" - #"9"]
-	digits: [some digit]
-	a: 0
-	b: 0
-	c: 0
-	arg-a: first args
-	if arg-a <> none [
-		parse to-string arg-a [
-			v: digits (a: set 'jmp to-integer v) |
-			v: [["-" - "+"] digits] (print ['offset v]) |
-			v: some word (a: set 'jmp select labels to-word v)
-		]
-		arg-b: second args
-		if arg-b <> none [
-			parse to-string arg-b [
-				v: digits (b: to-integer v)
-			]
-			arg-c: third args
-			if arg-c <> none [
-				parse to-string arg-c [
-					v: digits (c: to-integer v)
-				]
-			]
-		]
-	]
-;print ['op op 'args args]
+	set 'a parse-argument second instruction
+	set 'b parse-argument third instruction
+	set 'c parse-argument fourth instruction
+print [mold a mold reduce [a b c]]
 	comment {
-		either (length? args) == 0 [
-			set 'jmp 0
-		][
-		set 'jmp first args
-			digit: charset [#"0" - #"9"]
-			digits: [some digit]
-			if not parse to-string jmp [digits] [
-				print labels
-						print mold jmp
-						either jmp == [] [
-						][
-							set 'jmp select labels make lit-word! jmp
-						]
-			]
-			print mold jmp
-		]
+instruction: [FOO #"a" #"2"]
+				 labels: [a: 1]
+				 vars: [a b c]
+				 n: 1
+				 foreach arg next instruction [
+				 print [mold n mold vars/:n mold arg]
+					 set vars/:n parse-argument arg
+					 n: n + 1
+				 ]
 	}
+	set 'jmp a
 	operation: copy/part (next find/skip operations make lit-word! op 7) 6
 	mset rp (1 + ip)
+print [mold a mold reduce [a b c]]
 	set-pointers operation/a reduce [a b c]
 	set 'ip mem/:rp
 print ['ap ap 'bp bp 'cp cp 'ip ip 'rp rp 'sp sp 'jmp jmp 'mem8 mold copy/part mem 8]
