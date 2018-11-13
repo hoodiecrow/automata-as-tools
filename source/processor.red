@@ -101,7 +101,7 @@ execute-code: func [code [block!]][
 execute: func [instruction [series!]] [
 print ['execute mold instruction]
 ;print mold find/skip operations (make lit-word! op) 7
-	op: to-string first instruction
+	op: first instruction
 	set 'a parse-argument second instruction
 	set 'b parse-argument third instruction
 	set 'c parse-argument fourth instruction
@@ -110,9 +110,9 @@ print ['execute mold instruction]
 	mset rp (1 + ip)
 	set-pointers operation/a reduce [a b c]
 	set 'ip mem/:rp
-print ['ap ap 'bp bp 'cp cp 'ip ip 'rp rp 'sp sp 'jmp jmp 'mem8 mold copy/part mem 8]
+;print ['ap ap 'bp bp 'cp cp 'ip ip 'rp rp 'sp sp 'jmp jmp 'cmp cmp 'mem8 mold copy/part mem 8]
 	do operation/b
-;print ['ap ap 'bp bp 'cp cp 'ip ip 'rp rp 'sp sp 'jmp jmp 'mem8 mold copy/part mem 8]
+print ['ap ap 'bp bp 'cp cp 'ip ip 'rp rp 'sp sp 'mem8 mold copy/part mem 8]
 	if get operation/c [do-cmp]
 ]
 
@@ -124,22 +124,10 @@ print ['set-pointers mold args]
 				noarg    []
 				onearg   [ set 'ap first args ]
 				onearg2  [ set 'ap second args ]
-				copyarg  [
-					set 'ap first args
-					set 'bp second args
-				]
-				threearg [
-					set 'ap first args
-					set 'bp second args
-					set 'cp third args
-				]
-				cmparg [
-					set 'ap first args
-					set 'bp second args
-					set 'cp third args
-				]
-				litarg   [
-				]
+				copyarg  [ set [ap bp] args ]
+				threearg [ set [ap bp cp] args ]
+				cmparg   [ set [ap bp cp] args ]
+				litarg   [ ]
 			]
 		]
 		"SM" [
