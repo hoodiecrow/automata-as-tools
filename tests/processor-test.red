@@ -226,13 +226,6 @@ do %/C/users/peter/code/red/quick-test/quick-test.red
 
   --test-- "counter-machine-test-18"
 	reset "CM"
-	execute ["CONST" 2 1]
-	execute ["CONST" 3 2]
-	execute ["CMP" 3 2 1]
-  --assert 1 = cmp
-
-  --test-- "counter-machine-test-18"
-	reset "CM"
 	execute-code [
 		CONST:2,1
 		CONST:3,2
@@ -274,7 +267,6 @@ do %/C/users/peter/code/red/quick-test/quick-test.red
 	set 'a parse-argument second instruction
 	set 'b parse-argument third instruction
 	set 'c parse-argument fourth instruction
-print mold reduce [a b c]
   --assert "[3 2 0]" = mold reduce [a b c]
 
 ===end-group===

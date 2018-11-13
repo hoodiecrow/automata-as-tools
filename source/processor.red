@@ -59,104 +59,38 @@ CALL incRP, ip←jmp
 RET  decRP, ip←[rp]
 }
 
-comment {
-	; http://www.red-by-example.org/parse.html
-    ws: charset reduce [space tab cr lf]
-    digit:   charset "0123456789"
-    letters: charset [#"a" - #"z" #"A" - #"Z"]
-    chars: union union letters digit charset "_"
-    parse "  a:  FOO:a,b,c  BAR:a,b,c" tokens: [collect [some [ws | [":" | ","] | keep some chars]]]
- ;== [#"a" "FOO" #"a" #"b" #"c" "BAR" #"a" #"b" #"c"]
-    split "  a:  FOO:a,b,c  BAR:a,b,c" ws
-	word: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9" #"_"]
-	non-word: complement word
-    parse "  a:  FOO:a,b,c  BAR:a,b,c" tokens: [collect [some [ws | [":" | ","] | keep some word]]]
-
-    space: charset reduce [space tab cr lf]
-    non-space: complement space
-	parse mold str [collect [ "[" some [space | keep some non-space] to "]" ]]
-	parse mold/only str [collect [ some [space | keep some non-space] ]]
-
-	parse str [collect [ some [keep set-word! | keep any-type!] ]]
-
-    ops: [  a:  FOO:a,b,c  BAR:a,b,c  ]
-	n: 1
-	labels: make map! []
-	program: make vector! length? ops
-	parse ops [ some [label: set-word! (put labels first label n) | operation: any-type! (program/:n: index? operation n: n + 1)] ]
-}
-
-comment {
-	n: 1
-	set 'labels make map! []
-	set 'program make vector! length? code
-	parse code [
-		some [
-			label: set-word! (put labels first label n) |
-			operation: any-type! (program/:n: index? operation n: n + 1)
-		]
-	]
-	opseq: collect [foreach index program [keep pick code index]]
-
-	code: [
-	        CONST:2,2
-		a:  JZ:b,2
-			DEC:2
-			INC:3
-			INC:1
-			JMP:a
-		b:  JZ:z,1
-			DEC:1
-			INC:2
-			JMP:b
-		z:  NOP
-	]
-	
-	set 'labels make map! []
-	set 'program make block! length? code
-    parse code [some [label: set-word! (put labels first label (length? program) + 1) | b: any-type! (append program first b)]]
-
-	word: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9" #"_"]
-	non-word: complement word
-	digit: charset [#"0" - #"9"]
-	digits: [some digit]
-	operation: parse program/1 [collect [some [keep some word | some non-word]]]
-	parse to-word operation/2 [lit-word! | char! | integer!]
-	parse to-block operation/2 [s: lit-word! (print ['s s]) | c: char! (print ['c c]) | i: integer! (print ['i i])]
-	parse to-string operation/2 [ i: digits (print ['i i]) | s: some word (print ['s s]) ]
-
-}
-
 parse-instruction: does [
 	word: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9" #"_"]
 	non-word: complement word
-print [mold ip mold program/:ip]
+print ['parse-instruction mold ip mold program/:ip]
 	instr: program/:ip
 	if none? instr [cause-error 'foo 'bar ["off the end"]]
-print [mold instr type? instr]
 	if (not string? instr) [set 'instr to-string instr]
-print [mold instr type? instr]
 	parse instr [collect [some [keep some word | some non-word]]]
 ]
 
 parse-argument: func [arg][
 	if none? arg [return 0]
-	if integer? arg [return arg]
 	word: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9" #"_"]
 	digit: charset [#"0" - #"9"]
 	digits: [some digit]
-		parse to-string arg [
-			v: digits (res: to-integer v) |
-			v: [["-" - "+"] digits] (print ['offset v]) |
-			v: some word (res: select labels to-word v)
-		]
-		return res
+	parse to-string arg [
+		v: digits (res: to-integer v) |
+		v: [["-" - "+"] digits] (print ['offset v]) |
+		v: some word (res: select labels to-word v)
+	]
+	return res
 ]
 
 execute-code: func [code [block!]][
 	set 'labels make map! []
 	set 'program make block! length? code
-    parse code [some [label: set-word! (put labels first label (length? program) + 1) | b: any-type! (append program first b)]]
+    parse code [
+		some [
+			label: set-word! (put labels first label (length? program) + 1) |
+			token: any-type! (append program first token)
+		]
+	]
 	set 'ip 1
 	set 'running true
 	while [running][
@@ -165,28 +99,15 @@ execute-code: func [code [block!]][
 ]
 
 execute: func [instruction [series!]] [
-print [mold instruction]
+print ['execute mold instruction]
 ;print mold find/skip operations (make lit-word! op) 7
 	op: to-string first instruction
 	set 'a parse-argument second instruction
 	set 'b parse-argument third instruction
 	set 'c parse-argument fourth instruction
-print [mold a mold reduce [a b c]]
-	comment {
-instruction: [FOO #"a" #"2"]
-				 labels: [a: 1]
-				 vars: [a b c]
-				 n: 1
-				 foreach arg next instruction [
-				 print [mold n mold vars/:n mold arg]
-					 set vars/:n parse-argument arg
-					 n: n + 1
-				 ]
-	}
 	set 'jmp a
 	operation: copy/part (next find/skip operations make lit-word! op 7) 6
 	mset rp (1 + ip)
-print [mold a mold reduce [a b c]]
 	set-pointers operation/a reduce [a b c]
 	set 'ip mem/:rp
 print ['ap ap 'bp bp 'cp cp 'ip ip 'rp rp 'sp sp 'jmp jmp 'mem8 mold copy/part mem 8]
