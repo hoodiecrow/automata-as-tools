@@ -79,7 +79,7 @@ parse-argument: func [arg][
 		v: [["-" - "+"] digits] (print ['offset v]) |
 		v: some word (res: select labels to-word v)
 	]
-	return res
+	if res [return res]
 ]
 
 execute-code: func [code [block!]][
