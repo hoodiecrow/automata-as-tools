@@ -24,10 +24,12 @@ reset: func [m][
 	rp: 51
 	zflag: 0
 	mem: make vector! 60
+	_head: tape: [ 0 ]
 	jmp: 0
 	cmp: 0
 	running: false
 	model: m
+	om: none
 ]
 
 comment {
@@ -69,20 +71,39 @@ print ['parse-instruction mold ip mold program/:ip]
 	parse instr [collect [some [keep some word | some non-word]]]
 ]
 
-parse-argument: func [arg][
+parse-argument: func [
+	arg
+	/address
+][
 	if none? arg [return 0]
 	word: charset [#"a" - #"z" #"A" - #"Z" #"0" - #"9" #"_"]
 	digit: charset [#"0" - #"9"]
 	digits: [some digit]
-	parse to-string arg [
-		v: digits (res: to-integer v) |
-		v: [["-" - "+"] digits] (print ['offset v]) |
-		v: some word (res: select labels to-word v)
+	;-- TODO depending on which argument it is, an offset could be added to ip,
+	;-- sp, etc
+	either address [
+		parse to-string arg [
+			v: digits (res: to-integer v) |
+			v: [["-" - "+"] digits] (res: ip + to-integer v) |
+			v: "head" (res: 0 om: 'as-head) |
+			v: some word (res: select labels to-word v)
+		]
+		if res [return res]
+	][
+		parse to-string arg [
+			v: digits (res: to-integer v) |
+			v: [["-" - "+"] digits] (res: to-string v) |
+			v: some word (res: to-word v)
+		]
+		if res [return res]
 	]
-	if res [return res]
 ]
 
-execute-code: func [code [block!]][
+execute: func [
+	init [block!]
+	code [block!]
+][
+	do init
 	set 'labels make map! []
 	set 'program make block! length? code
     parse code [
@@ -94,15 +115,15 @@ execute-code: func [code [block!]][
 	set 'ip 1
 	set 'running true
 	while [running][
-		execute parse-instruction
+		execute-instruction parse-instruction
 	]
 ]
 
-execute: func [instruction [series!]] [
-print ['execute mold instruction]
+execute-instruction: func [instruction [series!]] [
+print ['execute-instruction mold instruction]
 ;print mold find/skip operations (make lit-word! op) 7
 	op: first instruction
-	set 'a parse-argument second instruction
+	set 'a parse-argument/address second instruction
 	set 'b parse-argument third instruction
 	set 'c parse-argument fourth instruction
 	set 'jmp a
@@ -113,7 +134,7 @@ print ['execute mold instruction]
 ;print ['ap ap 'bp bp 'cp cp 'ip ip 'rp rp 'sp sp 'jmp jmp 'cmp cmp 'mem8 mold copy/part mem 8]
 	do operation/b
 print ['ap ap 'bp bp 'cp cp 'ip ip 'rp rp 'sp sp 'mem8 mold copy/part mem 8]
-	if get operation/c [do-cmp]
+	if get operation/c [set-cmp]
 ]
 
 set-pointers: func [type args [block!]][
@@ -127,7 +148,20 @@ print ['set-pointers mold args]
 				copyarg  [ set [ap bp] args ]
 				threearg [ set [ap bp cp] args ]
 				cmparg   [ set [ap bp cp] args ]
+				znzarg   [ set [ap bp cp] args ]
 				litarg   [ ]
+			]
+		]
+		"PTM" [
+			switch type [
+				noarg    []
+				onearg   [ set 'ap first args ]
+				onearg2  [ set 'ap second args ]
+				copyarg  [ set [ap bp] args ]
+				threearg [ set [ap bp cp] args ]
+				cmparg   [ set [ap bp cp] args ]
+				znzarg   [ set [ap bp cp] args ]
+				litarg   [ set [ap bp cp] args ]
 			]
 		]
 		"SM" [
@@ -151,6 +185,7 @@ print ['set-pointers mold args]
 					set 'cp sp
 					-- cp
 				]
+				znzarg   [ set 'bp sp ]
 				litarg   [
 				]
 			]
@@ -161,7 +196,7 @@ print ['set-pointers mold args]
 operations: [
 	PUSH   a noarg     b [++ sp mset sp jmp]                   c no
 	POP    a noarg     b [-- sp]                                c no
-	CMP    a cmparg    b [cmp: either (mget bp) < (mget cp) [-1][either (mget bp) > (mget cp) [1][0]]] c no
+	CMP    a cmparg    b [do-cmp]                             c no
 	CLEAR  a onearg    b [mset ap 0]                           c yes
 	COPY   a copyarg   b [mset ap (mget bp)]                     c yes
 	DUP    a copyarg   b [mset ap (mget bp)]                     c yes
@@ -189,26 +224,66 @@ operations: [
     OR     a threearg  b [mset ap (mget bp) or  (mget cp)]         c yes
     XOR    a threearg  b [mset ap (mget bp) xor (mget cp)]         c yes
     JUMP   a noarg     b [set 'ip jmp]                          c no
-    JEQ    a noarg     b [if cmp == 0 [set 'ip jmp]]                c no
-    JNE    a noarg     b [if cmp <> 0 [set 'ip jmp]]                c no
-    JGT    a noarg     b [if cmp >  0 [set 'ip jmp]]                c no
-    JGE    a noarg     b [if cmp >= 0 [set 'ip jmp]]                c no
+    JEQ    a cmparg    b [if do-cmp == 0 [set 'ip jmp]]                c no
+    JNE    a cmparg    b [if do-cmp <> 0 [set 'ip jmp]]                c no
+    JGT    a cmparg    b [if do-cmp >  0 [set 'ip jmp]]                c no
+    JGE    a cmparg    b [if do-cmp >= 0 [set 'ip jmp]]                c no
     J0     a noarg     b [if cmp == 0 [set 'ip jmp]]                c no
     J1     a noarg     b [if cmp == 1 [set 'ip jmp]]                c no
-    JZ     a threearg  b [if (mget bp) == 0 [set 'ip jmp]]                c no
-    JNZ    a threearg  b [if (mget bp) <> 0 [set 'ip jmp]]                c no
+    JZ     a znzarg    b [if (mget bp) == 0 [set 'ip jmp]]                c no
+    JNZ    a znzarg    b [if (mget bp) <> 0 [set 'ip jmp]]                c no
     CALL   a noarg     b [++ rp set 'ip jmp]                        c no
     RET    a noarg	   b [-- rp set 'ip (mget rp)]                    c no 
     NOP    a noarg     b []                                     c no
     HALT   a noarg     b [set 'running false]                       c no
-    OUT    a litarg
+    OUT    a litarg    b [do-out om bp cp set 'running false]                         c no
     TEST   a litarg
 ]
 
 ; in SM, #0 should be ToS?
 mset: func [index [any-type!] value][if index > 0 [poke mem index value] ]
 mget: func [index [integer!]][ either index > 0 [pick mem index][return 0] ]
-do-cmp: does [
+set-cmp: does [
 	set 'cmp either (mget ap) < 0 [-1][either (mget ap) > 0 [1][0]]
 	set 'zflag (mget ap) == 0
 ]
+do-cmp: does [cmp: either (mget bp) < (mget cp) [-1][either (mget bp) > (mget cp) [1][0]]]
+
+do-out: func [ aarg barg carg ][
+print ['do-out mold aarg type? aarg mold barg type? barg mold carg type? carg]
+print [mold _head]
+	if false [
+		set 'running false
+			return none
+	]
+	switch aarg [
+		as-head [
+			switch barg [
+				P [change _head 1 ]
+				E [change _head 0 ]
+			]
+		]
+	]
+]
+
+comment {
+		set 'running false
+			return none
+			; head moves over tape
+			switch carg [
+				R [
+					next _head
+					if tail? _head [
+						insert _head 0
+					]
+				]
+				L [
+					back _head
+					if head? _head [
+						insert _head 0
+					]
+				]
+			]
+		set 'running false
+			return none
+}
