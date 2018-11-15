@@ -13,16 +13,15 @@ do %/C/users/peter/code/red/quick-test/quick-test.red
 
 
   --test-- "stack-machine-test-13"
-    execute [
-		reset "SM"
-		poke mem 1 3
-		poke mem 2 2
-		set 'sp 2
-	][
+	M: make SMProc []
+		M/mset 1 3
+		M/mset 2 2
+		M/sp: 2
+	M/execute [
 		ADD
 		HALT
 	]
-  --assert "make vector! [5 2 0 0 0 0 0 0]" = mold copy/part mem 8
+  --assert "make vector! [5 2 0 0 0 0 0 0]" = mold copy/part M/mem 8
 
   --test-- "stack-machine-test-14"
     execute [
