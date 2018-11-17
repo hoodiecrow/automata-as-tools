@@ -27,9 +27,11 @@ Processor: make object! [
 	cmp: 0
 	running: false
 	labels: program: none
+	noarg: none
+	threearg: none
 	instructions: make map! [
 		ADD  [threearg  mset ap (mget bp) + (mget cp)  do-cmp]
-		HALT [[] running: false]
+		HALT [noarg running: false]
 	]
 	execute: func [ code [block!] ][
 		labels: make map! []
@@ -55,9 +57,15 @@ Processor: make object! [
 	print [mold head args]
 		jmp: calc-jump first args
 		mset rp (1 + ip)
-		foo: get in self first op
+	print [mold op/1 type? op/1 mold get in self op/1 type? get in self op/1
+	]
+		;-- TODO make the instruction values objects?
+		foo: get in self op/1
 		foo args
 		comment {
+		foo: get in self first op
+		foo args
+		get in self first op args
 		do reduce [:foo args]
 			do head insert args first op
 		}
@@ -66,7 +74,7 @@ Processor: make object! [
 		}
 		ip: mem/:rp
 	;print ['ap ap 'bp bp 'cp cp 'ip ip 'rp rp 'sp sp 'jmp jmp 'cmp cmp 'mem8 mold copy/part mem 8]
-		do skip op 2
+		do copy next op
 	print ['ap ap 'bp bp 'cp cp 'ip ip 'rp rp 'sp sp 'mem8 mold copy/part mem 8]
 	]
 	parse-instruction: does [
@@ -213,6 +221,32 @@ SMProc: make Processor [
 			litarg   [ ]
 		]
 	]
+]
+
+; [set [ap bp cp] args] implied
+; mem/:rp ip + 1
+ops2: [
+	; PUSH COPY DUP CONST
+	LOADC  [bp: ap ap: ++ sp       ][mem/:ap: bp cmp: compare mem/:ap 0 ip: mem/:rp]
+	POP    [-- sp                  ][]
+	CMP    [bp: cp: sp -- cp       ][cmp: compare mem/:bp mem/:cp ip: mem/:rp]
+	CLEAR  [ap: sp                 ][mem/:ap: 0 cmp: compare mem/:ap 0 ip: mem/:rp]
+	; ABS DEC INC NEG NOT
+	UNARY  [ap: sp                 ][mem/:ap: uop mem/:ap cmp: compare mem/:ap 0 ip: mem/:rp]
+	; EQ NE EQL NEQ GT GE LT LE SUB MUL EXP DIV REM AND OR XOR
+	BINARY [bp: sp -- sp cp: ap: sp][mem/:ap: bop bp cp cmp: compare mem/:ap 0 ip: mem/:rp]
+	JUMP   [                       ][ip: ap]
+	J<cmp> [bp: cp: sp -- cp       ][ip: either cmpop compare mem/:bp mem/:cp 0 [ap][mem/:rp]]
+	J0     [                       ][ip: either cmp == 0 [ap][mem/:rp]]
+	J1     [                       ][ip: either cmp == 1 [ap][mem/:rp]]
+	JZ     [bp: sp                 ][ip: either mem/:bp == 0 [ap][mem/:rp]]
+	JNZ    [bp: sp                 ][ip: either mem/:bp <> 0 [ap][mem/:rp]]
+	CALL   [                       ][++ rp ip: ap]
+	RET    [                       ][-- rp ip: mem/:rp]
+	NOP    [                       ][ip: mem/:rp]
+	HALT   [                       ][running: false]
+	OUT    [                       ][ ip: mem/:rp]
+	TES    [                       ][ ip: mem/:rp]
 ]
 
 operations: [
