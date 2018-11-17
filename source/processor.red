@@ -223,30 +223,32 @@ SMProc: make Processor [
 	]
 ]
 
+; op is opcode
 ; [set [ap bp cp] args] implied
 ; mem/:rp ip + 1
 ops2: [
 	; PUSH COPY DUP CONST
-	LOADC  [bp: ap ap: ++ sp       ][mem/:ap: bp cmp: compare mem/:ap 0 ip: mem/:rp]
-	POP    [-- sp                  ][]
-	CMP    [bp: cp: sp -- cp       ][cmp: compare mem/:bp mem/:cp ip: mem/:rp]
-	CLEAR  [ap: sp                 ][mem/:ap: 0 cmp: compare mem/:ap 0 ip: mem/:rp]
+	LOADC   [bp: ap ap: ++ sp       ][mem/:ap: bp cmp: compare mem/:ap 0 ip: mem/:rp]
+	POP     [-- sp                  ][]
+	CMP     [bp: cp: sp -- cp       ][cmp: compare mem/:bp mem/:cp ip: mem/:rp]
+	CLEAR   [ap: sp                 ][mem/:ap: 0 cmp: compare mem/:ap 0 ip: mem/:rp]
 	; ABS DEC INC NEG NOT
-	UNARY  [ap: sp                 ][mem/:ap: uop mem/:ap cmp: compare mem/:ap 0 ip: mem/:rp]
+	UNARY   [ap: sp                 ][mem/:ap: op mem/:ap cmp: compare mem/:ap 0 ip: mem/:rp]
 	; EQ NE EQL NEQ GT GE LT LE SUB MUL EXP DIV REM AND OR XOR
-	BINARY [bp: sp -- sp cp: ap: sp][mem/:ap: bop bp cp cmp: compare mem/:ap 0 ip: mem/:rp]
-	JUMP   [                       ][ip: ap]
-	J<cmp> [bp: cp: sp -- cp       ][ip: either cmpop compare mem/:bp mem/:cp 0 [ap][mem/:rp]]
-	J0     [                       ][ip: either cmp == 0 [ap][mem/:rp]]
-	J1     [                       ][ip: either cmp == 1 [ap][mem/:rp]]
-	JZ     [bp: sp                 ][ip: either mem/:bp == 0 [ap][mem/:rp]]
-	JNZ    [bp: sp                 ][ip: either mem/:bp <> 0 [ap][mem/:rp]]
-	CALL   [                       ][++ rp ip: ap]
-	RET    [                       ][-- rp ip: mem/:rp]
-	NOP    [                       ][ip: mem/:rp]
-	HALT   [                       ][running: false]
-	OUT    [                       ][ ip: mem/:rp]
-	TES    [                       ][ ip: mem/:rp]
+	BINARY  [bp: sp -- sp cp: ap: sp][mem/:ap: op bp cp cmp: compare mem/:ap 0 ip: mem/:rp]
+	JUMP    [                       ][ip: ap]
+	; JEQ is <1> == 0 JNE is <1> <> 0 JGT is <1> > 0 JGE is <1> >= 0
+	J<cmp>  [bp: cp: sp -- cp       ][ip: either op compare mem/:bp mem/:cp [ap][mem/:rp]]
+	; J0 is <1> == 0 J1 is <1> == 1
+	J<0,1>  [                       ][ip: either op cmp [ap][mem/:rp]]
+	; JZ is <1> == 0 JNZ is <1> <> 0
+	J<Z,NZ> [bp: sp                 ][ip: either op mem/:bp [ap][mem/:rp]]
+	CALL    [                       ][++ rp ip: ap]
+	RET     [                       ][-- rp ip: mem/:rp]
+	NOP     [                       ][ip: mem/:rp]
+	HALT    [                       ][running: false]
+	OUT     [                       ][ ip: mem/:rp]
+	TES     [                       ][ ip: mem/:rp]
 ]
 
 operations: [
